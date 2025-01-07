@@ -1,3 +1,10 @@
 Fetch dependencies directly from they sources
 Improve WindowsHandler class
 find a solution for universal printVerbose
+
+optimizations :
+ - Chunk-based storage
+ - Greedy meshing
+ - Level of Details (LOD)
+ - Use OpenCL for meshing & OpenGL for rendering
+ - Multithread for LOD generation

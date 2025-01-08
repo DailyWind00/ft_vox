@@ -2,9 +2,13 @@ Fetch dependencies directly from they sources
 Improve WindowsHandler class
 find a solution for universal printVerbose
 
+features:
+ - profiler for benchmarking and optimization
+ - no multithreading (first optimise in monothread and THEN we pump that shit up)
+
 optimizations :
- - Chunk-based storage
- - Greedy meshing
- - Level of Details (LOD)
- - Use OpenCL for meshing & OpenGL for rendering
- - Multithread for LOD generation
+ - Chunk-based storage (32x32x32 ?)			=> obviously
+ - Greedy meshing					=> hell yeah
+ - Level of Details (LOD)				=> fuck yeah
+ - Use OpenCL for meshing & OpenGL for rendering	=> to discuss but probably too convoluted
+ - Multithread for LOD generation			=> not usefull and maybe buggy but cool idea

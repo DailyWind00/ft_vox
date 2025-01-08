@@ -1,15 +1,3 @@
-# **************************************************************************** #
-#                                                                              #
-#                                                         :::      ::::::::    #
-#    fetch-dependencies.sh                              :+:      :+:    :+:    #
-#                                                     +:+ +:+         +:+      #
-#    By: hasyxd <aliaudet@student.42lehavre.fr      +#+  +:+       +#+         #
-#                                                 +#+#+#+#+#+   +#+            #
-#    Created: 2025/01/08 13:47:18 by hasyxd            #+#    #+#              #
-#    Updated: 2025/01/08 14:57:12 by hasyxd           ###   ########.fr        #
-#                                                                              #
-# **************************************************************************** #
-
 #!/usr/bin/bash
 if [ -d "dependencies" ]; then
 	echo "Dependencies already installed"

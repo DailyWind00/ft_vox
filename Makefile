@@ -13,8 +13,10 @@ clean:
 
 fclean: clean
 	@rm -f $(NAME)
+
+wipe: fclean
 	@rm -rf dependencies
 
 re: fclean all
 
-.PHONY: all clean fclean re
+.PHONY: all clean fclean wipe re

@@ -14,7 +14,12 @@ if ! python3 -m pip show virtualenv > /dev/null 2>&1; then
     python3 -m pip install --user virtualenv
 fi
 
-python3 -m virtualenv venv
+if python3 -c "help('modules')" | grep virtualenv; then
+	python3 -m virtualenv venv
+else
+	python3 -m venv venv
+fi
+
 source ./venv/bin/activate
 
 # Install CLI tools

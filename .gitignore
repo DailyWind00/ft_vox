@@ -32,5 +32,6 @@
 *.app
 
 .vscode/
+dependencies/
 build/
 ft_vox

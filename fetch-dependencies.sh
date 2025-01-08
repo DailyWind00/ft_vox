@@ -1,3 +1,15 @@
+# **************************************************************************** #
+#                                                                              #
+#                                                         :::      ::::::::    #
+#    fetch-dependencies.sh                              :+:      :+:    :+:    #
+#                                                     +:+ +:+         +:+      #
+#    By: hasyxd <aliaudet@student.42lehavre.fr      +#+  +:+       +#+         #
+#                                                 +#+#+#+#+#+   +#+            #
+#    Created: 2025/01/08 13:47:18 by hasyxd            #+#    #+#              #
+#    Updated: 2025/01/08 13:49:07 by hasyxd           ###   ########.fr        #
+#                                                                              #
+# **************************************************************************** #
+
 #!/usr/bin/bash
 if [ -d "dependencies" ]; then
 	echo "Dependencies already installed"
@@ -34,7 +46,14 @@ mv include/* . && mv src/glad.c glad/glad.c && rm -rf include src
 # glfw
 curl -LOs https://github.com/glfw/glfw/releases/download/3.4/glfw-3.4.zip
 unzip -q glfw-3.4.zip && rm glfw-3.4.zip
-mv glfw-3.4/include/GLFW glfw/ && rm -rf glfw-3.4
+
+cmake glfw-3.4/ -B glfw-3.4/build/
+cd glfw-3.4/build;make
+cd ../../
+mkdir glfw
+mv glfw-3.4/build/src/libglfw3.a glfw/
+mv glfw-3.4/include/GLFW/* glfw/
+rm -rf glfw-3.4
 
 deactivate
 rm -rf venv

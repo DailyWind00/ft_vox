@@ -10,6 +10,7 @@ add_executable(ft_vox
 	includes/classes/Shader.cpp
 	includes/classes/WindowsHandler.cpp
 	dependencies/glad/glad.c
+	dependencies/glfw/libglfw3.a
 )
 
 target_include_directories(ft_vox PRIVATE

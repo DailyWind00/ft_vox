@@ -1,6 +1,5 @@
 Fetch dependencies directly from they sources
 Improve WindowsHandler class
-find a solution for universal printVerbose
 
 features:
  - profiler for benchmarking and optimization

@@ -4,25 +4,17 @@
 # define COLOR_HEADER_CXX
 
 /// System includes
-# include <iostream>
-# include <algorithm>
+# include <string>
 # include <vector>
-# include <array>
 # include <map>
-# include <sstream>
-# include <fstream>
 
 /// Dependencies
 # include <glad/glad.h>
-# include "color.h"
+# include <glm/gtc/type_ptr.hpp>
+# include <glm/glm.hpp>
 
 /// Global variables
 extern bool VERBOSE;
-
-typedef std::array<float, 2> vec2;
-typedef std::array<float, 3> vec3;
-typedef std::array<float, 4> vec4;
-typedef std::array<float, 16> mat4;
 
 typedef struct shaderData {
     GLuint		shaderID;
@@ -63,10 +55,10 @@ class Shader {
         void    setUniform(const GLuint &shaderID, const std::string &name, bool value);
         void    setUniform(const GLuint &shaderID, const std::string &name, int value);
         void    setUniform(const GLuint &shaderID, const std::string &name, float value);
-        void    setUniform(const GLuint &shaderID, const std::string &name, vec2 value);
-        void    setUniform(const GLuint &shaderID, const std::string &name, vec3 value);
-        void    setUniform(const GLuint &shaderID, const std::string &name, vec4 value);
-        void    setUniform(const GLuint &shaderID, const std::string &name, mat4 value);
+        void    setUniform(const GLuint &shaderID, const std::string &name, glm::vec2 value);
+        void    setUniform(const GLuint &shaderID, const std::string &name, glm::vec3 value);
+        void    setUniform(const GLuint &shaderID, const std::string &name, glm::vec4 value);
+        void    setUniform(const GLuint &shaderID, const std::string &name, glm::mat4 value);
 
         /// Getters
 

@@ -1,4 +1,11 @@
-#include "Shader.hpp"
+/// Class independant system includes
+# include <iostream>
+# include <algorithm>
+# include <sstream>
+# include <fstream>
+
+# include "Shader.hpp"
+# include "color.h"
 
 /// Constructors & Destructors 
 Shader::Shader() {
@@ -261,23 +268,23 @@ void Shader::setUniform(const GLuint &shaderID, const std::string &name, float v
 }
 
 // Set a vec2 uniform
-void Shader::setUniform(const GLuint &shaderID, const std::string &name, vec2 value) {
+void Shader::setUniform(const GLuint &shaderID, const std::string &name, glm::vec2 value) {
 	glUniform2f(glGetUniformLocation(shaderID, name.c_str()), value[0], value[1]);
 }
 
 // Set a vec3 uniform
-void Shader::setUniform(const GLuint &shaderID, const std::string &name, vec3 value) {
+void Shader::setUniform(const GLuint &shaderID, const std::string &name, glm::vec3 value) {
 	glUniform3f(glGetUniformLocation(shaderID, name.c_str()), value[0], value[1], value[2]);
 }
 
 // Set a vec4 uniform
-void Shader::setUniform(const GLuint &shaderID, const std::string &name, vec4 value) {
+void Shader::setUniform(const GLuint &shaderID, const std::string &name, glm::vec4 value) {
 	glUniform4f(glGetUniformLocation(shaderID, name.c_str()), value[0], value[1], value[2], value[3]);
 }
 
 // Set a mat4 uniform
-void Shader::setUniform(const GLuint &shaderID, const std::string &name, mat4 value) {
-	glUniformMatrix4fv(glGetUniformLocation(shaderID, name.c_str()), 1, GL_FALSE, value.data());
+void Shader::setUniform(const GLuint &shaderID, const std::string &name, glm::mat4 value) {
+	glUniformMatrix4fv(glGetUniformLocation(shaderID, name.c_str()), 1, GL_FALSE, glm::value_ptr(value));
 }
 /// ---
 

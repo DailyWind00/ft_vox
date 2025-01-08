@@ -5,13 +5,12 @@
 # define FAILURE -1
 
 /// System includes
-# include <iostream>
+# include <string>
 # include <vector>
 
 /// Dependencies
 # include <glad/glad.h>
 # include <glfw/glfw3.h>
-# include "color.h"
 
 /// Global variables
 extern bool VERBOSE;

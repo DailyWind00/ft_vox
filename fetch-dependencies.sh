@@ -6,7 +6,7 @@
 #    By: hasyxd <aliaudet@student.42lehavre.fr      +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2025/01/08 13:47:18 by hasyxd            #+#    #+#              #
-#    Updated: 2025/01/08 13:49:07 by hasyxd           ###   ########.fr        #
+#    Updated: 2025/01/08 14:57:12 by hasyxd           ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -37,7 +37,6 @@ source ./venv/bin/activate
 # Install CLI tools
 pip install --upgrade pip --no-warn-script-location
 pip install glad
-pip install glfw
 
 # glad
 glad --profile="core" --api="gl=4.5" --generator="c" --spec="gl" --extensions="" --out-path="." --no-loader
@@ -46,14 +45,35 @@ mv include/* . && mv src/glad.c glad/glad.c && rm -rf include src
 # glfw
 curl -LOs https://github.com/glfw/glfw/releases/download/3.4/glfw-3.4.zip
 unzip -q glfw-3.4.zip && rm glfw-3.4.zip
-
 cmake glfw-3.4/ -B glfw-3.4/build/
-cd glfw-3.4/build;make
+cd glfw-3.4/build; make
 cd ../../
 mkdir glfw
 mv glfw-3.4/build/src/libglfw3.a glfw/
 mv glfw-3.4/include/GLFW/* glfw/
 rm -rf glfw-3.4
+
+# glm
+git clone https://github.com/g-truc/glm glmgit
+cd glmgit
+cmake \
+    -DGLM_BUILD_TESTS=OFF \
+    -DBUILD_SHARED_LIBS=OFF \
+    -B build .
+cmake --build build -- all
+cd ../
+mkdir glm
+mv glmgit/glm/* glm/
+mv glmgit/build/glm/libglm.a glm/
+rm -rf glmgit
+
+# stb_image
+mkdir stb_image
+git clone https://github.com/nothings/stb
+mv stb/stb_image.h stb_image
+rm -rf stb
+echo "# define STB_IMAGE_IMPLEMENTATION" >> stb_image/stb_def.c
+echo "# include \"stb_image.h\"" >> stb_image/stb_def.c
 
 deactivate
 rm -rf venv

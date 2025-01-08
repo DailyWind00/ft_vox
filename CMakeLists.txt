@@ -11,6 +11,8 @@ add_executable(ft_vox
 	includes/classes/WindowsHandler.cpp
 	dependencies/glad/glad.c
 	dependencies/glfw/libglfw3.a
+	dependencies/glm/libglm.a
+	dependencies/stb_image/stb_def.c
 )
 
 target_include_directories(ft_vox PRIVATE

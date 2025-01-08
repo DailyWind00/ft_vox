@@ -1,4 +1,4 @@
-#pragma once
+# pragma once
 
 /// Defines
 # define COLOR_HEADER_CXX

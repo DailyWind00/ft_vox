@@ -11,6 +11,7 @@
 /// Custom includes
 # include "WindowsHandler.hpp"
 # include "Shader.hpp"
+# include "Profiler.hpp"
 # include "color.h"
 
 /// Global variables

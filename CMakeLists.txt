@@ -9,6 +9,7 @@ add_executable(ft_vox
 	srcs/utils.cpp
 	includes/classes/Shader.cpp
 	includes/classes/WindowsHandler.cpp
+	includes/classes/Profiler.cpp
 	dependencies/glad/glad.c
 	dependencies/glfw/libglfw3.a
 	dependencies/glm/libglm.a
@@ -26,4 +27,4 @@ target_link_libraries(ft_vox PRIVATE
 	glfw
 )
 
-target_compile_options(ft_vox PRIVATE -Wall -Wextra -O3 -g -fPIE)
+target_compile_options(ft_vox PRIVATE -Wall -Wextra -Werror -O3 -g -fPIE)

@@ -9,7 +9,7 @@
 # include <string.h>
 
 /// Custom includes
-# include "WindowsHandler.hpp"
+# include "Window.hpp"
 # include "Shader.hpp"
 # include "Profiler.hpp"
 # include "color.h"
@@ -20,6 +20,16 @@ using namespace std;
 extern bool VERBOSE;
 
 /// Functions
+// rendering.cpp
+
+void	Rendering(Window &window);
+
+
+// events.cpp
+
+void	handleEvents(Window &window);
+
 
 // utils.cpp
+
 void	printVerbose(const string &message, bool newline = true);

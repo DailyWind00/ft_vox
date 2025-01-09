@@ -1,7 +1,7 @@
 /// Class independant system includes
 # include <iostream>
 
-#include "WindowsHandler.hpp"
+#include "Window.hpp"
 
 //// Window class
 /// Constructors & Destructors
@@ -35,6 +35,9 @@ Window::Window(int posX, int posY, int width, int height, const std::string &tit
 Window::~Window() {
 	glfwDestroyWindow(window);
 	glfwTerminate();
+
+	if (VERBOSE)
+		std::cout << "Window destroyed" << std::endl;
 }
 /// ---
 

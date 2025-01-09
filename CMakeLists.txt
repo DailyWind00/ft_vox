@@ -5,11 +5,18 @@ cmake_policy(SET CMP0072 NEW)
 find_package(OpenGL REQUIRED)
 
 add_executable(ft_vox
+	# sources (UI)
 	srcs/main.cpp
+	srcs/rendering.cpp
+	srcs/events.cpp
 	srcs/utils.cpp
+
+	# Framework includes
 	includes/classes/Shader.cpp
-	includes/classes/WindowsHandler.cpp
+	includes/classes/Window.cpp
 	includes/classes/Profiler.cpp
+
+	# Dependencies
 	dependencies/glad/glad.c
 	dependencies/glfw/libglfw3.a
 	dependencies/glm/libglm.a

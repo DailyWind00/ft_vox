@@ -17,25 +17,20 @@ int main(int argc, char **argv) {
 
 	try {
 		// Create a window
-		WindowsHandler windowsHandler;
-		windowsHandler.createWindow(0, 0, 800, 600, "ft_vox");
-
+		Window window(100, 100, 800, 600, "ft_vox");
 		Profiler	pr;
 
 		// Main loop
-		while (!glfwWindowShouldClose(*windowsHandler.front())) {
-			// // Rendering
-			// Rendering(*windowsHandler[windowIndex]);
+		while (!glfwWindowShouldClose(window)) {
+			// // Rendering (should go to routine.cpp)
+			// Rendering(window);
 
 			// Swap buffers
-			glfwSwapBuffers(*windowsHandler[0]);
+			glfwSwapBuffers(window);
 
 			// temporary (to quit for now)
-			VGLFWwindows::const_iterator	currWin = windowsHandler[0];
-			if (glfwGetKey(*currWin, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
-				windowsHandler.destroyWindow(0);
-				break ;
-			}
+			if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+				glfwSetWindowShouldClose(window, true);
 
 			pr.evaluateNoReturn("countTo100000000", &countTo, 100000000);
 			pr.evaluateNoReturn("countTo10000000", &countTo, 10000000);
@@ -45,7 +40,7 @@ int main(int argc, char **argv) {
 			pr.evaluateNoReturn("countTo1000", &countTo, 1000);
 
 
-			// Poll events
+			// Poll events (should go to events.cpp)
 			glfwPollEvents();
 		}
 		pr.logToFile("out.logs");

@@ -15,9 +15,26 @@
 /// Global variables
 extern bool VERBOSE;
 
-typedef std::vector<GLFWwindow *>   VGLFWwindows;
+class Window {
+	friend class WindowsHandler;
 
-// Main class for single or multiple window handling
+	private:
+		GLFWwindow *window;
+
+	public:
+		Window(int posX, int posY, int width, int height, const std::string &title);
+		~Window();
+
+		/// Getters
+
+		GLFWwindow *getGLFWwindow() const;
+		operator GLFWwindow *() const;
+};
+
+typedef std::vector<Window *>   VGLFWwindows;
+
+// Optionnal class for multiple windows handling
+// Consider use multi-threading to handle multiple windows main loop
 class WindowsHandler {
     private:
         VGLFWwindows    windows;
@@ -35,7 +52,7 @@ class WindowsHandler {
 
         /// Getters
 
-		int                             getIndexOf(GLFWwindow *window) const;
+		int                             getIndexOf(Window *window) const;
         VGLFWwindows::const_iterator    operator[](const size_t &index) const;
         VGLFWwindows::const_iterator    begin() const;
         VGLFWwindows::const_iterator    front() const;

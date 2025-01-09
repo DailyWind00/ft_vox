@@ -30,14 +30,14 @@
 *.exe
 *.out
 *.app
+ft_vox
 
 # Misc
 *.log
-
+*.logs
 compile_commands.json
 .session.vim
 .cache/
 .vscode/
 dependencies/
 build/
-ft_vox

@@ -1,6 +1,5 @@
 /// Class independant system includes
 # include <iostream>
-# include <sstream>
 # include <fstream>
 
 # include "Profiler.hpp"
@@ -33,12 +32,12 @@ void	Profiler::printLog(const std::string &funcName)
 						       	<< " | maximum: " << a.max << "ms" << std::endl;
 }
 
-void	Profiler::logToFile()
+void	Profiler::logToFile(const std::string &fileName)
 {
 	if (!this->_logs.size())
 		std::cout << "Profiler is not holding any data" << std::endl;
 
-	std::ofstream	file("out.logs");
+	std::ofstream	file(fileName);
 
 	if (!file.is_open())
 		throw (std::runtime_error("could not output profiler logs"));

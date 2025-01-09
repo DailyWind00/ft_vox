@@ -3,7 +3,14 @@
 // temporary (to quit for now)
 # include <glfw/glfw3.h>
 # include <unistd.h>
-# include <stdio.h>
+
+void	countTo(int num)
+{
+	int	i = 0;
+
+	while (i < num)
+		i++;
+}
 
 int main(int argc, char **argv) {
 	(void)argc; (void)argv;
@@ -30,15 +37,18 @@ int main(int argc, char **argv) {
 				break ;
 			}
 
-			std::string	str = "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww";
-
-			pr.evaluate("write", *write, 1, (const void *)str.c_str(), str.size());
+			pr.evaluateNoReturn("countTo100000000", &countTo, 100000000);
+			pr.evaluateNoReturn("countTo10000000", &countTo, 10000000);
+			pr.evaluateNoReturn("countTo1000000", &countTo, 1000000);
+			pr.evaluateNoReturn("countTo100000", &countTo, 100000);
+			pr.evaluateNoReturn("countTo10000", &countTo, 10000);
+			pr.evaluateNoReturn("countTo1000", &countTo, 1000);
 
 
 			// Poll events
 			glfwPollEvents();
 		}
-		pr.logToFile();
+		pr.logToFile("out.logs");
 	}
 	catch(const exception& e) {
 		cerr << BRed <<  "Critical Error : " << e.what() << ResetColor <<'\n';

@@ -1,6 +1,6 @@
 # pragma once
 
-/// Define
+/// Defines
 
 /// System includes
 # include <stdint.h>
@@ -19,7 +19,10 @@ typedef struct timeLog {
 	float	min;
 }	timeLog;
 
-# include <unistd.h>
+// The Profiler class allow to evaluate performance in specific context of the program.
+// It can:
+//  - Benchmark (void) and non (void) returning function.
+//  - Print wanted data to the standard output or in a log file output.
 class	Profiler {
 	private:
 		std::map<std::string, timeLog>	_logs;
@@ -30,8 +33,21 @@ class	Profiler {
 
 		void	printLog();
 		void	printLog(const std::string &funcName);
-		void	logToFile();
+		void	logToFile(const std::string &fileName);
 
+		// That method takes in a function and run it normally will monitoring it's execution speed.
+		// It will return the output expected by the function passed in parameters
+		//  - 1st argument is the function identifier and will be outputed in the logs as such.
+		//  - 2nd argument is the function pointer.
+		//  - Any arguments from that point will be the 2nd argument parameters.
+		//  | They must be put in the order expected by the second argument and their type must be explicite.
+		//  | Consecutive parameters that have the same type must be in the same "coma space".
+		//  |  - expample => foo(param1(string) param2(string), param3(int), param4(size_t));
+		// ---------------------------------------------------------------------------------
+		//
+		// A valid utilization of that function would be:
+		// | int	foo(int, int, char);
+		// | int returnValue = profilerObject.evaluate("foo", &foo, 4 5, 'c');
 		template <typename T, typename... U>
 		T	evaluate(const std::string &funcName,T (func)(U...),
 				U... arg1) {
@@ -53,10 +69,13 @@ class	Profiler {
 			return (returnValue);
 		}
 
+		// That method is identical to Profiler::evaluate(); but returns nothing.
+		// Use that method if the function passed in argument does not return anything.
+		// Please refere to it for more details.
 		template <typename T, typename... U>
 		void	evaluateNoReturn(const std::string &funcName,T (func)(U...), U... arg) {
 			auto	start = std::chrono::steady_clock::now();
-			func(&arg...);
+			func(arg...);
 			auto	end = std::chrono::steady_clock::now();
 			unsigned int	nano = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
 			float	mill = (float)nano / 1000;

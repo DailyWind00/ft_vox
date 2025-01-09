@@ -10,6 +10,7 @@ all:
 
 clean:
 	@rm -rf build
+	@rm -f  *.logs
 
 fclean: clean
 	@rm -f $(NAME)

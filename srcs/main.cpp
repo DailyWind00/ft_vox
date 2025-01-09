@@ -43,7 +43,7 @@ int main(int argc, char **argv) {
 			// Poll events (should go to events.cpp)
 			glfwPollEvents();
 		}
-		pr.logToFile("out.logs");
+		pr.logToFile("out");
 	}
 	catch(const exception& e) {
 		cerr << BRed <<  "Critical Error : " << e.what() << ResetColor <<'\n';

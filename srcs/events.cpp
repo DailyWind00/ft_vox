@@ -1,6 +1,9 @@
 #include "config.hpp"
 
 // Handle all keyboard & other events
-void	handleEvents(GLFWwindow *window) {
+void	handleEvents(Window &window) {
 	glfwPollEvents();
+
+	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+		glfwSetWindowShouldClose(window, true);
 }

@@ -4,9 +4,20 @@
 
 # include "Profiler.hpp"
 
-Profiler::Profiler() {}
-Profiler::~Profiler() {}
 
+/// Constructors & Destructors
+Profiler::Profiler() {
+}
+
+Profiler::~Profiler() {
+}
+/// ---
+
+
+
+/// Public functions
+
+// Output the all logs held by the profiler to the standard output
 void	Profiler::printLog()
 {
 	if (!this->_logs.size())
@@ -23,6 +34,7 @@ void	Profiler::printLog()
 		std::cout << "-";
 }
 
+// Output the logs of fucName to the standard output
 void	Profiler::printLog(const std::string &funcName)
 {
 	auto	a = this->_logs[funcName];
@@ -32,12 +44,13 @@ void	Profiler::printLog(const std::string &funcName)
 						       	<< " | maximum: " << a.max << "ms" << std::endl;
 }
 
+// Output the all logs held by the profiler to a file named "fileName.logs"
 void	Profiler::logToFile(const std::string &fileName)
 {
 	if (!this->_logs.size())
 		std::cout << "Profiler is not holding any data" << std::endl;
 
-	std::ofstream	file(fileName);
+	std::ofstream	file(fileName + ".logs");
 
 	if (!file.is_open())
 		throw (std::runtime_error("could not output profiler logs"));
@@ -53,3 +66,4 @@ void	Profiler::logToFile(const std::string &fileName)
 		file << "-";
 	file << std::endl;
 }
+/// ---

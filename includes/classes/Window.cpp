@@ -1,8 +1,67 @@
 /// Class independant system includes
 # include <iostream>
 
-#include "WindowsHandler.hpp"
+#include "Window.hpp"
 
+//// Window class
+/// Constructors & Destructors
+Window::Window(int posX, int posY, int width, int height, const std::string &title) {
+	if (!glfwInit())
+		throw std::runtime_error("Failed to initialize GLFW");
+
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4); // OpenGL 4.5
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // Mac-os compatibility
+	glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+
+	window = glfwCreateWindow(width, height, title.c_str(), nullptr, nullptr);
+	if (!window)
+		throw std::runtime_error("Failed to create window");
+	
+	glfwMakeContextCurrent(window);
+	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+		glfwDestroyWindow(window);
+		throw std::runtime_error("Failed to initialize GLAD");
+	}
+
+	glfwSetWindowPos(window, posX, posY);
+	glViewport(0, 0, width, height);
+
+	if (VERBOSE)
+		std::cout << "Window created" << std::endl;
+}
+
+Window::~Window() {
+	glfwDestroyWindow(window);
+	glfwTerminate();
+
+	if (VERBOSE)
+		std::cout << "Window destroyed" << std::endl;
+}
+/// ---
+
+
+
+/// Getters
+
+// Return the GLFWwindow pointer
+GLFWwindow	*Window::getGLFWwindow() const {
+	return window;
+}
+
+// Return the GLFWwindow pointer
+Window::operator GLFWwindow *() const {
+	return window;
+}
+/// ---
+//// ----
+
+
+
+
+
+//// WindowHandler class
 /// Constructors & Destructors
 WindowsHandler::WindowsHandler() {
 	if (!glfwInit())
@@ -20,33 +79,8 @@ WindowsHandler::~WindowsHandler() {
 /// Public functions
 
 // Create a window, set it as the current context and add it to the windows vector
-// Consider use multi-threading to handle multiple windows main loop
-// Return the index of the new window, or FAILURE if the window creation failed
 int	WindowsHandler::createWindow(int posX, int posY, int width, int height, const std::string &title) {
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4); // OpenGL 4.2
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
-	glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // Mac-os compatibility
-	glfwWindowHint(GLFW_SAMPLES, 4);
-
-	GLFWwindow *window = glfwCreateWindow(width, height, title.c_str(), nullptr, nullptr);
-	if (!window)
-		return FAILURE;
-
-	glfwMakeContextCurrent(window);
-	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-		glfwDestroyWindow(window);
-		return FAILURE;
-	}
-
-	glfwSetWindowPos(window, posX, posY);
-	glViewport(0, 0, width, height);
-
-	windows.push_back(window);
-
-	if (VERBOSE)
-		std::cout << "Window " << windows.size() - 1 << " created" << std::endl;
+	windows.push_back( new Window(posX, posY, width, height, title) );
 
 	return windows.size() - 1;
 }
@@ -55,10 +89,7 @@ int	WindowsHandler::createWindow(int posX, int posY, int width, int height, cons
 void	WindowsHandler::useWindow(size_t index) {
 	if (index >= windows.size())
 		return;
-	glfwMakeContextCurrent(windows[index]);
-
-	if (VERBOSE)
-		std::cout << "Now using window " << index << std::endl;
+	glfwMakeContextCurrent(windows[index]->window);
 }
 
 // Destroy the window at the given index
@@ -66,21 +97,15 @@ void	WindowsHandler::useWindow(size_t index) {
 void	WindowsHandler::destroyWindow(size_t index) {
 	if (index >= windows.size())
 		return;
-	glfwDestroyWindow(windows[index]);
+	delete windows[index];
 	windows.erase(windows.begin() + index);
-
-	if (VERBOSE)
-		std::cout << "Window " << index << " destroyed" << std::endl;
 }
 
 // Destroy all windows
 void	WindowsHandler::destroyAllWindows() {
-	for (GLFWwindow *window : windows)
-		glfwDestroyWindow(window);
+	for (Window *window : windows)
+		delete window;
 	windows.clear();
-
-	if (VERBOSE)
-		std::cout << "All windows destroyed" << std::endl;
 }
 /// ---
 
@@ -116,7 +141,7 @@ VGLFWwindows::const_iterator	WindowsHandler::end() const {
 }
 
 // Return the index of the given window, or FAILURE if the window is not found
-int	WindowsHandler::getIndexOf(GLFWwindow *window) const {
+int	WindowsHandler::getIndexOf(Window *window) const {
 	for (size_t i = 0; i < windows.size(); i++) {
 		if (windows[i] == window)
 			return i;
@@ -124,3 +149,4 @@ int	WindowsHandler::getIndexOf(GLFWwindow *window) const {
 	return FAILURE;
 }
 /// ---
+//// ----

@@ -21,4 +21,5 @@ class	AChunk {
 	public:
 		AChunk();
 		virtual	~AChunk() = 0;
+		virtual void	print() {}
 };

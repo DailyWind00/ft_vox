@@ -57,7 +57,7 @@ class	Profiler {
 			returnValue = func(arg1...);
 			auto	end = std::chrono::steady_clock::now();
 			unsigned int	nano = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
-			float	mill = (float)nano / 1000;
+			float	mill = (float)nano / 1000000;
 			if (this->_logs[funcName].min > mill)
 				this->_logs[funcName].min = mill;
 			if (this->_logs[funcName].max < mill)
@@ -78,7 +78,23 @@ class	Profiler {
 			func(arg...);
 			auto	end = std::chrono::steady_clock::now();
 			unsigned int	nano = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
-			float	mill = (float)nano / 1000;
+			float	mill = (float)nano / 1000000;
+			if (this->_logs[funcName].min > mill)
+				this->_logs[funcName].min = mill;
+			if (this->_logs[funcName].max < mill)
+				this->_logs[funcName].max = mill;
+			if (this->_logs[funcName].av == 0)
+				this->_logs[funcName].av = mill;
+			else
+				this->_logs[funcName].av = (this->_logs[funcName].av + mill) / 2.0f;
+		}
+		template <typename T>
+		void	evaluateNoReturn(const std::string &funcName,T (func)()) {
+			auto	start = std::chrono::steady_clock::now();
+			func();
+			auto	end = std::chrono::steady_clock::now();
+			unsigned int	nano = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+			float	mill = (float)nano / 1000000;
 			if (this->_logs[funcName].min > mill)
 				this->_logs[funcName].min = mill;
 			if (this->_logs[funcName].max < mill)

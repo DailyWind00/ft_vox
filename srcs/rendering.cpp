@@ -10,11 +10,20 @@ static void program_loop(Window &window, Profiler &pr) {
 	}
 }
 
+static void	test()
+{
+	for (int i = 0; i < 1; i++){
+		AChunk	*chunk = new LayeredChunk();
+		chunk->print();
+		delete chunk;
+	}
+}
+
 // Setup variables and call the program loop
 void	Rendering(Window &window) {
 	Profiler	pr;
-	AChunk	* chunk = new LayeredChunk();
-	(void)chunk;
+
+	pr.evaluateNoReturn("LayeredChunk", &test);
 
 	program_loop(window, pr);
 

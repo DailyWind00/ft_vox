@@ -30,20 +30,6 @@ static void program_loop(Window &window, Profiler &pr) {
 // Setup variables and call the program loop
 void	Rendering(Window &window) {
 	Profiler	pr;
-	Shader		shader(
-		"shaders/vertex.glsl",
-		"shaders/fragment.glsl",
-		"shaders/geometry.glsl"
-	);
-	Shader		shader2(
-		"shaders/vertex.glsl",
-		"shaders/fragment.glsl"
-	);
-	shader.use();
-	shader2.use();
-	shader.use();
-	shader.recompile();
-	shader2.recompile();
 
 	program_loop(window, pr);
 

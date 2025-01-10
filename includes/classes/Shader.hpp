@@ -60,43 +60,50 @@ class Shader {
 		const GLuint &getID() const;
 };
 
-typedef std::vector<Shader>	VShaders;
+typedef std::vector<Shader *>	VShaders;
 
-// class ShaderHandler {
-//     private:
-//         std::map<GLuint, Shader>		shaders;
-//         std::vector<GLuint>				shaderIDs;
-//         GLuint							currentShaderID;
+// Optionnal multiple shaders handling class
+// Handle the creation, destruction and usage of multiple shaders
+// You need to initialize glad before creating a shader (the Window class does it)
+class ShaderHandler {
+    private:
+        std::vector<Shader *>	shaders;
+        GLuint					currentShaderID;
 
-//         GLuint  make_module(const std::string &filepath, GLuint module_type);
-//         GLuint  make_shader(const std::string &vertex_path, const std::string &fragment_path);
+    public:
+        ShaderHandler();
+        ~ShaderHandler();
 
-//     public:
-//         ShaderHandler();
-//         ~ShaderHandler();
+        /// public functions
 
-
-//         /// public functions
-
-//         void    use(GLuint shaderID);
-//         GLuint  recompile(GLuint shaderID);
-//         GLuint  add_shader(const std::string &vertexPath, const std::string &fragmentPath, const std::string &shaderName);
-//         void    remove_shader(GLuint shaderID);
-//         GLuint	SetNextShader();
-//         GLuint	SetPreviousShader();
+        void    use(GLuint shaderID);
+        GLuint  recompile(GLuint shaderID);
+        GLuint  add_shader(const std::string &vertexPath, const std::string &fragmentPath);
+		GLuint	add_shader(const std::string &vertexPath, const std::string &fragmentPath, const std::string &geometryPath);
+        void    remove_shader(GLuint shaderID);
+		void    remove_all_shaders();
+        GLuint	setNextShader();
+        GLuint	setPreviousShader();
 
 
-//         /// Uniforms setters
+        /// Uniforms setters
 
-//         void    setUniform(const GLuint &shaderID, const std::string &name, bool value);
-//         void    setUniform(const GLuint &shaderID, const std::string &name, int value);
-//         void    setUniform(const GLuint &shaderID, const std::string &name, float value);
-//         void    setUniform(const GLuint &shaderID, const std::string &name, glm::vec2 value);
-//         void    setUniform(const GLuint &shaderID, const std::string &name, glm::vec3 value);
-//         void    setUniform(const GLuint &shaderID, const std::string &name, glm::vec4 value);
-//         void    setUniform(const GLuint &shaderID, const std::string &name, glm::mat4 value);
+        void    setUniform(const GLuint &shaderID, const std::string &name, bool value);
+        void    setUniform(const GLuint &shaderID, const std::string &name, int value);
+        void    setUniform(const GLuint &shaderID, const std::string &name, float value);
+        void    setUniform(const GLuint &shaderID, const std::string &name, glm::vec2 value);
+        void    setUniform(const GLuint &shaderID, const std::string &name, glm::vec3 value);
+        void    setUniform(const GLuint &shaderID, const std::string &name, glm::vec4 value);
+        void    setUniform(const GLuint &shaderID, const std::string &name, glm::mat4 value);
 
-//         /// Getters
+        /// Getters
 
-//         const GLuint &getCurrentShaderID() const;
-// };
+        const GLuint 			   &getCurrentShaderID() const;
+		const Shader 			   *getCurrentShader() const;
+		const Shader 			   *getShader(const GLuint &shaderID) const;
+        VShaders::const_iterator    operator[](const size_t &index) const;
+        VShaders::const_iterator    begin() const;
+        VShaders::const_iterator    front() const;
+        VShaders::const_iterator    back() const;
+        VShaders::const_iterator    end() const;
+};

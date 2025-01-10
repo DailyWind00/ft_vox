@@ -6,7 +6,6 @@
 /// System includes
 # include <string>
 # include <vector>
-# include <map>
 
 /// Dependencies
 # include <glad/glad.h>
@@ -16,38 +15,75 @@
 /// Global variables
 extern bool VERBOSE;
 
-typedef struct shaderData {
-    GLuint		shaderID;
-    std::string	vertexPath;
-    std::string	fragmentpath;
-    std::string	shaderName;
-}   shaderData;
-
-typedef     std::map<GLuint, shaderData>::iterator ShaderIterator;
-typedef     std::pair<GLuint, shaderData> ShaderPair;
-
+// Single shader class
+// Handle the creation, destruction and usage of a shader
+// You need to initialize glad before creating a shader (the Window class does it)
 class Shader {
-    private:
-        std::map<GLuint, shaderData>	shaders;
-        std::vector<GLuint>				shaderIDs;
-        GLuint							currentShaderID;
+	friend class ShaderHandler;
 
-        GLuint  make_module(const std::string &filepath, GLuint module_type);
-        GLuint  make_shader(const std::string &vertex_path, const std::string &fragment_path);
+	private:
+		GLuint		shaderID;
+		std::string	vertexPath;
+		std::string	fragmentPath;
+		std::string	geometryPath;
+
+		/// Private functions
+
+		GLuint	make_module(const std::string &filepath, GLuint module_type);
+		GLuint	make_shader();
+
+	public:
+		Shader(
+			const std::string &vertexPath,
+			const std::string &fragmentPath,
+			const std::string &geometryPath = ""
+		);
+		~Shader();
+
+		/// Public functions
+
+		void	use();
+		void	recompile();
+
+		/// Uniforms setters
+
+        void    setUniform(const std::string &name, bool value);
+        void    setUniform(const std::string &name, int value);
+        void    setUniform(const std::string &name, float value);
+        void    setUniform(const std::string &name, glm::vec2 value);
+        void    setUniform(const std::string &name, glm::vec3 value);
+        void    setUniform(const std::string &name, glm::vec4 value);
+        void    setUniform(const std::string &name, glm::mat4 value);
+
+		/// Getters
+
+		const GLuint &getID() const;
+};
+
+typedef std::vector<Shader *>	VShaders;
+
+// Optionnal multiple shaders handling class
+// Handle the creation, destruction and usage of multiple shaders
+// You need to initialize glad before creating a shader (the Window class does it)
+class ShaderHandler {
+    private:
+        std::vector<Shader *>	shaders;
+        GLuint					currentShaderID;
 
     public:
-        Shader();
-        ~Shader();
-
+        ShaderHandler();
+        ~ShaderHandler();
 
         /// public functions
 
         void    use(GLuint shaderID);
         GLuint  recompile(GLuint shaderID);
-        GLuint  add_shader(const std::string &vertexPath, const std::string &fragmentPath, const std::string &shaderName);
+        GLuint  add_shader(const std::string &vertexPath, const std::string &fragmentPath);
+		GLuint	add_shader(const std::string &vertexPath, const std::string &fragmentPath, const std::string &geometryPath);
         void    remove_shader(GLuint shaderID);
-        GLuint	SetNextShader();
-        GLuint	SetPreviousShader();
+		void    remove_all_shaders();
+        GLuint	setNextShader();
+        GLuint	setPreviousShader();
 
 
         /// Uniforms setters
@@ -62,5 +98,12 @@ class Shader {
 
         /// Getters
 
-        const GLuint &getCurrentShaderID() const;
+        const GLuint 			   &getCurrentShaderID() const;
+		const Shader 			   *getCurrentShader() const;
+		const Shader 			   *getShader(const GLuint &shaderID) const;
+        VShaders::const_iterator    operator[](const size_t &index) const;
+        VShaders::const_iterator    begin() const;
+        VShaders::const_iterator    front() const;
+        VShaders::const_iterator    back() const;
+        VShaders::const_iterator    end() const;
 };

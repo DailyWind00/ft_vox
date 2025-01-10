@@ -6,11 +6,16 @@
 //// Window class
 /// Constructors & Destructors
 Window::Window(int posX, int posY, int width, int height, const std::string &title) {
+	if (VERBOSE)
+		std::cout << "Creating window" << std::endl;
+
 	if (!glfwInit())
 		throw std::runtime_error("Failed to initialize GLFW");
+	if (VERBOSE)
+		std::cout << "> GLFW initialized" << std::endl;
 
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4); // OpenGL 4.5
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4); // OpenGL 4.2
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // Mac-os compatibility
 	glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
@@ -24,6 +29,8 @@ Window::Window(int posX, int posY, int width, int height, const std::string &tit
 		glfwDestroyWindow(window);
 		throw std::runtime_error("Failed to initialize GLAD");
 	}
+	if (VERBOSE)
+		std::cout << "> GLAD initialized" << std::endl;
 
 	glfwSetWindowPos(window, posX, posY);
 	glViewport(0, 0, width, height);

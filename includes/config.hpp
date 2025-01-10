@@ -11,8 +11,8 @@
 /// Custom includes
 # include "Window.hpp"
 # include "Shader.hpp"
-# include "Chunk.hpp"
 # include "Profiler.hpp"
+# include "chunk.h"
 # include "color.h"
 
 /// Global variables

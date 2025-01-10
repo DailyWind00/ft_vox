@@ -6,8 +6,6 @@ static void program_loop(Window &window, Profiler &pr) {
 	while (!glfwWindowShouldClose(window)) {
 		glfwSwapBuffers(window);
 
-		Chunk	chunk = Chunk(1);
-
 		handleEvents(window);
 	}
 }
@@ -15,8 +13,8 @@ static void program_loop(Window &window, Profiler &pr) {
 // Setup variables and call the program loop
 void	Rendering(Window &window) {
 	Profiler	pr;
-
-	std::cout << sizeof(ChunkNode) << std::endl;
+	AChunk	* chunk = new LayeredChunk();
+	(void)chunk;
 
 	program_loop(window, pr);
 

@@ -22,7 +22,17 @@ typedef struct AChunkLayer {
 
 // Chunk layer when every blocks in the layer are the same.
 typedef struct SingleBlockChunkLayer : public AChunkLayer {
-	class Block	* block;
+	void	setData(const size_t &i, const uint8_t &id) {
+		(void)i;
+		this->_id = id;
+	}
+
+	uint8_t	getData(const size_t &i) {
+		return (this->_id + (i * 0));
+	}
+
+	private:
+		uint8_t	_id;
 }	SingleBlockChunkLayer;
 
 // Default chunk layer.
@@ -30,15 +40,18 @@ typedef struct SingleBlockChunkLayer : public AChunkLayer {
 typedef struct ChunkLayer : public AChunkLayer {
 	ChunkLayer() : _data(new uint8_t[CHUNK_WIDTH * CHUNK_WIDTH]) {}
 	~ChunkLayer() { delete [] this->_data; }
+
 	void	setData(const size_t &i, const uint8_t &id) {
 		if (i < CHUNK_WIDTH * CHUNK_WIDTH)
 			this->_data[i] = id;
 	}
+
 	uint8_t	getData(const size_t &i) {
 		if (i >= CHUNK_WIDTH * CHUNK_WIDTH)
 			return (255);
 		return (this->_data[i]);
 	}
+
 	private:
 		uint8_t	*_data;
 }	ChunkLayer;
@@ -49,9 +62,10 @@ class	LayeredChunk : public AChunk {
 	private:
 		AChunkLayer	**_layer;
 
-		void	print();
-
+		SingleBlockChunkLayer	* _layerToBlock(AChunkLayer *layer);
 	public:
 		LayeredChunk();
 		~LayeredChunk();
+
+		void	print();
 };

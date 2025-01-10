@@ -14,6 +14,7 @@ static void	test()
 {
 	for (int i = 0; i < 1; i++){
 		AChunk	*chunk = new LayeredChunk();
+		(void)chunk;
 		chunk->print();
 		delete chunk;
 	}

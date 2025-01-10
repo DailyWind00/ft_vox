@@ -29,6 +29,7 @@ target_include_directories(ft_vox PRIVATE
 	${CMAKE_SOURCE_DIR}/dependencies
 	${CMAKE_SOURCE_DIR}/includes
 	${CMAKE_SOURCE_DIR}/includes/classes
+	${CMAKE_SOURCE_DIR}/includes/classes/Chunks
 )
 
 target_link_libraries(ft_vox PRIVATE

@@ -17,10 +17,8 @@ LayeredChunk::LayeredChunk()
 
 	// setting Perlin Noise seed
 	Noise::setSeed(2476858476);
-	unsigned int	randFactor = 1 + rand();
-
 	for (int i = 0; i < CHUNK_WIDTH * CHUNK_WIDTH; i++) {
-		float	factor = 10 + Noise::perlin2D(glm::vec2{(i % CHUNK_WIDTH) * 0.1, (i / CHUNK_WIDTH) * 0.1}, randFactor) * 10;
+		float	factor = 10 + Noise::perlin2D(glm::vec2{(i % CHUNK_WIDTH) * 0.1, (i / CHUNK_WIDTH) * 0.1}) * 10;
 
 		for (int j = 0; j < CHUNK_HEIGHT; j++) {
 			if (j < factor) {
@@ -57,9 +55,9 @@ void	LayeredChunk::print()
 			}
 			if (!(j % CHUNK_WIDTH)) std::cout << "\n";
 			if (this->_layer[i]->getData(j) == 1)
-				std::cout << "#";
+				std::cout << "# ";
 			else 
-				std::cout << ".";
+				std::cout << ". ";
 		}
 		std::cout << "\n---------------------------------------------------------------------------------------------------" << std::endl;
 	}

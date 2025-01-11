@@ -1,9 +1,15 @@
 
 # include "Noise.hpp"
 
-void	Noise::setSeed(const uint64_t &seed) { srand(seed); }
+unsigned int	g_randomFactor = 0;
 
-float	Noise::perlin2D(const glm::vec2 &v, const uint32_t &randFactor)
+void	Noise::setSeed(const uint64_t &seed)
+{
+	srand(seed);
+	g_randomFactor = 1 + rand();
+}
+
+float	Noise::perlin2D(const glm::vec2 &v)
 {
 	glm::ivec2	topLeft = {
 		(int)v.x, (int)v.y
@@ -24,16 +30,16 @@ float	Noise::perlin2D(const glm::vec2 &v, const uint32_t &randFactor)
 	};
 
 	return (_perlin2DCubInterpol(glm::vec2{
-			_perlin2DCubInterpol(glm::vec2{_perlin2DDot(topLeft, v, randFactor),
-						_perlin2DDot(topRight, v, randFactor)}, wVector.x),
-			_perlin2DCubInterpol(glm::vec2{_perlin2DDot(bottomLeft, v, randFactor),
-						_perlin2DDot(bottomRight, v, randFactor)}, wVector.x)},
+			_perlin2DCubInterpol(glm::vec2{_perlin2DDot(topLeft, v),
+						_perlin2DDot(topRight, v)}, wVector.x),
+			_perlin2DCubInterpol(glm::vec2{_perlin2DDot(bottomLeft, v),
+						_perlin2DDot(bottomRight, v)}, wVector.x)},
 		wVector.y));
 }
 
-float	Noise::_perlin2DDot(const glm::ivec2 &v1, const glm::vec2 &v2, const uint32_t &randFactor)
+float	Noise::_perlin2DDot(const glm::ivec2 &v1, const glm::vec2 &v2)
 {
-	glm::vec2	gradiant = _perlin2DRandomGradiant(v1, randFactor);
+	glm::vec2	gradiant = _perlin2DRandomGradiant(v1);
 
 	return (glm::dot(glm::vec2{v2.x - (float)v1.x,
 				v2.y - (float)v1.y}, gradiant));
@@ -44,11 +50,11 @@ float	Noise::_perlin2DCubInterpol(const glm::vec2 &v, const float &weight)
 	return ((v.y - v.x) * (3.0f - weight * 2.0f) * weight * weight + v.x);
 }
 
-glm::vec2	Noise::_perlin2DRandomGradiant(const glm::ivec2 &v, const uint32_t &randFactor)
+glm::vec2	Noise::_perlin2DRandomGradiant(const glm::ivec2 &v)
 {
 	const unsigned int	w = 8 * sizeof(unsigned);
 	const unsigned int	s = w / 2; 
-	unsigned int		a = v.x + randFactor, b = v.y + randFactor;
+	unsigned int		a = v.x + g_randomFactor, b = v.y + g_randomFactor;
 	
 	a *= 3284157443;
  

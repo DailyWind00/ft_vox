@@ -6,6 +6,7 @@
 
 /// Dependencies
 # include "AChunk.hpp"
+# include "glm/glm.hpp"
 
 // Chunk layer interface.
 typedef struct AChunkLayer {
@@ -15,16 +16,16 @@ typedef struct AChunkLayer {
 		std::cout << i << id << std::endl;
 	}
 	virtual	uint8_t getData(const size_t &i) {
-		(void)i;
-		return 0;
+		return i;
 	}
 } AChunkLayer;
 
 // Chunk layer when every blocks in the layer are the same.
 typedef struct SingleBlockChunkLayer : public AChunkLayer {
+	SingleBlockChunkLayer(const uint8_t &id) : _id(id) {}
+
 	void	setData(const size_t &i, const uint8_t &id) {
-		(void)i;
-		this->_id = id;
+		(void)i;this->_id = id;
 	}
 
 	uint8_t	getData(const size_t &i) {
@@ -38,7 +39,10 @@ typedef struct SingleBlockChunkLayer : public AChunkLayer {
 // Default chunk layer.
 // Stores an array of bytes that are indices to the chunk block palette.
 typedef struct ChunkLayer : public AChunkLayer {
-	ChunkLayer() : _data(new uint8_t[CHUNK_WIDTH * CHUNK_WIDTH]) {}
+	ChunkLayer(const uint8_t &id) : _data(new uint8_t[CHUNK_WIDTH * CHUNK_WIDTH]) {
+		for (size_t i = 0; i < CHUNK_WIDTH * CHUNK_WIDTH; i++)
+			this->_data[i] = id;
+	}
 	~ChunkLayer() { delete [] this->_data; }
 
 	void	setData(const size_t &i, const uint8_t &id) {
@@ -62,10 +66,12 @@ class	LayeredChunk : public AChunk {
 	private:
 		AChunkLayer	**_layer;
 
+		ChunkLayer		* _blockToLayer(AChunkLayer *layer);
 		SingleBlockChunkLayer	* _layerToBlock(AChunkLayer *layer);
 	public:
-		LayeredChunk();
+		LayeredChunk(const uint8_t &id);
 		~LayeredChunk();
 
+		void	generate(const glm::ivec3 &pos);
 		void	print();
 };

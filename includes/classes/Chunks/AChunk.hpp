@@ -10,6 +10,7 @@
 # include <vector>
 
 /// Dependencies
+# include "glm/glm.hpp"
 
 /// Global variables
 
@@ -20,6 +21,8 @@ class	AChunk {
 
 	public:
 		AChunk();
+		AChunk(const uint8_t &id) { (void)id; }
 		virtual	~AChunk() = 0;
 		virtual void	print() {}
+		virtual void	generate(const glm::ivec3 &pos) { (void)pos; }
 };

@@ -12,19 +12,18 @@ static void program_loop(Window &window, Profiler &pr) {
 
 static void	test()
 {
-	for (int i = 0; i < 1; i++){
-		AChunk	*chunk = new LayeredChunk();
-		(void)chunk;
-		chunk->print();
-		delete chunk;
-	}
+	AChunk	*chunk = new LayeredChunk(0);
+	chunk->generate(glm::ivec3{0, -32, 0});
+	//-chunk->print();
+	delete chunk;
 }
 
 // Setup variables and call the program loop
 void	Rendering(Window &window) {
 	Profiler	pr;
 
-	pr.evaluateNoReturn("LayeredChunk", &test);
+	for (int i = 0; i < 1000; i++)
+		pr.evaluateNoReturn("LayeredChunk", &test);
 
 	program_loop(window, pr);
 

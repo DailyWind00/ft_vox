@@ -15,6 +15,9 @@ add_executable(ft_vox
 	includes/classes/Shader.cpp
 	includes/classes/Window.cpp
 	includes/classes/Profiler.cpp
+	includes/classes/Noise.cpp
+	includes/classes/Chunks/AChunk.cpp
+	includes/classes/Chunks/LayeredChunk.cpp
 
 	# Dependencies
 	dependencies/glad/glad.c
@@ -27,6 +30,7 @@ target_include_directories(ft_vox PRIVATE
 	${CMAKE_SOURCE_DIR}/dependencies
 	${CMAKE_SOURCE_DIR}/includes
 	${CMAKE_SOURCE_DIR}/includes/classes
+	${CMAKE_SOURCE_DIR}/includes/classes/Chunks
 )
 
 target_link_libraries(ft_vox PRIVATE

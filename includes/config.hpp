@@ -8,11 +8,11 @@
 # include <fstream>
 # include <string.h>
 
-/// Custom includes
+/// Custom includes (*.hpp & *.tpp)
 # include "Window.hpp"
 # include "Shader.hpp"
 # include "Profiler.hpp"
-# include "chunk.h"
+# include "VoxelSystem.tpp"
 # include "color.h"
 
 /// Global variables
@@ -33,4 +33,4 @@ void	handleEvents(Window &window);
 
 // utils.cpp
 
-void	printVerbose(const string &message, bool newline = true);
+void	printVerbose(const string &message);

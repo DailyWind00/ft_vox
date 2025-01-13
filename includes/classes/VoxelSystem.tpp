@@ -45,9 +45,7 @@ VoxelSystem<dataType>::~VoxelSystem() {
 // Create a chunk at the given world position
 template <typename dataType>
 void	VoxelSystem<dataType>::createChunk(const glm::ivec3 &worldPos) {
-	static size_t i = 0; // Not sure it's useful
-
-	AChunk *chunk = new LayeredChunk(i++);
+	AChunk *chunk = new LayeredChunk(0);
 	chunk->generate(worldPos);
 	chunk->print();
 

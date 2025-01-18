@@ -4,6 +4,8 @@
 # define CHUNK_WIDTH	32
 # define CHUNK_HEIGHT	32
 
+# define BLOCK_AT(chunk, x, y, z) (int)(*(*chunk)[y])[x * CHUNK_WIDTH + z] 
+
 /// System includes
 # include <cstdlib>
 # include <cstdint>

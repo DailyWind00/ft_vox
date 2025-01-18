@@ -3,6 +3,12 @@
 
 unsigned int	g_randomFactor = 0;
 
+void	Noise::setSeed(void *arg) {
+	uint64_t	*seed = (uint64_t *)arg;
+
+	setSeed(*seed);
+}
+
 void	Noise::setSeed(const uint64_t &seed)
 {
 	srand(seed);

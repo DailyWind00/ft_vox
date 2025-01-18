@@ -12,9 +12,13 @@ LayeredChunk::LayeredChunk(const uint8_t &id)
 {
 	// Chunk Layer allocation
 	this->_layer = new AChunkLayer*[CHUNK_HEIGHT];
-	for (int i = 0; i < CHUNK_HEIGHT; i++) {
+	for (int i = 0; i < CHUNK_HEIGHT; i++)
 		this->_layer[i] = new SingleBlockChunkLayer(id);
-	}
+}
+
+AChunkLayer *	& LayeredChunk::operator[](const size_t &i)
+{
+	return (this->_layer[i]);
 }
 
 void	LayeredChunk::generate(const glm::ivec3 &pos)
@@ -48,7 +52,7 @@ void	LayeredChunk::generate(const glm::ivec3 &pos)
 				if (id != fstBlkPerLayer[k - pos.y] && i != pos.x && j != pos.z
 						&& dynamic_cast<SingleBlockChunkLayer *>(this->_layer[k - pos.y]))
 					this->_layer[k - pos.y] = _blockToLayer(this->_layer[k - pos.y]);
-				this->_layer[k - pos.y]->setData(idx, id);
+				(*this->_layer[k - pos.y])[idx] = id;
 				if (i == pos.x && j == pos.z)
 					fstBlkPerLayer[k - pos.y] = id;
 			}
@@ -62,14 +66,14 @@ void	LayeredChunk::print()
 	for (int i = 0; i < CHUNK_HEIGHT; i++) {
 		for (int j = 0; j < CHUNK_WIDTH * CHUNK_WIDTH ; j++) {
 			if (dynamic_cast<SingleBlockChunkLayer *>(this->_layer[i])) {
-				if (this->_layer[i]->getData(0) == 1)
+				if ((*this->_layer[i])[0] == 1)
 					std::cout << "#";
 				else 
 					std::cout << ".";
 				break;
 			}
 			if (!(j % CHUNK_WIDTH)) std::cout << "\n";
-			if (this->_layer[i]->getData(j) == 1)
+			if ((*this->_layer[i])[j] == 1)
 				std::cout << "# ";
 			else 
 				std::cout << ". ";
@@ -87,7 +91,7 @@ LayeredChunk::~LayeredChunk()
 
 ChunkLayer		* LayeredChunk::_blockToLayer(AChunkLayer *layer)
 {
-	uint8_t	id = layer->getData(0);
+	uint8_t	id = (*layer)[0];
 	delete layer;
 
 	return (new ChunkLayer(id));
@@ -95,7 +99,7 @@ ChunkLayer		* LayeredChunk::_blockToLayer(AChunkLayer *layer)
 
 SingleBlockChunkLayer	* LayeredChunk::_layerToBlock(AChunkLayer *layer)
 {
-	uint8_t	id = layer->getData(0);
+	uint8_t	id = (*layer)[0];
 	delete layer;
 	
 	return (new SingleBlockChunkLayer(id));

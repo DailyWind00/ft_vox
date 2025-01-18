@@ -4,6 +4,8 @@
 # define CHUNK_WIDTH	32
 # define CHUNK_HEIGHT	32
 
+# define BLOCK_AT(chunk, x, y, z) (int)(*(*chunk)[y])[x * CHUNK_WIDTH + z] 
+
 /// System includes
 # include <cstdlib>
 # include <cstdint>
@@ -22,7 +24,10 @@ class	AChunk {
 	public:
 		AChunk();
 		AChunk(const uint8_t &id) { (void)id; }
+
+		virtual struct AChunkLayer *	& operator[](const size_t &i) = 0;
+
 		virtual	~AChunk() = 0;
-		virtual void	print() {}
-		virtual void	generate(const glm::ivec3 &pos) { (void)pos; }
+		virtual void	print() = 0;
+		virtual void	generate(const glm::ivec3 &pos) = 0;
 };

@@ -3,7 +3,7 @@
 //// VoxelSystem class
 /// Constructors & Destructors
 template <typename dataType, size_t chunkSize>
-VoxelSystem<dataType, chunkSize>::VoxelSystem() : VoxelSystem<dataType>(rand()) {}
+VoxelSystem<dataType, chunkSize>::VoxelSystem() : VoxelSystem<dataType, chunkSize>(rand()) {}
 
 template <typename dataType, size_t chunkSize>
 VoxelSystem<dataType, chunkSize>::VoxelSystem(const uint64_t &seed) {
@@ -49,9 +49,21 @@ VoxelSystem<dataType, chunkSize>::~VoxelSystem() {
 
 // Check if the voxel at the given position is visible
 template <typename dataType, size_t chunkSize>
-bool VoxelSystem<dataType, chunkSize>::isVoxelVisible(const glm::ivec3 &pos, const chunkData &data) {
-	(void)pos; (void)data;
-	// Todo
+bool VoxelSystem<dataType, chunkSize>::isVoxelVisible(const size_t &x, const size_t &y, const size_t &z, const chunkData &data) {
+	// x
+	if (!x || BLOCK_AT(data.chunk, x - 1, y, z)
+			|| x >= chunkSize - 1 || BLOCK_AT(data.chunk, x + 1, y, z))
+		return true;
+
+	// y
+	if (!y || BLOCK_AT(data.chunk, x, y - 1, z)
+			|| y >= chunkSize - 1 || BLOCK_AT(data.chunk, x, y + 1, z))
+		return true;
+
+	// z
+	if (!z || BLOCK_AT(data.chunk, x, y, z - 1)
+			|| z >= chunkSize - 1 || BLOCK_AT(data.chunk, x, y, z + 1))
+		return true;
 
 	return false;
 }
@@ -61,15 +73,19 @@ template <typename dataType, size_t chunkSize>
 DrawArraysIndirectCommand	VoxelSystem<dataType, chunkSize>::genMesh(const chunkData &data) {
 	std::vector<dataType>	vertices;
 
+	int count = 0;
 	// Generate vertices for visible faces
     for (size_t x = 0; x < chunkSize; ++x) {
         for (size_t y = 0; y < chunkSize; ++y) {
             for (size_t z = 0; z < chunkSize; ++z) {
-				if (isVoxelVisible({x, y, z}, data))
-					std::cout << "block at " << x << " " << y << " " << z << std::endl; // to remove
+				if (isVoxelVisible(x, y, z, data)) {
+					// std::cout << "block at " << x << " " << y << " " << z << std::endl; // to remove
+					count++;
+				}
             }
         }
     }
+	std::cout << "count: " << count << std::endl; // to remove
 
 	// Update the VBO
 	size_t dataSize = vertices.size() * sizeof(dataType);

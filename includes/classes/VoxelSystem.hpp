@@ -54,7 +54,7 @@ class	VoxelSystem {
 
 		/// Private functions
 
-		bool						isVoxelVisible(const glm::ivec3 &pos, const chunkData &data);
+		bool						isVoxelVisible(const size_t &x, const size_t &y, const size_t &z, const chunkData &data);
 		DrawArraysIndirectCommand 	genMesh(const chunkData &chunk);
 		void						createChunk(const glm::ivec3 &worldPos);
 

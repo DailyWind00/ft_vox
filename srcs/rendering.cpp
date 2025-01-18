@@ -5,7 +5,7 @@ static void program_loop(Window &window, Profiler &pr, Shader &shader) {
 	printVerbose("Entering program's loop\n");
 
 	// To remove
-	VoxelSystem	voxelSystem;
+	VoxelSystem<uint8_t, 32>	voxelSystem;
 	voxelSystem.draw();
 	// --
 

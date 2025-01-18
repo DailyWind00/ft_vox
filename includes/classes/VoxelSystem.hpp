@@ -33,8 +33,9 @@ typedef std::vector<DrawArraysIndirectCommand> VDrawCommands;
 
 // Core class for the voxel system
 // Create chunks and their meshes & manage their rendering
-// dataType: The type of the vertices (float, double, ...)
-template <typename dataType = float>
+//  - dataType  : The type of the vertices (float, uint, ...)
+//  - ChunkSize : The size of a chunk (ChunkSize * ChunkSize * ChunkSize)
+template <typename dataType = float, size_t chunkSize = 16>
 class	VoxelSystem {
 	// This class use persistent mapped buffers (VBOs) with glMultiDrawArraysIndirect
 	// This allow:
@@ -43,13 +44,19 @@ class	VoxelSystem {
 	private:
 		std::vector<chunkData>	chunks;
 
-		// OpenGL data
+		/// OpenGL data
 		GLuint			VAO;
 		GLuint 			VBO;
 		GLuint			IB; // Indirect buffer
 		void		   *VBOdata = nullptr; // Persistent mapped VBO
 		size_t			currentVertexOffset = 0;
 		VDrawCommands	commands; // Stores the draw commands for each chunk
+
+		/// Private functions
+
+		bool						isVoxelVisible(const glm::ivec3 &pos, const chunkData &data);
+		DrawArraysIndirectCommand 	genMesh(const chunkData &chunk);
+		void						createChunk(const glm::ivec3 &worldPos);
 
 	public:
 		VoxelSystem(); // Random seed
@@ -58,6 +65,5 @@ class	VoxelSystem {
 
 		/// Public functions
 
-		void	createChunk(const glm::ivec3 &worldPos); // May be a private function or like a dynamic loading
 		void	draw() const;
 };

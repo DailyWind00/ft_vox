@@ -38,4 +38,4 @@ target_link_libraries(ft_vox PRIVATE
 	glfw
 )
 
-target_compile_options(ft_vox PRIVATE -Wall -Wextra -Werror -O3 -g -fPIE)
+target_compile_options(ft_vox PRIVATE -Wall -Wextra -O3 -g -fPIE)

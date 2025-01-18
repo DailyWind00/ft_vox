@@ -3,11 +3,17 @@
 //// VoxelSystem class
 /// Constructors & Destructors
 template <typename dataType, size_t chunkSize>
-VoxelSystem<dataType, chunkSize>::VoxelSystem() : VoxelSystem<dataType, chunkSize>(rand()) {}
+VoxelSystem<dataType, chunkSize>::VoxelSystem() : VoxelSystem<dataType, chunkSize>(0) {}
 
 template <typename dataType, size_t chunkSize>
 VoxelSystem<dataType, chunkSize>::VoxelSystem(const uint64_t &seed) {
-	Noise::setSeed(seed);
+	if (!seed) {
+		srand(time(nullptr));
+		Noise::setSeed(rand());
+	}
+	else
+		Noise::setSeed(seed);
+
 	createChunk({0, 0, 0});
 
 	// Create the VAO
@@ -50,6 +56,9 @@ VoxelSystem<dataType, chunkSize>::~VoxelSystem() {
 // Check if the voxel at the given position is visible
 template <typename dataType, size_t chunkSize>
 bool VoxelSystem<dataType, chunkSize>::isVoxelVisible(const size_t &x, const size_t &y, const size_t &z, const chunkData &data) {
+	if (BLOCK_AT(data.chunk, x, y, z) == 0)
+		return false;
+
 	// x
 	if (!x || BLOCK_AT(data.chunk, x - 1, y, z)
 			|| x >= chunkSize - 1 || BLOCK_AT(data.chunk, x + 1, y, z))
@@ -85,7 +94,7 @@ DrawArraysIndirectCommand	VoxelSystem<dataType, chunkSize>::genMesh(const chunkD
             }
         }
     }
-	std::cout << "count: " << count << std::endl; // to remove
+	std::cout << "> Chunk created with " << count << " vertices" << std::endl; // to remove
 
 	// Update the VBO
 	size_t dataSize = vertices.size() * sizeof(dataType);

@@ -1,52 +1,52 @@
 # pragma once
 
+/// Defines
+
 /// System includes
 # include <cstdint>
-# include <iostream>
+# include <cstring>
 
 /// Dependencies
 # include "AChunk.hpp"
-# include "glm/glm.hpp"
+
+/// Global variables
 
 // Chunk layer interface.
-typedef struct AChunkLayer {
-	AChunkLayer() {}
-	virtual ~AChunkLayer() = 0;
+class	AChunkLayer {
+	public:
+		AChunkLayer();
+		virtual ~AChunkLayer() = 0;
 
-	virtual uint8_t	& operator[](const size_t &i) = 0;
-
-} AChunkLayer;
+		virtual uint8_t	& operator[](const size_t &i) = 0;
+};
 
 // Chunk layer when every blocks in the layer are the same.
-typedef struct SingleBlockChunkLayer : public AChunkLayer {
-	SingleBlockChunkLayer(const uint8_t &id) : _id(id) {}
-
-	uint8_t	& operator[](const size_t &i) {
-		(void)i;
-		return (this->_id);
-	}
-	
+// Only contains a single uint8_t to represent the block id of the whole layer.
+class	SingleBlockChunkLayer : public AChunkLayer {
 	private:
 		uint8_t	_id;
-}	SingleBlockChunkLayer;
+
+	public:
+		SingleBlockChunkLayer(const uint8_t &id);
+		~SingleBlockChunkLayer();
+
+		// Allways return the block id of the layered no matter the value i.
+		// This avoid compatibility issues with other type of layers
+		uint8_t	& operator[](const size_t &i);
+};
 
 // Default chunk layer.
 // Stores an array of bytes that are indices to the chunk block palette.
-typedef struct ChunkLayer : public AChunkLayer {
-
-	ChunkLayer(const uint8_t &id) : _data(new uint8_t[CHUNK_WIDTH * CHUNK_WIDTH]) {
-		for (size_t i = 0; i < CHUNK_WIDTH * CHUNK_WIDTH; i++)
-			this->_data[i] = id;
-	}
-	~ChunkLayer() { delete [] this->_data; }
-
-	uint8_t	& operator[](const size_t &i) {
-		return (this->_data[i]);
-	}
-
+class	ChunkLayer : public AChunkLayer {
 	private:
 		uint8_t	*_data;
-}	ChunkLayer;
+
+	public:
+		ChunkLayer(const uint8_t &id);
+		~ChunkLayer();
+	
+		uint8_t	& operator[](const size_t &i);
+};
 
 // Default type of chunk.
 // Contain a abstract type that stores a layer of block.
@@ -60,8 +60,10 @@ class	LayeredChunk : public AChunk {
 		LayeredChunk(const uint8_t &id);
 		~LayeredChunk();
 
+		void	generate(const glm::ivec3 &pos);
+
 		AChunkLayer *	& operator[](const size_t &i);
 
-		void	generate(const glm::ivec3 &pos);
+		// Debugging method. Will not be used in the final release.
 		void	print();
 };

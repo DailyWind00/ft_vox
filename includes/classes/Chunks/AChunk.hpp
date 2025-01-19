@@ -25,7 +25,7 @@ class	AChunk {
 		AChunk();
 		AChunk(const uint8_t &id) { (void)id; }
 
-		virtual struct AChunkLayer *	& operator[](const size_t &i) = 0;
+		virtual class AChunkLayer *	& operator[](const size_t &i) = 0;
 
 		virtual	~AChunk() = 0;
 		virtual void	print() = 0;

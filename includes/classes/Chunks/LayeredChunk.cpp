@@ -4,10 +4,9 @@
 # include "LayeredChunk.hpp"
 # include "Noise.hpp"
 
-// Destructor declation for the chunk layer interface
-AChunkLayer::~AChunkLayer() {}
+//// LayeredChunk class
 
-// LayeredChunk implementation
+/// Constructors & Destructors
 LayeredChunk::LayeredChunk(const uint8_t &id)
 {
 	// Chunk Layer allocation
@@ -16,11 +15,22 @@ LayeredChunk::LayeredChunk(const uint8_t &id)
 		this->_layer[i] = new SingleBlockChunkLayer(id);
 }
 
+LayeredChunk::~LayeredChunk()
+{
+	for (int i = 0; i < CHUNK_HEIGHT; i++)
+		delete this->_layer[i];
+	delete [] this->_layer;
+}
+/// ---
+
+/// Operator Overloads
 AChunkLayer *	& LayeredChunk::operator[](const size_t &i)
 {
 	return (this->_layer[i]);
 }
+/// ---
 
+/// Public methods
 void	LayeredChunk::generate(const glm::ivec3 &pos)
 {
 	// Pre-compute the perlin noise factors
@@ -82,13 +92,9 @@ void	LayeredChunk::print()
 	}
 }
 
-LayeredChunk::~LayeredChunk()
-{
-	for (int i = 0; i < CHUNK_HEIGHT; i++)
-		delete this->_layer[i];
-	delete [] this->_layer;
-}
+/// ---
 
+/// Private methods
 ChunkLayer		* LayeredChunk::_blockToLayer(AChunkLayer *layer)
 {
 	uint8_t	id = (*layer)[0];
@@ -104,3 +110,52 @@ SingleBlockChunkLayer	* LayeredChunk::_layerToBlock(AChunkLayer *layer)
 	
 	return (new SingleBlockChunkLayer(id));
 }
+/// ---
+
+//// ---
+
+//// AChunkLayer class
+
+/// Constructors & Destructors
+AChunkLayer:: AChunkLayer() {}
+AChunkLayer::~AChunkLayer() {}
+/// ---
+
+//// SingleBlockChunkLayer class
+
+/// Constructors & Destructors
+SingleBlockChunkLayer::SingleBlockChunkLayer(const uint8_t &id) : _id(id) {}
+SingleBlockChunkLayer::~SingleBlockChunkLayer() {}
+/// ---
+
+/// Operator Overloads
+uint8_t	& SingleBlockChunkLayer::operator[](const size_t &i)
+{
+	(void)i;
+	return (this->_id);
+}
+/// ---
+
+//// ---
+
+//// ChunkLayer class
+
+/// Constructors & Destructors
+ChunkLayer::ChunkLayer(const uint8_t &id) : _data(new uint8_t[CHUNK_WIDTH * CHUNK_WIDTH])
+{
+	memset(this->_data, id, CHUNK_WIDTH * CHUNK_WIDTH);
+}
+ChunkLayer::~ChunkLayer()
+{
+	delete [] this->_data;
+}
+/// ---
+
+/// Operator Overloads
+uint8_t	& ChunkLayer::operator[](const size_t &i)
+{
+	return (this->_data[i]);
+}
+/// ---
+
+//// ---

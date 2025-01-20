@@ -49,6 +49,7 @@ class	VoxelSystem {
 		GLuint 			VBO;
 		GLuint			IB; // Indirect buffer
 		void		   *VBOdata = nullptr; // Persistent mapped VBO
+		size_t			VBOsize = 0;
 		size_t			currentVertexOffset = 0;
 		VDrawCommands	commands; // Stores the draw commands for each chunk
 
@@ -57,6 +58,11 @@ class	VoxelSystem {
 		bool						isVoxelVisible(const size_t &x, const size_t &y, const size_t &z, const chunkData &data);
 		DrawArraysIndirectCommand 	genMesh(const chunkData &chunk);
 		void						createChunk(const glm::ivec3 &worldPos);
+
+		// TODO :
+		// void	reallocateVBO();
+		// void						updateChunk(const glm::ivec3 &worldPos, const glm::mat4 &view); // Update the chunk mesh && load/unload chunks
+		// void						deleteChunk(const glm::ivec3 &worldPos);
 
 	public:
 		VoxelSystem(); // Random seed

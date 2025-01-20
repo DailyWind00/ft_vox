@@ -6,7 +6,6 @@ static void program_loop(Window &window, Profiler &pr, Shader &shader) {
 
 	// To remove
 	VoxelSystem<uint8_t, 32>	voxelSystem;
-	voxelSystem.draw();
 	// --
 
 	while (!glfwWindowShouldClose(window)) {
@@ -26,6 +25,8 @@ static void program_loop(Window &window, Profiler &pr, Shader &shader) {
 		glm::mat4 projection = glm::perspective(glm::radians(45.0f), 800.0f / 600.0f, 0.1f, 100.0f);
 		glm::mat4 mvp        = projection * view * model;
 		shader.setUniform("transform", mvp);
+
+		voxelSystem.draw();
 
 		handleEvents(window);
 		glfwSwapBuffers(window);

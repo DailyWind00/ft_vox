@@ -47,8 +47,10 @@ void	Profiler::printLog(const std::string &funcName)
 // Output the all logs held by the profiler to a file named "fileName.logs"
 void	Profiler::logToFile(const std::string &fileName)
 {
-	if (!this->_logs.size())
+	if (!this->_logs.size()) {
 		std::cout << "Profiler is not holding any data" << std::endl;
+		return ;
+	}
 
 	std::ofstream	file(fileName + ".logs");
 

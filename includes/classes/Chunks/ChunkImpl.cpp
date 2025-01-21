@@ -1,7 +1,7 @@
 /// class idependant system includes
 # include <iostream>
 
-# include "LayeredChunk.hpp"
+# include "ChunkImpl.hpp"
 # include "Noise.hpp"
 
 //// LayeredChunk class
@@ -74,20 +74,7 @@ void	LayeredChunk::generate(const glm::ivec3 &pos)
 void	LayeredChunk::print()
 {
 	for (int i = 0; i < CHUNK_HEIGHT; i++) {
-		for (int j = 0; j < CHUNK_WIDTH * CHUNK_WIDTH ; j++) {
-			if (dynamic_cast<SingleBlockChunkLayer *>(this->_layer[i])) {
-				if ((*this->_layer[i])[0] == 1)
-					std::cout << "#";
-				else 
-					std::cout << ".";
-				break;
-			}
-			if (!(j % CHUNK_WIDTH)) std::cout << "\n";
-			if ((*this->_layer[i])[j] == 1)
-				std::cout << "# ";
-			else 
-				std::cout << ". ";
-		}
+		this->_layer[i]->print();
 		std::cout << "\n---------------------------------------------------------------------------------------------------" << std::endl;
 	}
 }
@@ -114,6 +101,37 @@ SingleBlockChunkLayer	* LayeredChunk::_layerToBlock(AChunkLayer *layer)
 
 //// ---
 
+//// SingleBlockChunk class
+
+/// Constructors & Destructors
+SingleBlockChunk::SingleBlockChunk(const uint8_t &id) : _id(new SingleBlockChunkLayer(id)) {}
+
+SingleBlockChunk::~SingleBlockChunk()
+{
+	delete this->_id;
+}
+/// ---
+
+/// Operator Overloads
+AChunkLayer *	& SingleBlockChunk::operator[](const size_t &i)
+{
+	(void)i;
+	return (this->_id);
+}
+/// ---
+
+/// public methods
+void	SingleBlockChunk::print()
+{
+	this->_id->print();
+}
+
+void	SingleBlockChunk::generate(const glm::ivec3 &pos) { (void)pos; }
+
+/// ---
+
+//// ---
+
 //// AChunkLayer class
 
 /// Constructors & Destructors
@@ -136,6 +154,15 @@ uint8_t	& SingleBlockChunkLayer::operator[](const size_t &i)
 }
 /// ---
 
+/// public methods
+void	SingleBlockChunkLayer::print()
+{
+	if (this->_id)
+		std::cout << " #" << std::endl;
+	else std::cout << " ." << std::endl;
+}
+/// ---
+
 //// ---
 
 //// ChunkLayer class
@@ -155,6 +182,19 @@ ChunkLayer::~ChunkLayer()
 uint8_t	& ChunkLayer::operator[](const size_t &i)
 {
 	return (this->_data[i]);
+}
+/// ---
+
+/// public methods
+void	ChunkLayer::print()
+{
+	for (int i = 0; i < CHUNK_WIDTH * CHUNK_WIDTH; i++) {
+		if (this->_data[i])
+			std::cout << " #";
+		else std::cout << " .";
+		if (!(i % CHUNK_WIDTH))
+			std::cout << std::endl;
+	}
 }
 /// ---
 

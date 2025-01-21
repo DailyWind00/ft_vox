@@ -18,6 +18,8 @@ class	AChunkLayer {
 		virtual ~AChunkLayer() = 0;
 
 		virtual uint8_t	& operator[](const size_t &i) = 0;
+
+		virtual void	print() = 0;
 };
 
 // Chunk layer when every blocks in the layer are the same.
@@ -33,6 +35,8 @@ class	SingleBlockChunkLayer : public AChunkLayer {
 		// Allways return the block id of the layered no matter the value i.
 		// This avoid compatibility issues with other type of layers
 		uint8_t	& operator[](const size_t &i);
+
+		void	print();
 };
 
 // Default chunk layer.
@@ -46,6 +50,8 @@ class	ChunkLayer : public AChunkLayer {
 		~ChunkLayer();
 	
 		uint8_t	& operator[](const size_t &i);
+
+		void	print();
 };
 
 // Default type of chunk.
@@ -66,4 +72,20 @@ class	LayeredChunk : public AChunk {
 
 		// Debugging method. Will not be used in the final release.
 		void	print();
+};
+
+class	SingleBlockChunk : public AChunk {
+	private:
+		// This memember will only be intenciated has a "SingleBlockChunkLayer".
+		// An abstract type is used for compatibility with other chunk types.
+		AChunkLayer	*_id;
+	
+	public:
+		SingleBlockChunk(const uint8_t &id);
+		~SingleBlockChunk();
+
+		AChunkLayer *	& operator[](const size_t &i);
+		
+		void	print();
+		void	generate(const glm::ivec3 &pos);
 };

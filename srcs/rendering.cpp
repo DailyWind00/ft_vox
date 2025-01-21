@@ -12,8 +12,7 @@ static void program_loop(Window &window, Profiler &pr) {
 
 static void	test()
 {
-	AChunk	*chunk = new LayeredChunk(0);
-	chunk->generate(glm::ivec3{0, -32, 0});
+	AChunk	*chunk = ChunkHandler::createChunk(glm::ivec3{0, -2, 0});
 	chunk->print();
 	delete chunk;
 }

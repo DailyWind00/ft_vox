@@ -4,17 +4,18 @@
 
 /// System includes
 # include <cstdlib>
-# include <unordered_map>
 
 /// Dependencies
-# include <glm/glm.hpp>
+# include "glm/glm.hpp"
+# include "chunk.h"
 
 /// Global variables
 
 class	ChunkHandler {
 	private:
-		std::unordered_map<glm::uvec3, class AChunk *>	chunks;
-	
+		static class AChunk	* _chunkToBlock(class AChunk *chunk);
+		static class AChunk	* _blockToChunk(class AChunk *chunk);
+
 	public:
-		;
+		static class AChunk	* createChunk(const glm::ivec3 &chunkPos);
 };

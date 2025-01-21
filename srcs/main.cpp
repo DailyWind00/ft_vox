@@ -27,6 +27,7 @@ std::vector<flagArg>	parseArgs(int argc, char **argv)
 
 int	main(int argc, char **argv)
 {
+	(void)argc; (void)argv;
 	FlagHandler	fh;
 
 	// fh.setFlag("--seed", "-s", &Noise::setSeed);

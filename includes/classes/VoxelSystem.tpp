@@ -141,7 +141,7 @@ DrawArraysIndirectCommand	VoxelSystem<dataType, chunkSize>::genMesh(const chunkD
 
     // Create the draw command
 	DrawArraysIndirectCommand command = {
-		(GLuint)vertices.size(),
+		(GLuint)vertices.size() / 3,
 		1,
 		(GLuint)(currentVertexOffset / sizeof(dataType)),
 		0
@@ -153,10 +153,9 @@ DrawArraysIndirectCommand	VoxelSystem<dataType, chunkSize>::genMesh(const chunkD
 // Create a chunk at the given world position
 template <typename dataType, size_t chunkSize>
 void	VoxelSystem<dataType, chunkSize>::createChunk(const glm::ivec3 &worldPos) {
-	AChunk *chunk = new LayeredChunk(0);
+	AChunk *chunk = ChunkHandler::createChunk(worldPos);
 	chunkData data = {chunk, worldPos};
 
-	chunk->generate(worldPos);
 	chunks.push_back(data);
 	// chunk->print(); // to remove
 
@@ -165,9 +164,19 @@ void	VoxelSystem<dataType, chunkSize>::createChunk(const glm::ivec3 &worldPos) {
 	if (command.verticeCount)
 		commands.push_back(command);
 
+	for (DrawArraysIndirectCommand &command : commands)
+		std::cout << "Command: " << command.verticeCount << " " << command.instanceCount << " " << command.offset << " " << command.baseInstance << std::endl;
+
     // Update indirect buffer
     glBindBuffer(GL_DRAW_INDIRECT_BUFFER, IB);
-    glBufferSubData(GL_DRAW_INDIRECT_BUFFER, 0, commands.size() * sizeof(DrawArraysIndirectCommand), commands.data());
+    glBufferSubData(GL_DRAW_INDIRECT_BUFFER, 0, commands.size() * sizeof(DrawArraysIndirectCommand), commands.data()); // problem here
+	
+	// Check for OpenGL errors (to remove)
+	GLenum error = glGetError();
+	if (error != GL_NO_ERROR) {
+		std::cerr << "OpenGL error: " << error << std::endl;
+		throw std::runtime_error("VoxelSystem : Failed to draw");
+	}
 }
 /// ---
 
@@ -185,14 +194,7 @@ void	VoxelSystem<dataType, chunkSize>::draw() const {
 	glBindBuffer(GL_DRAW_INDIRECT_BUFFER, IB);
 
 	// Use glMultiDrawArraysIndirect for batched rendering
-	glMultiDrawArraysIndirect(GL_POINT, commands.data(), commands.size(), sizeof(DrawArraysIndirectCommand));
-
-	// Check for OpenGL errors (to remove)
-	GLenum error = glGetError();
-	if (error != GL_NO_ERROR) {
-		std::cerr << "OpenGL error: " << error << std::endl;
-		throw std::runtime_error("VoxelSystem : Failed to draw");
-	}
+	glMultiDrawArraysIndirect(GL_POINTS, commands.data(), commands.size(), sizeof(DrawArraysIndirectCommand));
 }
 /// ---
 //// ----

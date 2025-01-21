@@ -76,7 +76,7 @@ class	LayeredChunk : public AChunk {
 
 class	SingleBlockChunk : public AChunk {
 	private:
-		// This memember will only be intenciated has a "SingleBlockChunkLayer".
+		// This member will only be intenciated has a "SingleBlockChunkLayer".
 		// An abstract type is used for compatibility with other chunk types.
 		AChunkLayer	*_id;
 	

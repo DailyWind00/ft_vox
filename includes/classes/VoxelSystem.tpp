@@ -29,7 +29,37 @@ VoxelSystem<dataType, chunkSize>::VoxelSystem(const uint64_t &seed) {
 	glBufferStorage(GL_ARRAY_BUFFER, VBOsize, nullptr, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
 	VBOdata = glMapBufferRange(GL_ARRAY_BUFFER, 0, VBOsize, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
 	if (!VBOdata)
-		throw std::runtime_error("Failed to map the VBO");
+		throw std::runtime_error("VoxelSystem : Failed to map the VBO");
+
+	// Set the vertex attributes (move to reallocateVBO)
+	if (std::is_same<dataType, int>::value)
+		glVertexAttribIPointer(0, 3, GL_INT, 3 * sizeof(dataType), nullptr);
+
+	else if (std::is_same<dataType, unsigned int>::value)
+		glVertexAttribIPointer(0, 3, GL_UNSIGNED_INT, 3 * sizeof(dataType), nullptr);
+
+	else if (std::is_same<dataType, float>::value)
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(dataType), nullptr);
+
+	else if (std::is_same<dataType, double>::value)
+		glVertexAttribLPointer(0, 3, GL_DOUBLE, 3 * sizeof(dataType), nullptr);
+
+	else if (std::is_same<dataType, short>::value)
+		glVertexAttribIPointer(0, 3, GL_SHORT, 3 * sizeof(dataType), nullptr);
+
+	else if (std::is_same<dataType, unsigned short>::value)
+		glVertexAttribIPointer(0, 3, GL_UNSIGNED_SHORT, 3 * sizeof(dataType), nullptr);
+
+	else if (std::is_same<dataType, char>::value)
+		glVertexAttribIPointer(0, 3, GL_BYTE, 3 * sizeof(dataType), nullptr);
+
+	else if (std::is_same<dataType, unsigned char>::value)
+		glVertexAttribIPointer(0, 3, GL_UNSIGNED_BYTE, 3 * sizeof(dataType), nullptr);
+
+	else
+		throw std::runtime_error("VoxelSystem : Unsupported data type");
+
+	glEnableVertexAttribArray(0);
 
 	// Create the IB
 	glGenBuffers(1, &IB);
@@ -69,9 +99,9 @@ bool VoxelSystem<dataType, chunkSize>::isVoxelVisible(const size_t &x, const siz
 		return false;
 
 	// Check if any neighboring voxel is empty / out of bounds
-	if ((!x || BLOCK_AT(data.chunk, x - 1, y, z) || x >= chunkSize - 1 || BLOCK_AT(data.chunk, x + 1, y, z))
-		|| (!y || BLOCK_AT(data.chunk, x, y - 1, z) || y >= chunkSize - 1 || BLOCK_AT(data.chunk, x, y + 1, z))
-		|| (!z || BLOCK_AT(data.chunk, x, y, z - 1) || z >= chunkSize - 1 || BLOCK_AT(data.chunk, x, y, z + 1)))
+	if ((!x || !BLOCK_AT(data.chunk, x - 1, y, z) || x >= chunkSize - 1 || !BLOCK_AT(data.chunk, x + 1, y, z))
+		|| (!y || !BLOCK_AT(data.chunk, x, y - 1, z) || y >= chunkSize - 1 || !BLOCK_AT(data.chunk, x, y + 1, z))
+		|| (!z || !BLOCK_AT(data.chunk, x, y, z - 1) || z >= chunkSize - 1 || !BLOCK_AT(data.chunk, x, y, z + 1)))
 		return true;
 
 	return false;
@@ -104,11 +134,10 @@ DrawArraysIndirectCommand	VoxelSystem<dataType, chunkSize>::genMesh(const chunkD
 
 	// Update the VBO
 	size_t dataSize = vertices.size() * sizeof(dataType);
-	if (currentVertexOffset + dataSize > VBOsize) {
-		std::cerr << "Error: VBO overflow. Data size exceeds buffer capacity!" << std::endl;
+	if (currentVertexOffset + dataSize > VBOsize)
 		throw std::runtime_error("VBO overflow"); // Todo: reallocate the buffer
-	}
-	std::memcpy(reinterpret_cast<uint8_t *>(VBOdata) + currentVertexOffset, vertices.data(), dataSize); // segfault
+
+	std::memcpy(reinterpret_cast<uint8_t *>(VBOdata) + currentVertexOffset, vertices.data(), dataSize);
 
     // Create the draw command
 	DrawArraysIndirectCommand command = {
@@ -152,10 +181,18 @@ void	VoxelSystem<dataType, chunkSize>::draw() const {
 	// Todo: UpdateChunk here (may need to add parameters to the function)
 
 	glBindVertexArray(VAO);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBindBuffer(GL_DRAW_INDIRECT_BUFFER, IB);
 
-    // Use glMultiDrawArraysIndirect for batched rendering
-    glMultiDrawArraysIndirect(GL_TRIANGLES, commands.data(), commands.size(), sizeof(DrawArraysIndirectCommand));
+	// Use glMultiDrawArraysIndirect for batched rendering
+	glMultiDrawArraysIndirect(GL_POINT, commands.data(), commands.size(), sizeof(DrawArraysIndirectCommand));
+
+	// Check for OpenGL errors (to remove)
+	GLenum error = glGetError();
+	if (error != GL_NO_ERROR) {
+		std::cerr << "OpenGL error: " << error << std::endl;
+		throw std::runtime_error("VoxelSystem : Failed to draw");
+	}
 }
 /// ---
 //// ----

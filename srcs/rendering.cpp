@@ -13,12 +13,11 @@ static void program_loop(Window &window, Profiler &pr, Shader &shader) {
 
 		// Update
 		static float angle = 0.0f;
-		if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS) {
+		if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
 			angle -= 0.01f;
-		}
-		if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS) {
+
+		if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
 			angle += 0.01f;
-		}
 
 		glm::mat4 model      = glm::rotate(glm::mat4(1.0f), angle, glm::vec3(0.0f, 1.0f, 0.0f)); // Rotate around Y axis
 		glm::mat4 view       = glm::lookAt(glm::vec3(0, 0, 5), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
@@ -33,7 +32,6 @@ static void program_loop(Window &window, Profiler &pr, Shader &shader) {
 	}
 
 	(void)pr;
-	(void)shader;
 	printVerbose("Exiting program's loop\n");
 }
 

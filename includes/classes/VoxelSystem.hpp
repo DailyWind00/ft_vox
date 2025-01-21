@@ -6,6 +6,7 @@
 /// System includes
 # include <iostream>
 # include <vector>
+# include <type_traits>
 
 /// Dependencies
 # include <glad/glad.h>
@@ -50,7 +51,7 @@ class	VoxelSystem {
 		GLuint			IB; // Indirect buffer
 		void		   *VBOdata = nullptr; // Persistent mapped VBO
 		size_t			VBOsize = 0;
-		size_t			currentVertexOffset = 0;
+		size_t			currentVertexOffse	t = 0;
 		VDrawCommands	commands; // Stores the draw commands for each chunk
 
 		/// Private functions

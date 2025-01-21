@@ -21,6 +21,7 @@ class	Noise {
 		static glm::vec2	_perlin2DRandomGradiant(const glm::ivec2 &v);
 
 	public:
+		static void	setSeed(void *arg);
 		static void	setSeed(const uint64_t &seed);
 		static float	perlin2D(const glm::vec2 &v);
 		static float	perlin3D();

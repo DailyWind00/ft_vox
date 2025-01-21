@@ -16,8 +16,10 @@ add_executable(ft_vox
 	includes/classes/Window.cpp
 	includes/classes/Profiler.cpp
 	includes/classes/Noise.cpp
+	includes/classes/FlagHandler.cpp
 	includes/classes/Chunks/AChunk.cpp
-	includes/classes/Chunks/LayeredChunk.cpp
+	includes/classes/Chunks/ChunkImpl.cpp
+	includes/classes/Chunks/ChunkHandler.cpp
 
 	# Dependencies
 	dependencies/glad/glad.c

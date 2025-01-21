@@ -5,6 +5,8 @@
 # define CHUNK_HEIGHT	32
 
 # define BLOCK_AT(chunk, x, y, z) (int)(*(*chunk)[y])[x * CHUNK_WIDTH + z] 
+# define IS_LAYER_COMPRESSED(chunk, y)	dynamic_cast<SingleBlockChunkLayer *>((*chunk)[y])
+# define IS_CHUNK_COMPRESSED(chunk)	dynamic_cast<SingleBlockChunk *>(chunk)
 
 /// System includes
 # include <cstdlib>
@@ -25,7 +27,7 @@ class	AChunk {
 		AChunk();
 		AChunk(const uint8_t &id) { (void)id; }
 
-		virtual struct AChunkLayer *	& operator[](const size_t &i) = 0;
+		virtual class AChunkLayer *	& operator[](const size_t &i) = 0;
 
 		virtual	~AChunk() = 0;
 		virtual void	print() = 0;

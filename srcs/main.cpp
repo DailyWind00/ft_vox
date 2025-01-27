@@ -39,7 +39,7 @@ int	main(int argc, char **argv)
 	// 	fh.execFlagsFunction(args[i].first, args[i].second);
 
 	try {
-		Window window(100, 100, 800, 600, "ft_vox");
+		Window window(100, 100, WINDOW_WIDTH, WINDOW_HEIGHT, "ft_vox");
 		
 		Rendering(window);
 	}

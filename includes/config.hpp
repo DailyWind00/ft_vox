@@ -3,6 +3,10 @@
 /// Defines
 # define COLOR_HEADER_CXX
 
+# define WINDOW_WIDTH  800
+# define WINDOW_HEIGHT 600
+# define CAMERA_SPEED  0.1f
+
 /// System includes
 # include <iostream>
 # include <fstream>
@@ -31,7 +35,7 @@ void	Rendering(Window &window);
 
 // events.cpp
 
-void	handleEvents(Window &window);
+void	handleEvents(Window &window, Shader &shader);
 
 
 // utils.cpp

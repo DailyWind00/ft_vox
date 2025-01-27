@@ -47,11 +47,14 @@ class	VoxelSystem {
 
 		/// OpenGL data
 		GLuint			VAO;
+		
 		GLuint 			VBO;
-		GLuint			IB; // Indirect buffer
 		void		   *VBOdata = nullptr; // Persistent mapped VBO
 		size_t			VBOsize = 0;
 		size_t			currentVertexOffset = 0;
+
+		GLuint			IB; // Indirect buffer
+		size_t			IBsize = 0;
 		VDrawCommands	commands; // Stores the draw commands for each chunk
 
 		/// Private functions

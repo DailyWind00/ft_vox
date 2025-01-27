@@ -70,7 +70,7 @@ VoxelSystem<dataType, chunkSize>::VoxelSystem(const uint64_t &seed) {
 
 	// Create the chunks (to remove)
 	createChunk({0, 0, 0});
-	// for (int i = 0; i < 1000; i++)
+	// for (int i = 0; i < 10; i++)
 	// 	createChunk({i, 0, i});
 }
 
@@ -132,11 +132,11 @@ DrawArraysIndirectCommand	VoxelSystem<dataType, chunkSize>::genMesh(const chunkD
 	if (VERBOSE)
 		std::cout << "> Chunk created with " << count << " vertices" << std::endl;
 
-	// Update the VBO
+	// Update the persistent mapped buffer
 	size_t dataSize = vertices.size() * sizeof(dataType);
 	if (currentVertexOffset + dataSize > VBOsize)
 		throw std::runtime_error("VBO overflow"); // Todo: reallocate the buffer
-
+	
 	std::memcpy(reinterpret_cast<uint8_t *>(VBOdata) + currentVertexOffset, vertices.data(), dataSize);
 
     // Create the draw command
@@ -165,9 +165,6 @@ void	VoxelSystem<dataType, chunkSize>::createChunk(const glm::ivec3 &worldPos) {
 		return;
 	commands.push_back(command);
 
-	for (DrawArraysIndirectCommand &command : commands)
-		std::cout << "Command: " << command.verticeCount << " " << command.instanceCount << " " << command.offset << " " << command.baseInstance << std::endl;
-
     // Update indirect buffer
 	if (commands.size() * sizeof(DrawArraysIndirectCommand) > IBsize) {
 		IBsize *= 2;
@@ -187,18 +184,9 @@ void	VoxelSystem<dataType, chunkSize>::draw() const {
 	// Todo: UpdateChunk here (may need to add parameters to the function)
 
 	glBindVertexArray(VAO);
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBindBuffer(GL_DRAW_INDIRECT_BUFFER, IB);
-
+	
 	// Use glMultiDrawArraysIndirect for batched rendering
-	glMultiDrawArraysIndirect(GL_POINTS, commands.data(), commands.size(), sizeof(DrawArraysIndirectCommand)); // problem here
-
-	// Check for OpenGL errors (to remove)
-	GLenum error = glGetError();
-	if (error != GL_NO_ERROR) {
-		std::cerr << "OpenGL error: " << error << std::endl;
-		throw std::runtime_error("VoxelSystem : Failed to draw");
-	}
+	glMultiDrawArraysIndirect(GL_POINTS, nullptr, commands.size(), sizeof(DrawArraysIndirectCommand));
 }
 /// ---
 //// ----

@@ -14,8 +14,8 @@ Window::Window(int posX, int posY, int width, int height, const std::string &tit
 	if (VERBOSE)
 		std::cout << "> GLFW initialized" << std::endl;
 
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4); // OpenGL 4.2
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4); // OpenGL 4.5
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // Mac-os compatibility
 	glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
@@ -33,7 +33,9 @@ Window::Window(int posX, int posY, int width, int height, const std::string &tit
 		std::cout << "> GLAD initialized" << std::endl;
 
 	glfwSetWindowPos(window, posX, posY);
-	glViewport(0, 0, width, height);
+
+	int viewportSize = std::min(width, height); // Square viewport
+	glViewport((width - viewportSize) / 2, (height - viewportSize) / 2, viewportSize, viewportSize);
 
 	if (VERBOSE)
 		std::cout << "Window created" << std::endl;

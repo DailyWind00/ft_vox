@@ -81,18 +81,18 @@ GLuint Shader::make_module(const std::string &filepath, GLuint module_type) {
 
 // Create a shader from the modules
 GLuint Shader::make_shader() {
-	GLuint shadersIDs[3];
+	std::vector<GLuint> shadersIDs;
 
-	shadersIDs[0] = make_module(vertexPath, GL_VERTEX_SHADER);
-	shadersIDs[1] = make_module(fragmentPath, GL_FRAGMENT_SHADER);
+	shadersIDs.push_back(make_module(vertexPath, GL_VERTEX_SHADER));
+	shadersIDs.push_back(make_module(fragmentPath, GL_FRAGMENT_SHADER));
 	if (!geometryPath.empty())
-		shadersIDs[2] = make_module(geometryPath, GL_GEOMETRY_SHADER);
+		shadersIDs.push_back(make_module(geometryPath, GL_GEOMETRY_SHADER));
 
 	if (VERBOSE)
 		std::cout << "> Linking shader -> ";
 
 	GLuint shader = glCreateProgram();
-	for (GLuint module = 0; module < (!geometryPath.empty() ? 2 : 3); module++) {
+	for (GLuint module = 0; module < shadersIDs.size(); module++) {
 		glAttachShader(shader, shadersIDs[module]);
 		glDeleteShader(shadersIDs[module]);
 	}

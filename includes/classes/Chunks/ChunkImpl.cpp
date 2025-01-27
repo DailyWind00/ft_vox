@@ -51,7 +51,6 @@ void	LayeredChunk::generate(const glm::ivec3 &pos)
 	// Populate the chunk according to the pre-computed perlin noise factors
 	uint8_t	fstBlkPerLayer[CHUNK_HEIGHT] = {0};
 	
-	Noise::setSeed(2476858476);
 	for (int i = pos.x; i < CHUNK_WIDTH + pos.x; i++) {
 		for (int j = pos.z; j < CHUNK_WIDTH + pos.z; j++) {
 			int	idx = (i - pos.x) * CHUNK_WIDTH + (j - pos.z);

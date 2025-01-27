@@ -1,30 +1,35 @@
 #include "config.hpp"
 
 // Keep the window alive, exiting this function should mean closing the window
-static void program_loop(Window &window, Profiler &pr) {
-	(void)pr;
+static void program_loop(Window &window, VoxelSystem<uint8_t, 32> &voxelSystem, Shader &shader) {
+	printVerbose("Entering program's loop\n");
+
 	while (!glfwWindowShouldClose(window)) {
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		voxelSystem.draw();
+
+		handleEvents(window, shader);
 		glfwSwapBuffers(window);
-
-		handleEvents(window);
 	}
-}
 
-static void	test()
-{
-	AChunk	*chunk = ChunkHandler::createChunk(glm::ivec3{0, -2, 0});
-	chunk->print();
-	delete chunk;
+	printVerbose("Exiting program's loop\n");
 }
 
 // Setup variables and call the program loop
 void	Rendering(Window &window) {
-	Profiler	pr;
+	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-	for (int i = 0; i < 1; i++)
-		pr.evaluateNoReturn("LayeredChunk", &test);
+	VoxelSystem<uint8_t, 32>	voxelSystem;
+	Shader	shader(
+		"shaders/vertex.glsl",
+		"shaders/fragment.glsl",
+		"shaders/geometry.glsl"
+	);
+	shader.use();
 
-	program_loop(window, pr);
-
-	pr.logToFile("out");
+	program_loop(window, voxelSystem, shader);
 }

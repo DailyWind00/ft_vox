@@ -11,34 +11,35 @@ std::vector<flagArg>	parseArgs(int argc, char **argv)
 
 		if (spStr.size() != 2) {
 			std::string	str = "Error" + std::string(argv[i]) + "is not a valid argument";
-			printVerbose(str, true);
+			printVerbose(str);
 			continue ;
 		}
 		if (isNum(spStr[1])) {
 			int	val = stoi(spStr[1]);
 
-			args.push_back(std::pair(spStr[0], &val));
+			args.push_back(flagArg(spStr[0], &val));
 			continue ;
 		}
-		args.push_back(std::pair(spStr[0], spStr[1].data()));
+		args.push_back(flagArg(spStr[0], &spStr[1][0]));
 	}
 	return (args);
 }
 
 int	main(int argc, char **argv)
 {
+	(void)argc; (void)argv;
 	FlagHandler	fh;
 
-	fh.setFlag("--seed", "-s", &Noise::setSeed);
+	// fh.setFlag("--seed", "-s", &Noise::setSeed);
 	//-fh.setFlag("--genModel", "-GM", &Noise::setSeed);
 	
-	std::vector<flagArg>	args = parseArgs(argc, argv);
+	// std::vector<flagArg>	args = parseArgs(argc, argv);
 
-	for (size_t i = 0; i < fh.getFlagNum(); i++)
-		fh.execFlagsFunction(args[i].first, args[i].second);
+	// for (size_t i = 0; i < fh.getFlagNum(); i++)
+	// 	fh.execFlagsFunction(args[i].first, args[i].second);
 
 	try {
-		Window window(100, 100, 800, 600, "ft_vox");
+		Window window(100, 100, WINDOW_WIDTH, WINDOW_HEIGHT, "ft_vox");
 		
 		Rendering(window);
 	}

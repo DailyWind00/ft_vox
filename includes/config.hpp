@@ -3,19 +3,23 @@
 /// Defines
 # define COLOR_HEADER_CXX
 
+# define WINDOW_WIDTH  800
+# define WINDOW_HEIGHT 600
+# define CAMERA_SPEED  0.1f
+
 /// System includes
 # include <iostream>
 # include <fstream>
 # include <string.h>
 # include <sstream>
 
-/// Custom includes
+/// Custom includes (*.hpp & *.tpp)
 # include "Window.hpp"
 # include "Shader.hpp"
 # include "Noise.hpp"
 # include "FlagHandler.hpp"
 # include "Profiler.hpp"
-# include "chunk.h"
+# include "VoxelSystem.tpp"
 # include "color.h"
 
 /// Global variables
@@ -31,12 +35,12 @@ void	Rendering(Window &window);
 
 // events.cpp
 
-void	handleEvents(Window &window);
+void	handleEvents(Window &window, Shader &shader);
 
 
 // utils.cpp
 
-void	printVerbose(const string &message, bool newline = true);
+void	printVerbose(const string &message);
 
 bool	isNum(const std::string &str);
 

@@ -37,8 +37,8 @@ VoxelSystem::VoxelSystem(const uint64_t &seed) {
 	glGenBuffers(1, &IB);
 	glBindBuffer(GL_DRAW_INDIRECT_BUFFER, IB);
 
-    IBcapacity = MAX_CHUNKS * sizeof(DrawArraysIndirectCommand);
-    glBufferData(GL_DRAW_INDIRECT_BUFFER, IBcapacity, nullptr, GL_DYNAMIC_DRAW);
+	IBcapacity = MAX_CHUNKS * sizeof(DrawArraysIndirectCommand);
+	glBufferData(GL_DRAW_INDIRECT_BUFFER, IBcapacity, nullptr, GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
 
 	// Create the SSBO
@@ -97,19 +97,20 @@ DrawArraysIndirectCommand	VoxelSystem::genMesh(AChunk *data) {
 	int count = 0;
 	
 	// Generate vertices for visible faces
-    for (size_t x = 0; x < CHUNK_SIZE; ++x) {
-        for (size_t y = 0; y < CHUNK_SIZE; ++y) {
-            for (size_t z = 0; z < CHUNK_SIZE; ++z) {
+	for (size_t x = 0; x < CHUNK_SIZE; ++x) {
+		for (size_t y = 0; y < CHUNK_SIZE; ++y) {
+			for (size_t z = 0; z < CHUNK_SIZE; ++z) {
 				if (isVoxelVisible(x, y, z, data)) {
+					DATA_TYPE data;
 					// TODO: use bitmask
 					vertices.push_back(x);
 					vertices.push_back(y);
 					vertices.push_back(z);
 					count++;
 				}
-            }
-        }
-    }
+			}
+		}
+	}
 	if (vertices.empty())
 		return {0, 0, 0, 0};
 
@@ -123,17 +124,20 @@ DrawArraysIndirectCommand	VoxelSystem::genMesh(AChunk *data) {
 	
 	std::memcpy(reinterpret_cast<DATA_TYPE *>(VBOdata) + currentVertexOffset, vertices.data(), dataSize);
 
-    // Create the draw command
+	// Create the draw command
 	DrawArraysIndirectCommand command = {
 		(GLuint)vertices.size() / 3,
 		1,
-		(GLuint)(currentVertexOffset / sizeof(DATA_TYPE)),
+		(GLuint)(currentVertexOffset),
 		0
 	};
-	std::cout << "Vertice count: " << command.verticeCount << std::endl;
-	std::cout << "Offset: " << command.offset << std::endl;
 
 	currentVertexOffset += vertices.size();
+
+	// std::cout << "Vertice count: " << command.verticeCount << std::endl;
+	// std::cout << "Offset: " << command.offset << std::endl;
+	// std::cout << "Current offset: " << currentVertexOffset << std::endl;
+
 	return command;
 }
 
@@ -153,7 +157,7 @@ void	VoxelSystem::createChunk(const glm::ivec3 &worldPos) {
 	chunkData data = {chunk, worldPos, offset, size};
 	chunks.push_back(data);
 
-    // Update indirect buffer
+	// Update indirect buffer
 	glBindBuffer(GL_DRAW_INDIRECT_BUFFER, IB);
 	if (commands.size() * sizeof(DrawArraysIndirectCommand) > IBcapacity) {
 		IBcapacity *= 2;

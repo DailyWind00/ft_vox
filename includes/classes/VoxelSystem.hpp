@@ -18,11 +18,20 @@
 /// Global variables
 extern bool VERBOSE;
 
-// Data for a chunk
+// Data structure for a chunk
 typedef struct chunkData {
-	AChunk	   *chunk;
+	AChunk		*chunk;
 	glm::ivec3	worldPos;
+	size_t		VBOoffset;
+	size_t		VBOsize;
 } chunkData;
+typedef std::vector<chunkData> VChunks;
+
+typedef struct SSBOData {
+	GLuint	SSBO;
+	GLuint	size;
+} SSBOData;
+typedef std::vector<SSBOData> VSSBOs;
 
 typedef struct {
     GLuint verticeCount;
@@ -43,10 +52,8 @@ class	VoxelSystem {
 	//   - Load/update/delete chunks efficiently
 	//   - Batch all chunks in a single draw call
 	private:
-		std::vector<chunkData>	chunks;
-
-		/// OpenGL data
 		GLuint			VAO;
+		VChunks			chunks;
 		
 		// Vertex Buffer Object
 		GLuint 			VBO;
@@ -59,10 +66,15 @@ class	VoxelSystem {
 		size_t			IBsize = 0;
 		VDrawCommands	commands; // Stores the draw commands for each chunk
 
+		// Shader Storage Buffer Object
+		GLuint			SSBO;
+		VSSBOs			SSBOs;
+		size_t			SSBOsize = 0;
+
 		/// Private functions
 
-		bool						isVoxelVisible(const size_t &x, const size_t &y, const size_t &z, const chunkData &data);
-		DrawArraysIndirectCommand 	genMesh(const chunkData &chunk);
+		bool						isVoxelVisible(const size_t &x, const size_t &y, const size_t &z, AChunk *data);
+		DrawArraysIndirectCommand 	genMesh(AChunk *chunk);
 		void						createChunk(const glm::ivec3 &worldPos);
 
 		// TODO :

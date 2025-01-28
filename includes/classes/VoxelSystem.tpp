@@ -70,7 +70,7 @@ VoxelSystem<dataType, chunkSize>::VoxelSystem(const uint64_t &seed) {
 
 	// Create the chunks (to remove)
 	createChunk({0, 0, 0});
-	// for (int i = 0; i < 10; i++)
+	// for (int i = 0; i < 100; i++)
 	// 	createChunk({i, 0, i});
 }
 
@@ -94,14 +94,14 @@ VoxelSystem<dataType, chunkSize>::~VoxelSystem() {
 // Check if the voxel at the given position is visible
 // TODO: Culling techniques (take the camera position as parameter)
 template <typename dataType, size_t chunkSize>
-bool VoxelSystem<dataType, chunkSize>::isVoxelVisible(const size_t &x, const size_t &y, const size_t &z, const chunkData &data) {
-	if (BLOCK_AT(data.chunk, x, y, z) == 0)
+bool VoxelSystem<dataType, chunkSize>::isVoxelVisible(const size_t &x, const size_t &y, const size_t &z, AChunk *data) {
+	if (BLOCK_AT(data, x, y, z) == 0)
 		return false;
 
 	// Check if any neighboring voxel is empty / out of bounds
-	if ((!x || !BLOCK_AT(data.chunk, x - 1, y, z) || x >= chunkSize - 1 || !BLOCK_AT(data.chunk, x + 1, y, z))
-		|| (!y || !BLOCK_AT(data.chunk, x, y - 1, z) || y >= chunkSize - 1 || !BLOCK_AT(data.chunk, x, y + 1, z))
-		|| (!z || !BLOCK_AT(data.chunk, x, y, z - 1) || z >= chunkSize - 1 || !BLOCK_AT(data.chunk, x, y, z + 1)))
+	if ((!x || !BLOCK_AT(data, x - 1, y, z) || x >= chunkSize - 1 || !BLOCK_AT(data, x + 1, y, z))
+		|| (!y || !BLOCK_AT(data, x, y - 1, z) || y >= chunkSize - 1 || !BLOCK_AT(data, x, y + 1, z))
+		|| (!z || !BLOCK_AT(data, x, y, z - 1) || z >= chunkSize - 1 || !BLOCK_AT(data, x, y, z + 1)))
 		return true;
 
 	return false;
@@ -109,7 +109,7 @@ bool VoxelSystem<dataType, chunkSize>::isVoxelVisible(const size_t &x, const siz
 
 // Create/update the mesh of the given chunk and store it in the VBO
 template <typename dataType, size_t chunkSize>
-DrawArraysIndirectCommand	VoxelSystem<dataType, chunkSize>::genMesh(const chunkData &data) {
+DrawArraysIndirectCommand	VoxelSystem<dataType, chunkSize>::genMesh(AChunk *data) {
 	std::vector<dataType>	vertices;
 	int count = 0;
 	
@@ -118,6 +118,7 @@ DrawArraysIndirectCommand	VoxelSystem<dataType, chunkSize>::genMesh(const chunkD
         for (size_t y = 0; y < chunkSize; ++y) {
             for (size_t z = 0; z < chunkSize; ++z) {
 				if (isVoxelVisible(x, y, z, data)) {
+					// TODO: use bitmasks
 					vertices.push_back(x);
 					vertices.push_back(y);
 					vertices.push_back(z);
@@ -154,16 +155,18 @@ DrawArraysIndirectCommand	VoxelSystem<dataType, chunkSize>::genMesh(const chunkD
 template <typename dataType, size_t chunkSize>
 void	VoxelSystem<dataType, chunkSize>::createChunk(const glm::ivec3 &worldPos) {
 	AChunk *chunk = ChunkHandler::createChunk(worldPos);
-	chunkData data = {chunk, worldPos};
-
-	chunks.push_back(data);
-	// chunk->print(); // to remove
 
 	// Store the draw command for the chunk
-	DrawArraysIndirectCommand command = genMesh(data);
+	DrawArraysIndirectCommand command = genMesh(chunk);
 	if (!command.verticeCount)
 		return;
 	commands.push_back(command);
+
+	// Store the chunk data
+	size_t offset = currentVertexOffset - command.verticeCount * 3 * sizeof(dataType);
+	size_t size = command.verticeCount * 3 * sizeof(dataType) + offset;
+	chunkData data = {chunk, worldPos, offset, size};
+	chunks.push_back(data);
 
     // Update indirect buffer
 	if (commands.size() * sizeof(DrawArraysIndirectCommand) > IBsize) {

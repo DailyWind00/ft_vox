@@ -2,7 +2,7 @@
 
 // Handle the camera movements/interactions
 static glm::mat4 cameraHandler(Window &window) {
-	static glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, -10.0f);
+	static glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, -100.0f);
 	static glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, 1.0f);
 
 	double mouseX, mouseY;

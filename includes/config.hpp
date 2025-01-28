@@ -5,7 +5,7 @@
 
 # define WINDOW_WIDTH  800
 # define WINDOW_HEIGHT 600
-# define CAMERA_SPEED  0.1f
+# define CAMERA_SPEED  0.5f
 
 /// System includes
 # include <iostream>
@@ -19,7 +19,7 @@
 # include "Noise.hpp"
 # include "FlagHandler.hpp"
 # include "Profiler.hpp"
-# include "VoxelSystem.tpp"
+# include "VoxelSystem.hpp"
 # include "color.h"
 
 /// Global variables

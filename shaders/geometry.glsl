@@ -1,4 +1,4 @@
-#version 450 core
+#version 460 core
 
 layout (points) in;
 layout (triangle_strip, max_vertices = 14) out; // 14 vertices for a cube without redundancies

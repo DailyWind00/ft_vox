@@ -22,6 +22,7 @@ void	Rendering(Window &window) {
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
 
 	VoxelSystem<uint8_t, 32>	voxelSystem;
 	Shader	shader(

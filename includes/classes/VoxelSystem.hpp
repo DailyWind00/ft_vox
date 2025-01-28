@@ -27,12 +27,14 @@ typedef struct chunkData {
 } chunkData;
 typedef std::vector<chunkData> VChunks;
 
+// Data structure for a Shader Storage Buffer Object
 typedef struct SSBOData {
 	GLuint	SSBO;
 	GLuint	size;
 } SSBOData;
 typedef std::vector<SSBOData> VSSBOs;
 
+// Data structure for a draw command (Indirect Buffer)
 typedef struct {
     GLuint verticeCount;
     GLuint instanceCount;

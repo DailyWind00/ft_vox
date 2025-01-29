@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5.0)
+cmake_minimum_required(VERSION 3.10.0)
 project(ft_vox VERSION 1.0.0)
 cmake_policy(SET CMP0072 NEW)
 

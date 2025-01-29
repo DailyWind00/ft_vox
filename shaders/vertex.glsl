@@ -15,5 +15,5 @@ void main() {
 	position.z = (blockData >> 10) & 0x1F;
 
 	ivec3 worldOffset = worldpos[gl_DrawID].xyz * 32;
-	gl_Position = transform * vec4(worldOffset + position, 1.0);
+	gl_Position = transform * vec4(worldOffset + ivec3(position), 1.0);
 }

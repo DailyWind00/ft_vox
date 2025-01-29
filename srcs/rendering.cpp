@@ -1,7 +1,7 @@
 #include "config.hpp"
 
 // Keep the window alive, exiting this function should mean closing the window
-static void program_loop(Window &window, VoxelSystem<uint8_t, 32> &voxelSystem, Shader &shader) {
+static void program_loop(Window &window, VoxelSystem &voxelSystem, Shader &shader) {
 	printVerbose("Entering program's loop\n");
 
 	while (!glfwWindowShouldClose(window)) {
@@ -27,8 +27,9 @@ void	Rendering(Window &window)
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
 
-	VoxelSystem<uint8_t, 32>	voxelSystem;
+	VoxelSystem	voxelSystem;
 	Shader	shader(
 		"shaders/vertex.glsl",
 		"shaders/fragment.glsl",

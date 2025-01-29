@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5.0)
+cmake_minimum_required(VERSION 3.10.0)
 project(ft_vox VERSION 1.0.0)
 cmake_policy(SET CMP0072 NEW)
 
@@ -17,6 +17,7 @@ add_executable(ft_vox
 	includes/classes/Profiler.cpp
 	includes/classes/Noise.cpp
 	includes/classes/FlagHandler.cpp
+	includes/classes/VoxelSystem.cpp
 	includes/classes/Chunks/AChunk.cpp
 	includes/classes/Chunks/ChunkImpl.cpp
 	includes/classes/Chunks/ChunkHandler.cpp

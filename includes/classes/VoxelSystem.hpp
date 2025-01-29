@@ -2,6 +2,9 @@
 
 /// Defines
 # define COLOR_HEADER_CXX
+# define MAX_CHUNKS	256
+# define CHUNK_SIZE	32
+# define DATA_TYPE	uint64_t
 
 /// System includes
 # include <iostream>
@@ -18,12 +21,22 @@
 /// Global variables
 extern bool VERBOSE;
 
-// Data for a chunk
+// Data structure for a chunk
 typedef struct chunkData {
-	AChunk	   *chunk;
+	AChunk		*chunk;
 	glm::ivec3	worldPos;
+	size_t		VBOoffset;
+	size_t		VBOsize;
 } chunkData;
+typedef std::vector<chunkData> VChunks;
 
+// Data structure for a Shader Storage Buffer Object
+typedef struct SSBOData {
+	glm::ivec4	worldPos;
+} SSBOData;
+typedef std::vector<SSBOData> VSSBOs;
+
+// Data structure for a draw command (Indirect Buffer)
 typedef struct {
     GLuint verticeCount;
     GLuint instanceCount;
@@ -34,35 +47,35 @@ typedef std::vector<DrawArraysIndirectCommand> VDrawCommands;
 
 // Core class for the voxel system
 // Create chunks and their meshes & manage their rendering
-//  - dataType  : The type of the vertices (float, uint, ...)
-//  - ChunkSize : The size of a chunk (ChunkSize * ChunkSize * ChunkSize)
-template <typename dataType = float, size_t chunkSize = 16>
 class	VoxelSystem {
 	// This class use persistent mapped buffers (VBOs) with glMultiDrawArraysIndirect
 	// This allow:
 	//   - Load/update/delete chunks efficiently
 	//   - Batch all chunks in a single draw call
 	private:
-		std::vector<chunkData>	chunks;
-
-		/// OpenGL data
 		GLuint			VAO;
+		VChunks			chunks;
 		
 		// Vertex Buffer Object
 		GLuint 			VBO;
 		void		   *VBOdata = nullptr; // Persistent mapped VBO
-		size_t			VBOsize = 0;
+		size_t			VBOcapacity = 0;
 		size_t			currentVertexOffset = 0;
 
 		// Indirect Buffer
 		GLuint			IB;
-		size_t			IBsize = 0;
 		VDrawCommands	commands; // Stores the draw commands for each chunk
+		size_t			IBcapacity = 0;
+
+		// Shader Storage Buffer Object
+		GLuint			SSBO;
+		VSSBOs			chunksInfos;
+		size_t			SSBOcapacity = 0;
 
 		/// Private functions
 
-		bool						isVoxelVisible(const size_t &x, const size_t &y, const size_t &z, const chunkData &data);
-		DrawArraysIndirectCommand 	genMesh(const chunkData &chunk);
+		bool						isVoxelVisible(const size_t &x, const size_t &y, const size_t &z, AChunk *data);
+		DrawArraysIndirectCommand 	genMesh(AChunk *chunk);
 		void						createChunk(const glm::ivec3 &worldPos);
 
 		// TODO :

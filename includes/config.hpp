@@ -21,7 +21,7 @@
 # include "Noise.hpp"
 # include "FlagHandler.hpp"
 # include "Profiler.hpp"
-# include "VoxelSystem.tpp"
+# include "VoxelSystem.hpp"
 # include "color.h"
 
 /// Global variables

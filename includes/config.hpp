@@ -5,7 +5,9 @@
 
 # define WINDOW_WIDTH  800
 # define WINDOW_HEIGHT 600
-# define CAMERA_SPEED  0.5f
+# define CAMERA_SPEED  0.1f
+# define CAMERA_SPRINT_BOOST  0.15f
+# define CAMERA_SENSITIVITY  0.01f
 
 /// System includes
 # include <iostream>

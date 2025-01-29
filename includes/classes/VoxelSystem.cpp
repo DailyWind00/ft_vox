@@ -101,11 +101,20 @@ DrawArraysIndirectCommand	VoxelSystem::genMesh(AChunk *data) {
 		for (size_t y = 0; y < CHUNK_SIZE; ++y) {
 			for (size_t z = 0; z < CHUNK_SIZE; ++z) {
 				if (isVoxelVisible(x, y, z, data)) {
-					DATA_TYPE data;
-					// TODO: use bitmask
-					vertices.push_back(x);
-					vertices.push_back(y);
-					vertices.push_back(z);
+					DATA_TYPE data = 0;
+
+					// Bitmask :
+					// position = 15 bits (5 bits per axis)
+					// face = 3 bits (1 bit per axis, use culling in GPU)
+					// uv = 7 bits
+					// length = 15 bits (5 bits per axis)
+
+					// Encode position
+					data |= (x & 0x1F);       // 5 bits for x
+					data |= (y & 0x1F) << 5;  // 5 bits for y
+					data |= (z & 0x1F) << 10; // 5 bits for z
+
+					vertices.push_back(data);
 					count++;
 				}
 			}
@@ -126,7 +135,7 @@ DrawArraysIndirectCommand	VoxelSystem::genMesh(AChunk *data) {
 
 	// Create the draw command
 	DrawArraysIndirectCommand command = {
-		(GLuint)vertices.size() / 3,
+		(GLuint)vertices.size(),
 		1,
 		(GLuint)(currentVertexOffset),
 		0
@@ -134,9 +143,9 @@ DrawArraysIndirectCommand	VoxelSystem::genMesh(AChunk *data) {
 
 	currentVertexOffset += vertices.size();
 
-	// std::cout << "Vertice count: " << command.verticeCount << std::endl;
-	// std::cout << "Offset: " << command.offset << std::endl;
-	// std::cout << "Current offset: " << currentVertexOffset << std::endl;
+	std::cout << "Vertice count: " << command.verticeCount << std::endl;
+	std::cout << "Offset: " << command.offset << std::endl;
+	std::cout << "Current offset: " << currentVertexOffset << std::endl;
 
 	return command;
 }

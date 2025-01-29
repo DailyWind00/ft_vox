@@ -17,7 +17,12 @@ static void program_loop(Window &window, VoxelSystem &voxelSystem, Shader &shade
 }
 
 // Setup variables and call the program loop
-void	Rendering(Window &window) {
+void	Rendering(Window &window)
+{
+	if (glfwRawMouseMotionSupported())
+		glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
 	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);

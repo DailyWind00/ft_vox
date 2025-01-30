@@ -21,14 +21,51 @@ class Window {
 	private:
 		GLFWwindow *window;
 
+		// Only used for the main loop
+		size_t		fps = 0;
+		size_t		frameTime = 0;
+
+		/// Private functions
+
+		void	updateFrameRate();
+
 	public:
 		Window(int posX, int posY, int width, int height, const std::string &title);
 		~Window();
+
+		/// Public functions
+
+		// Main loop of the program
+		// Handle the window events and call the given function
+		template <typename ...T>
+		void	mainLoop(void (*func)(T&...), T&... args) {
+			if (VERBOSE)
+				std::cout << "Window : Entering loop" << std::endl;
+
+			while (!glfwWindowShouldClose(window)) {
+				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+				this->updateFrameRate();
+
+				func(args...);
+
+				glfwPollEvents();
+				glfwSwapBuffers(window);
+			}
+
+			if (VERBOSE)
+				std::cout << "Window : Exiting loop" << std::endl;
+		}
 
 		/// Getters
 
 		GLFWwindow *getGLFWwindow() const;
 		operator GLFWwindow *() const;
+		size_t	getFPS();
+		size_t	getFrameTime() const;
+
+		/// Setters
+
+		void	setTitle(const std::string &title);
 };
 
 typedef std::vector<Window *>   VGLFWwindows;

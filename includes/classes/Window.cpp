@@ -52,6 +52,27 @@ Window::~Window() {
 
 
 
+/// Private functions
+
+// Update the frame rate and the fps counters
+void	Window::updateFrameRate() {
+	static double	lastTime = glfwGetTime();
+	static size_t	frames = 0;
+
+	double currentTime = glfwGetTime();
+	frames++;
+
+	if (currentTime - lastTime >= 1.0) {
+		this->fps = frames;
+		this->frameTime = 1000.0 / double(fps);
+		frames = 0;
+		lastTime = currentTime;
+	}
+}
+/// ---
+
+
+
 /// Getters
 
 // Return the GLFWwindow pointer
@@ -62,6 +83,26 @@ GLFWwindow	*Window::getGLFWwindow() const {
 // Return the GLFWwindow pointer
 Window::operator GLFWwindow *() const {
 	return window;
+}
+
+// Return the current FPS of the window
+size_t	Window::getFPS() {
+	return fps;
+}
+
+// Return the frameTime of the window
+size_t	Window::getFrameTime() const {
+	return frameTime;
+}
+/// ---
+
+
+
+/// Setters
+
+// Set the title of the window
+void	Window::setTitle(const std::string &title) {
+	glfwSetWindowTitle(window, title.c_str());
 }
 /// ---
 //// ----

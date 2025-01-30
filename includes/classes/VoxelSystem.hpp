@@ -2,9 +2,9 @@
 
 /// Defines
 # define COLOR_HEADER_CXX
-# define MAX_CHUNKS	256
-# define CHUNK_SIZE	32
-# define DATA_TYPE	uint64_t
+# define BASE_MAX_CHUNKS 1
+# define CHUNK_SIZE 32
+# define DATA_TYPE uint64_t
 
 /// System includes
 # include <iostream>
@@ -21,14 +21,7 @@
 /// Global variables
 extern bool VERBOSE;
 
-// Data structure for a chunk
-typedef struct chunkData {
-	AChunk		*chunk;
-	glm::ivec3	worldPos;
-	size_t		VBOoffset;
-	size_t		VBOsize;
-} chunkData;
-typedef std::vector<chunkData> VChunks;
+typedef std::vector<AChunk *> VChunks;
 
 // Data structure for a Shader Storage Buffer Object
 typedef struct SSBOData {
@@ -79,7 +72,7 @@ class	VoxelSystem {
 		void						createChunk(const glm::ivec3 &worldPos);
 
 		// TODO :
-		// void	reallocateVBO();
+		void						reallocateVBO(size_t newSize);
 		// void						updateChunk(const glm::ivec3 &worldPos, const glm::mat4 &view); // Update the chunk mesh && load/unload chunks
 		// void						deleteChunk(const glm::ivec3 &worldPos);
 

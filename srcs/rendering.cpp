@@ -4,6 +4,7 @@
 static void program_loop(Window &window, VoxelSystem &voxelSystem, Shader &shader) {
 	voxelSystem.draw();
 	handleEvents(window, shader);
+	window.setTitle("ft_vox | FPS: " + std::to_string(window.getFPS()) + " | Frame rate: " + std::to_string(window.getFrameTime()));
 }
 
 // Setup variables and call the program loop

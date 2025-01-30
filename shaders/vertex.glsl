@@ -14,7 +14,7 @@ void main() {
 	position.y = (blockData.x >> 5)  & 0x1F;
 	position.z = (blockData.x >> 10) & 0x1F;
 
-	ivec3 worldOffset = worldpos[gl_DrawID].xyz * 32;
+	ivec3 worldOffset = worldpos[gl_DrawID].zyx * 32;
 
 	geoPos = ivec3(position);
 	gl_Position = vec4(worldOffset + geoPos , 1.0);

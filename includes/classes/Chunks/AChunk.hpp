@@ -3,6 +3,7 @@
 /// Defines
 # define CHUNK_WIDTH	32
 # define CHUNK_HEIGHT	32
+# define MAX_WORLD_SIZE	500
 
 # define BLOCK_AT(chunk, x, y, z) (int)(*(*chunk)[y])[x * CHUNK_WIDTH + z] 
 # define IS_LAYER_COMPRESSED(chunk, y)	dynamic_cast<SingleBlockChunkLayer *>((*chunk)[y])

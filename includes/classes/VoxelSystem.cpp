@@ -51,24 +51,14 @@ VoxelSystem::VoxelSystem(const uint64_t &seed) {
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 	// Create the chunks (to remove)
-	createChunk({-1, 0, -1});
-	createChunk({0, 0, -1});
-	createChunk({1, 0, -1});
-	createChunk({-1, 0, 0});
-	createChunk({0, 0, 0});
-	createChunk({1, 0, 0});
-	createChunk({-1, 0, 1});
-	createChunk({0, 0, 1});
-	createChunk({1, 0, 1});
-	createChunk({-1, -1, -1});
-	createChunk({0, -1, -1});
-	createChunk({1, -1, -1});
-	createChunk({-1, -1, 0});
-	createChunk({0, -1, 0});
-	createChunk({1, -1, 0});
-	createChunk({-1, -1, 1});
-	createChunk({0, -1, 1});
-	createChunk({1, -1, 1});
+	
+	for (int i = -10; i < 10; i++) {
+		for (int j = -10; j < 10; j++) {
+			for (int k = -1; k < 1; k++) {
+				createChunk({i, k, j});
+			}
+		}
+	}
 	// for (int i = 0; i < 100; i++)
 	// 	createChunk({i, 0, i});
 }

@@ -29,7 +29,7 @@ typedef std::vector<ChunkData> VChunks;
 
 // Data structure for a Shader Storage Buffer Object
 typedef struct SSBOData {
-	glm::ivec4	worldPos;
+	glm::ivec4	worldPos; // x, y, z, isLoaded?
 } SSBOData;
 typedef std::vector<SSBOData> VSSBOs;
 
@@ -78,7 +78,9 @@ class	VoxelSystem {
 		void						deleteChunk(const glm::ivec3 &worldPos);
 
 		/// TODO :
-		// void						updateChunk(const glm::ivec3 &worldPos, const glm::mat4 &view); // Update the chunk mesh && load/unload chunks
+		// void						updateChunk(const glm::ivec3 &worldPos); // Update the chunk mesh && load/unload chunks
+		void						loadChunk(const glm::ivec3 &worldPos);
+		void						unloadChunk(const glm::ivec3 &worldPos);
 
 	public:
 		VoxelSystem(); // Random seed

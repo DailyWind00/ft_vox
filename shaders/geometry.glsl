@@ -3,8 +3,16 @@
 layout (points) in;
 layout (triangle_strip, max_vertices = 14) out; // 14 vertices for a cube without redundancies
 
+in VS_OUT {
+    int loaded;
+} gs_in[];
+
+out int fragLoad;
+
 void main() {
 	vec4 position = gl_in[0].gl_Position;
+
+	fragLoad = gs_in[0].loaded;
 
 	// Offsets for the 8 corners of the cube
 	vec4 offsets[8] = vec4[](

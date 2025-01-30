@@ -62,8 +62,6 @@ static glm::mat4 cameraHandler(Window &window) {
 // Handle all keyboard & other events
 void	handleEvents(Window &window, Shader &shader)
 {
-	glfwPollEvents();
-
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
 

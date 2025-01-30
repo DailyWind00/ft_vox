@@ -25,6 +25,26 @@ class Window {
 		Window(int posX, int posY, int width, int height, const std::string &title);
 		~Window();
 
+		// Main loop of the program
+		// Handle the window events and call the given function
+		template <typename ...T>
+		void	mainLoop(void (*func)(T&...), T&... args) {
+			if (VERBOSE)
+				std::cout << "Window : Entering loop" << std::endl;
+
+			while (!glfwWindowShouldClose(window)) {
+				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+				func(args...);
+
+				glfwPollEvents();
+				glfwSwapBuffers(window);
+			}
+
+			if (VERBOSE)
+				std::cout << "Window : Exiting loop" << std::endl;
+		}
+
 		/// Getters
 
 		GLFWwindow *getGLFWwindow() const;

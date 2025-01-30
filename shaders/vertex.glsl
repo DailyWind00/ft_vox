@@ -5,8 +5,6 @@ layout (std140, binding = 0) buffer SSBO {
 	ivec4 worldpos[]; // Fuck you khronos
 };
 
-uniform mat4 transform; // Projection * View * Model
-
 void main() {
 	// Decode blockData bitmask :
 	uvec3 position;
@@ -15,5 +13,5 @@ void main() {
 	position.z = (blockData.x >> 10) & 0x1F;
 
 	ivec3 worldOffset = worldpos[gl_DrawID].xyz * 32;
-	gl_Position = transform * vec4(worldOffset + ivec3(position), 1.0);
+	gl_Position = vec4(worldOffset + ivec3(position), 1.0);
 }

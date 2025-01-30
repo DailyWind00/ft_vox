@@ -3,6 +3,12 @@
 layout (points) in;
 layout (triangle_strip, max_vertices = 14) out; // 14 vertices for a cube without redundancies
 
+layout (std140, binding = 0) buffer SSBO {
+	ivec4 worldpos[]; // Fuck you khronos
+};
+
+uniform mat4	transform;
+
 void main() {
     vec4 position = gl_in[0].gl_Position;
 
@@ -19,19 +25,19 @@ void main() {
     );
 
     // Emit vertices in a single triangle strip
-    gl_Position = position + offsets[0]; EmitVertex(); // Bottom-left-back
-    gl_Position = position + offsets[1]; EmitVertex(); // Bottom-right-back
-    gl_Position = position + offsets[2]; EmitVertex(); // Top-left-back
-    gl_Position = position + offsets[3]; EmitVertex(); // Top-right-back
-    gl_Position = position + offsets[7]; EmitVertex(); // Top-right-front
-    gl_Position = position + offsets[5]; EmitVertex(); // Bottom-right-front
-    gl_Position = position + offsets[4]; EmitVertex(); // Bottom-left-front
-    gl_Position = position + offsets[6]; EmitVertex(); // Top-left-front
-    gl_Position = position + offsets[2]; EmitVertex(); // Top-left-back
-    gl_Position = position + offsets[7]; EmitVertex(); // Top-right-front
-    gl_Position = position + offsets[3]; EmitVertex(); // Top-right-back
-    gl_Position = position + offsets[1]; EmitVertex(); // Bottom-right-back
-    gl_Position = position + offsets[0]; EmitVertex(); // Bottom-left-back
-    gl_Position = position + offsets[4]; EmitVertex(); // Bottom-left-front
+    gl_Position = transform * vec4(position + offsets[0]); EmitVertex(); // Bottom-left-back
+    gl_Position = transform * vec4(position + offsets[1]); EmitVertex(); // Bottom-right-back
+    gl_Position = transform * vec4(position + offsets[2]); EmitVertex(); // Top-left-back
+    gl_Position = transform * vec4(position + offsets[3]); EmitVertex(); // Top-right-back
+    gl_Position = transform * vec4(position + offsets[7]); EmitVertex(); // Top-right-front
+    gl_Position = transform * vec4(position + offsets[5]); EmitVertex(); // Bottom-right-front
+    gl_Position = transform * vec4(position + offsets[4]); EmitVertex(); // Bottom-left-front
+    gl_Position = transform * vec4(position + offsets[6]); EmitVertex(); // Top-left-front
+    gl_Position = transform * vec4(position + offsets[2]); EmitVertex(); // Top-left-back
+    gl_Position = transform * vec4(position + offsets[7]); EmitVertex(); // Top-right-front
+    gl_Position = transform * vec4(position + offsets[3]); EmitVertex(); // Top-right-back
+    gl_Position = transform * vec4(position + offsets[1]); EmitVertex(); // Bottom-right-back
+    gl_Position = transform * vec4(position + offsets[0]); EmitVertex(); // Bottom-left-back
+    gl_Position = transform * vec4(position + offsets[4]); EmitVertex(); // Bottom-left-front
     EndPrimitive();
 }

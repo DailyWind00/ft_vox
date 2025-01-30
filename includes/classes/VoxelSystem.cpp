@@ -57,9 +57,10 @@ VoxelSystem::VoxelSystem(const uint64_t &seed) {
 	createChunk({ 0,  0, 0});
 	createChunk({ 0, -1, 0});
 	createChunk({-1,  0, 0});
-	for (int i = 0; i < 20; i++)
-		for (int j = 0; j < 20; j++)
-			createChunk({i, 0, j});
+
+	// deleteChunk({0, 0, 0});
+	// deleteChunk({0, -1, 0});
+	// deleteChunk({-1, 0, 0});
 }
 
 VoxelSystem::~VoxelSystem() {
@@ -71,14 +72,70 @@ VoxelSystem::~VoxelSystem() {
 	glDeleteBuffers(1, &SSBO);
 	glDeleteVertexArrays(1, &VAO);
 
-	for (AChunk *chunk : chunks)
-		delete chunk;
+	for (ChunkData &chunk : chunks)
+		delete chunk.chunk;
 }
 /// ---
 
 
 
 /// Private functions
+
+// Reallocate the VBO with a new capacity, also recompact the data
+void	VoxelSystem::reallocateVBO(size_t newSize) {
+	void *copy = nullptr;
+
+	size_t VBOstorage = 0;
+	for (DrawArraysIndirectCommand command : commands)
+		VBOstorage += command.verticeCount * sizeof(DATA_TYPE);
+
+	if (newSize < VBOstorage)
+		throw std::runtime_error("VoxelSystem : New size is too small");
+
+	// Reallocate the buffer
+	if (newSize != VBOcapacity) {
+		if (VERBOSE)
+			std::cout << "VoxelSystem : Reallocating VBO from " << VBOcapacity / sizeof(DATA_TYPE) << " to " << newSize / sizeof(DATA_TYPE) << " blocks\n";
+
+		if (VBOdata) {
+			copy = new DATA_TYPE[VBOstorage / sizeof(DATA_TYPE)];
+			std::memcpy(copy, VBOdata, VBOstorage);
+			glUnmapBuffer(GL_ARRAY_BUFFER);
+		}
+		
+		glDeleteBuffers(1, &VBO);
+		glGenBuffers(1, &VBO);
+		glBindBuffer(GL_ARRAY_BUFFER, VBO);
+
+		VBOcapacity = newSize;
+		glBufferStorage(GL_ARRAY_BUFFER, VBOcapacity, nullptr, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
+		VBOdata = glMapBufferRange(GL_ARRAY_BUFFER, 0, VBOcapacity, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
+		if (!VBOdata)
+			throw std::runtime_error("VoxelSystem : Failed to map the VBO");
+
+		glVertexAttribIPointer(0, 2, GL_UNSIGNED_INT, sizeof(DATA_TYPE), nullptr);
+
+		glEnableVertexAttribArray(0);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+	}
+
+	// Update the draw commands and repopulate the buffer
+	size_t newVertexOffset = 0;
+	for (DrawArraysIndirectCommand command : commands) {
+		size_t dataSize = command.verticeCount * sizeof(DATA_TYPE);
+
+		std::memcpy(
+			reinterpret_cast<DATA_TYPE *>(VBOdata) + newVertexOffset,
+			reinterpret_cast<DATA_TYPE *>(copy) + command.offset,
+			dataSize
+		);
+
+		command.offset = newVertexOffset;
+		newVertexOffset += command.verticeCount;
+	}
+
+	delete[] static_cast<uint8_t*>(copy);
+}
 
 // Check if the voxel at the given position is visible
 // TODO: Culling techniques (take the camera position as parameter)
@@ -162,7 +219,7 @@ void	VoxelSystem::createChunk(const glm::ivec3 &worldPos) {
 		return;
 
 	commands.push_back(command);
-	chunks.push_back(chunk);
+	chunks.push_back({chunk, worldPos});
 
 	// Update indirect buffer
 	glBindBuffer(GL_DRAW_INDIRECT_BUFFER, IB);
@@ -187,61 +244,53 @@ void	VoxelSystem::createChunk(const glm::ivec3 &worldPos) {
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
 
-// Reallocate the VBO with a new capacity, also recompact the data
-// This function can be heavy
-void	VoxelSystem::reallocateVBO(size_t newSize) {
-	void *copy = nullptr;
-
-	size_t VBOstorage = 0;
-	for (DrawArraysIndirectCommand command : commands)
-		VBOstorage += command.verticeCount * sizeof(DATA_TYPE);
-
-	if (newSize < VBOstorage)
-		throw std::runtime_error("VoxelSystem : New size is too small");
-
-	// Reallocate the buffer
-	if (newSize != VBOcapacity) {
-		if (VERBOSE)
-			std::cout << "VoxelSystem : Reallocating VBO from " << VBOcapacity / sizeof(DATA_TYPE) << " to " << newSize / sizeof(DATA_TYPE) << " blocks\n";
-
-		if (VBOdata) {
-			copy = new DATA_TYPE[VBOstorage / sizeof(DATA_TYPE)];
-			std::memcpy(copy, VBOdata, VBOstorage);
-			glUnmapBuffer(GL_ARRAY_BUFFER);
+// Delete the chunk at the given world position
+void	VoxelSystem::deleteChunk(const glm::ivec3 &worldPos) {
+	size_t index = 0;
+	bool found = false;
+	for (ChunkData &chunk : chunks) {
+		if (chunk.worldPos == worldPos) {
+			delete chunk.chunk;
+			chunks.erase(chunks.begin() + index);
+			commands.erase(commands.begin() + index);
+			chunksInfos.erase(chunksInfos.begin() + index);
+			found = true;
+			break;
 		}
-		
-		glDeleteBuffers(1, &VBO);
-		glGenBuffers(1, &VBO);
-		glBindBuffer(GL_ARRAY_BUFFER, VBO);
-
-		VBOcapacity = newSize;
-		glBufferStorage(GL_ARRAY_BUFFER, VBOcapacity, nullptr, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
-		VBOdata = glMapBufferRange(GL_ARRAY_BUFFER, 0, VBOcapacity, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
-		if (!VBOdata)
-			throw std::runtime_error("VoxelSystem : Failed to map the VBO");
-
-		glVertexAttribIPointer(0, 2, GL_UNSIGNED_INT, sizeof(DATA_TYPE), nullptr);
-
-		glEnableVertexAttribArray(0);
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		index++;
 	}
+	if (!found) return;
 
-	// Update the draw commands and repopulate the buffer
+	if (VERBOSE)
+		std::cout << "> Chunk at " << worldPos.x << " " << worldPos.y << " " << worldPos.z << " deleted\n";
+
+	// Recompact the VBO
 	size_t newVertexOffset = 0;
-	for (DrawArraysIndirectCommand command : commands) {
+	for (DrawArraysIndirectCommand &command : commands) {
 		size_t dataSize = command.verticeCount * sizeof(DATA_TYPE);
 
-		std::memcpy(
-			reinterpret_cast<DATA_TYPE *>(VBOdata) + newVertexOffset,
-			reinterpret_cast<DATA_TYPE *>(copy) + command.offset,
-			dataSize
-		);
+		// Only copy if there's data to shift
+		if (newVertexOffset != command.offset) {
+			std::memmove(
+				reinterpret_cast<DATA_TYPE *>(VBOdata) + newVertexOffset,
+				reinterpret_cast<DATA_TYPE *>(VBOdata) + command.offset,
+				dataSize
+			);
+		}
 
 		command.offset = newVertexOffset;
 		newVertexOffset += command.verticeCount;
 	}
+	
+	// Update the indirect buffer
+	glBindBuffer(GL_DRAW_INDIRECT_BUFFER, IB);
+	glBufferSubData(GL_DRAW_INDIRECT_BUFFER, 0, commands.size() * sizeof(DrawArraysIndirectCommand), commands.data());
+	glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
 
-	delete[] static_cast<uint8_t*>(copy);
+	// Update the SSBO
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, SSBO);
+	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, chunksInfos.size() * sizeof(SSBOData), chunksInfos.data());
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
 /// ---
 

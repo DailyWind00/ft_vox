@@ -21,7 +21,11 @@
 /// Global variables
 extern bool VERBOSE;
 
-typedef std::vector<AChunk *> VChunks;
+typedef struct ChunkData {
+	AChunk *chunk;
+	glm::ivec3 worldPos;
+} ChunkData;
+typedef std::vector<ChunkData> VChunks;
 
 // Data structure for a Shader Storage Buffer Object
 typedef struct SSBOData {
@@ -71,10 +75,10 @@ class	VoxelSystem {
 		bool						isVoxelVisible(const size_t &x, const size_t &y, const size_t &z, AChunk *data);
 		DrawArraysIndirectCommand 	genMesh(AChunk *chunk);
 		void						createChunk(const glm::ivec3 &worldPos);
+		void						deleteChunk(const glm::ivec3 &worldPos);
 
 		/// TODO :
 		// void						updateChunk(const glm::ivec3 &worldPos, const glm::mat4 &view); // Update the chunk mesh && load/unload chunks
-		// void						deleteChunk(const glm::ivec3 &worldPos);
 
 	public:
 		VoxelSystem(); // Random seed

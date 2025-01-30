@@ -2,7 +2,7 @@
 
 /// Defines
 # define COLOR_HEADER_CXX
-# define BASE_MAX_CHUNKS 1
+# define BASE_MAX_CHUNKS 256
 # define CHUNK_SIZE 32
 # define DATA_TYPE uint64_t
 
@@ -62,17 +62,17 @@ class	VoxelSystem {
 
 		// Shader Storage Buffer Object
 		GLuint			SSBO;
-		VSSBOs			chunksInfos;
+		VSSBOs			chunksInfos; // Store additional informations for each chunk
 		size_t			SSBOcapacity = 0;
 
 		/// Private functions
 
+		void						reallocateVBO(size_t newSize);
 		bool						isVoxelVisible(const size_t &x, const size_t &y, const size_t &z, AChunk *data);
 		DrawArraysIndirectCommand 	genMesh(AChunk *chunk);
 		void						createChunk(const glm::ivec3 &worldPos);
 
-		// TODO :
-		void						reallocateVBO(size_t newSize);
+		/// TODO :
 		// void						updateChunk(const glm::ivec3 &worldPos, const glm::mat4 &view); // Update the chunk mesh && load/unload chunks
 		// void						deleteChunk(const glm::ivec3 &worldPos);
 

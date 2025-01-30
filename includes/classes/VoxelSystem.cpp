@@ -20,11 +20,11 @@ VoxelSystem::VoxelSystem(const uint64_t &seed) {
 	glGenBuffers(1, &VBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 
-	size_t maxVerticesPerChunk = CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE; // Worst case
+	size_t maxVerticesPerChunk = CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE; // Impossible worst case (just to be sure)
 	VBOcapacity = BASE_MAX_CHUNKS * maxVerticesPerChunk * sizeof(DATA_TYPE);
 	
 	if (VERBOSE)
-		std::cout << "VoxelSystem : Creating VBO with a capacity of " << VBOcapacity << " bytes" << std::endl;
+		std::cout << "VoxelSystem : Creating VBO with a capacity of " << VBOcapacity / sizeof(DATA_TYPE) << " blocks" << std::endl;
 
 	glBufferStorage(GL_ARRAY_BUFFER, VBOcapacity, nullptr, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
 	VBOdata = glMapBufferRange(GL_ARRAY_BUFFER, 0, VBOcapacity, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
@@ -58,7 +58,8 @@ VoxelSystem::VoxelSystem(const uint64_t &seed) {
 	createChunk({ 0, -1, 0});
 	createChunk({-1,  0, 0});
 	for (int i = 0; i < 20; i++)
-		createChunk({i, 0, i});
+		for (int j = 0; j < 20; j++)
+			createChunk({i, 0, j});
 }
 
 VoxelSystem::~VoxelSystem() {
@@ -129,7 +130,7 @@ DrawArraysIndirectCommand	VoxelSystem::genMesh(AChunk *data) {
 		return {0, 0, 0, 0};
 
 	if (VERBOSE)
-		std::cout << "> Chunk created with " << count << " blocks" << std::endl;
+		std::cout << "> Chunk created with " << count << " blocks\n";
 
 	// Update the persistent mapped buffer
 	size_t dataSize = vertices.size() * sizeof(DATA_TYPE);
@@ -201,7 +202,7 @@ void	VoxelSystem::reallocateVBO(size_t newSize) {
 	// Reallocate the buffer
 	if (newSize != VBOcapacity) {
 		if (VERBOSE)
-			std::cout << "VoxelSystem : Reallocating VBO from " << VBOcapacity << " to " << newSize << std::endl;
+			std::cout << "VoxelSystem : Reallocating VBO from " << VBOcapacity / sizeof(DATA_TYPE) << " to " << newSize / sizeof(DATA_TYPE) << " blocks\n";
 
 		if (VBOdata) {
 			copy = new DATA_TYPE[VBOstorage / sizeof(DATA_TYPE)];

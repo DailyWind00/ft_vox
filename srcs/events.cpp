@@ -10,6 +10,7 @@ static glm::mat4 cameraHandler(Window &window) {
 	cameraRight = glm::normalize(glm::cross(cameraFront, cameraUp));
 
 	float	camCurrentSpeed = CAMERA_SPEED + (CAMERA_SPRINT_BOOST * (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS));
+	camCurrentSpeed *= window.getFrameTime() / 3;
 
 	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
 		cameraPos.x += cameraFront.x * camCurrentSpeed;
@@ -39,8 +40,8 @@ static glm::mat4 cameraHandler(Window &window) {
 
 	static glm::vec2	angles = glm::vec2(0, 0);
 
-	angles.x += (mouseX - ((float)WINDOW_WIDTH / 2)) * CAMERA_SENSITIVITY;
-	angles.y -= (mouseY - ((float)WINDOW_HEIGHT / 2)) * CAMERA_SENSITIVITY;
+	angles.x += (mouseX - ((float)WINDOW_WIDTH / 2)) * CAMERA_SENSITIVITY * window.getFrameTime();
+	angles.y -= (mouseY - ((float)WINDOW_HEIGHT / 2)) * CAMERA_SENSITIVITY * window.getFrameTime();
 
 	if (angles.y > 89)
 		angles.y = 89;
@@ -62,8 +63,6 @@ static glm::mat4 cameraHandler(Window &window) {
 // Handle all keyboard & other events
 void	handleEvents(Window &window, Shader &shader)
 {
-	glfwPollEvents();
-
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
 

@@ -76,7 +76,7 @@ class	VoxelSystem {
 		void			updateIB();
 		void			updateSSBO();
 		void			reallocateVBO(size_t newSize);
-		bool			isVoxelVisible(const size_t &x, const size_t &y, const size_t &z, AChunk *data);
+		u_int8_t		isVoxelVisible(const size_t &x, const size_t &y, const size_t &z, AChunk *data);
 		DrawCommand 	genMesh(AChunk *data);
 		void			createChunk(const glm::ivec3 &worldPos);
 		void			updateChunk(const glm::ivec3 &worldPos); // Broken

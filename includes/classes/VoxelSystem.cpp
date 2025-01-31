@@ -170,20 +170,33 @@ void	VoxelSystem::reallocateVBO(size_t newSize) {
 }
 
 // Check if the voxel at the given position is visible
+// Return a bitmask of the visible faces (6 bits : XxYyZz)
 // TODO: Culling techniques (take the camera position as parameter)
-bool VoxelSystem::isVoxelVisible(const size_t &x, const size_t &y, const size_t &z, AChunk *data) {
+u_int8_t VoxelSystem::isVoxelVisible(const size_t &x, const size_t &y, const size_t &z, AChunk *data) {
 	if (BLOCK_AT(data, x, y, z) == 0)
-		return false;
+		return 0;
 
-	// Check if any neighboring voxel is empty / out of bounds
-	if (!x || !BLOCK_AT(data, x - 1, y, z) || x >= CHUNK_SIZE - 1 || !BLOCK_AT(data, x + 1, y, z))
-		return true;
-	if (!y || !BLOCK_AT(data, x, y - 1, z) || y >= CHUNK_SIZE - 1 || !BLOCK_AT(data, x, y + 1, z))
-		return true;
-	if (!z || !BLOCK_AT(data, x, y, z - 1) || z >= CHUNK_SIZE - 1 || !BLOCK_AT(data, x, y, z + 1))
-		return true;
+	u_int8_t visibleFaces = 0;
 
-	return false;
+	// x axis
+	if (!x || !BLOCK_AT(data, x - 1, y, z))
+		visibleFaces |= 1;
+	if (x >= CHUNK_SIZE - 1 || !BLOCK_AT(data, x + 1, y, z))
+		visibleFaces |= 2;
+
+	// y axis
+	if (!y || !BLOCK_AT(data, x, y - 1, z))
+		visibleFaces |= 4;
+	if (y >= CHUNK_SIZE - 1 || !BLOCK_AT(data, x, y + 1, z))
+		visibleFaces |= 8;
+
+	// z axis
+	if (!z || !BLOCK_AT(data, x, y, z - 1))
+		visibleFaces |= 16;
+	if (z >= CHUNK_SIZE - 1 || !BLOCK_AT(data, x, y, z + 1))
+		visibleFaces |= 32;
+
+	return visibleFaces;
 }
 
 // Create/update the mesh of the given chunk and store it in the VBO
@@ -195,19 +208,23 @@ DrawCommand	VoxelSystem::genMesh(AChunk *data) {
 	for (size_t x = 0; x < CHUNK_SIZE; ++x) {
 		for (size_t y = 0; y < CHUNK_SIZE; ++y) {
 			for (size_t z = 0; z < CHUNK_SIZE; ++z) {
-				if (isVoxelVisible(x, y, z, data)) {
+				u_int8_t visibleFaces = isVoxelVisible(x, y, z, data);
+
+				if (visibleFaces) {
 					DATA_TYPE data = 0;
 
 					// Bitmask :
 					// position = 15 bits (5 bits per axis)
-					// face = 3 bits (1 bit per axis, use culling in GPU)
+					// faces = 6 bits
 					// uv = 7 bits
-					// length = 15 bits (5 bits per axis)
+					// length = 15 bits (5 bits per axis) (greedy meshing)
 
 					// Encode position
 					data |= (x & 0x1F);       // 5 bits for x
 					data |= (y & 0x1F) << 5;  // 5 bits for y
 					data |= (z & 0x1F) << 10; // 5 bits for z
+
+					data |= (visibleFaces & 0x3F) << 15; // 6 bits for the visible faces
 
 					vertices.push_back(data);
 					count++;
@@ -324,6 +341,11 @@ void	VoxelSystem::deleteChunk(const glm::ivec3 &worldPos) {
 // Draw all chunks using batched rendering
 void	VoxelSystem::draw() {
 	// Todo: UpdateChunk here (may need to add parameters to the function)
+
+	// for (int i = -10; i < 10; i++) {
+	// 	updateChunk({0, 0, 0});
+	// }
+	// updateChunk({0, 0, 0});
 
 	glBindVertexArray(VAO);
 	glBindBuffer(GL_DRAW_INDIRECT_BUFFER, IB);

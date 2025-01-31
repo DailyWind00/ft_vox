@@ -9,7 +9,7 @@ layout (std430, binding = 0) buffer SSBO {
 	Chunk chunks[];
 };
 
-flat out ivec3	geoPos;
+flat out uint faces;
 
 void main() {
 	// Decode blockData bitmask :
@@ -18,8 +18,9 @@ void main() {
 	position.y = (blockData.x >> 5)  & 0x1F;
 	position.z = (blockData.x >> 10) & 0x1F;
 
+	faces = (blockData.x >> 15) & 0x3F;
+
 	ivec3 worldOffset = chunks[gl_DrawID].worldpos.zyx * 32;
 
-	geoPos = ivec3(position);
-	gl_Position = vec4(worldOffset + geoPos , 1.0);
+	gl_Position = vec4(worldOffset + ivec3(position), 1.0);
 }

@@ -1,7 +1,7 @@
 #include "config.hpp"
 
 // Handle the camera movements/interactions
-static glm::mat4 cameraHandler(Window &window) {
+static glm::mat4 cameraHandler(Window &window, Shader &shader) {
 	static glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, -10.0f);
 	static glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, 1.0f);
 	static glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
@@ -57,6 +57,8 @@ static glm::mat4 cameraHandler(Window &window) {
 	
 	glfwSetCursorPos(window, (float)WINDOW_WIDTH / 2, (float)WINDOW_HEIGHT / 2);
 
+	shader.setUniform("camPos", cameraPos);
+
 	return glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 }
 
@@ -67,8 +69,8 @@ void	handleEvents(Window &window, Shader &shader)
 		glfwSetWindowShouldClose(window, true);
 
 	glm::mat4 model = glm::mat4(1.0f);
-	glm::mat4 view = cameraHandler(window);
-	glm::mat4 projection = glm::perspective(glm::radians(45.0f), 800.0f / 600.0f, 0.1f, 1000.0f);
+	glm::mat4 view = cameraHandler(window, shader);
+	glm::mat4 projection = glm::perspective(glm::radians(45.0f), 800.0f / 600.0f, 0.1f, 10000.0f);
 
 	shader.setUniform("transform", projection * view * model);
 }

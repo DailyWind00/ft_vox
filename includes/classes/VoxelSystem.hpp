@@ -5,6 +5,7 @@
 # define BASE_MAX_CHUNKS 256
 # define CHUNK_SIZE 32
 # define DATA_TYPE uint64_t
+# define BUFFER_GROWTH_FACTOR 1.5f
 
 /// System includes
 # include <iostream>
@@ -21,26 +22,27 @@
 /// Global variables
 extern bool VERBOSE;
 
+// Data structure for CPU-side chunk data management
 typedef struct ChunkData {
-	AChunk *chunk;
-	glm::ivec3 worldPos;
+	AChunk	   *chunk;
+	glm::ivec3	worldPos;
 } ChunkData;
 typedef std::vector<ChunkData> VChunks;
 
-// Data structure for a Shader Storage Buffer Object
+// Data structure for SSBO (Shader Storage Buffer Object)
 typedef struct SSBOData {
 	glm::ivec4	worldPos;
 } SSBOData;
 typedef std::vector<SSBOData> VSSBOs;
 
-// Data structure for a draw command (Indirect Buffer)
+// Data structure for IB (DrawArraysIndirectCommand)
 typedef struct {
     GLuint verticeCount;
     GLuint instanceCount;
     GLuint offset;
     GLuint baseInstance;
-} DrawArraysIndirectCommand;
-typedef std::vector<DrawArraysIndirectCommand> VDrawCommands;
+} DrawCommand;
+typedef std::vector<DrawCommand> VDrawCommands;
 
 // Core class for the voxel system
 // Create chunks and their meshes & manage their rendering
@@ -71,14 +73,14 @@ class	VoxelSystem {
 
 		/// Private functions
 
-		void						reallocateVBO(size_t newSize);
-		bool						isVoxelVisible(const size_t &x, const size_t &y, const size_t &z, AChunk *data);
-		DrawArraysIndirectCommand 	genMesh(AChunk *chunk);
-		void						createChunk(const glm::ivec3 &worldPos);
-		void						deleteChunk(const glm::ivec3 &worldPos);
-
-		/// TODO :
-		// void						updateChunk(const glm::ivec3 &worldPos); // Update the chunk mesh && load/unload chunks
+		void			updateIB();
+		void			updateSSBO();
+		void			reallocateVBO(size_t newSize);
+		bool			isVoxelVisible(const size_t &x, const size_t &y, const size_t &z, AChunk *data);
+		DrawCommand 	genMesh(AChunk *data);
+		void			createChunk(const glm::ivec3 &worldPos);
+		void			updateChunk(const glm::ivec3 &worldPos); // Broken
+		void			deleteChunk(const glm::ivec3 &worldPos);
 
 	public:
 		VoxelSystem(); // Random seed
@@ -87,5 +89,5 @@ class	VoxelSystem {
 
 		/// Public functions
 
-		void	draw() const;
+		void	draw();
 };

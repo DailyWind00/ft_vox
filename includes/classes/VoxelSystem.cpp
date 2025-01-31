@@ -58,8 +58,6 @@ VoxelSystem::VoxelSystem(const uint64_t &seed) {
 	createChunk({ 0, -1, 0});
 	createChunk({-1,  0, 0});
 
-	unloadChunk({0, -1, 0});
-
 	// deleteChunk({0, 0, 0});
 	// deleteChunk({0, -1, 0});
 	// deleteChunk({-1, 0, 0});
@@ -288,40 +286,6 @@ void	VoxelSystem::deleteChunk(const glm::ivec3 &worldPos) {
 	glBindBuffer(GL_DRAW_INDIRECT_BUFFER, IB);
 	glBufferSubData(GL_DRAW_INDIRECT_BUFFER, 0, commands.size() * sizeof(DrawArraysIndirectCommand), commands.data());
 	glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
-
-	// Update the SSBO
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, SSBO);
-	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, chunksInfos.size() * sizeof(SSBOData), chunksInfos.data());
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-}
-
-// Set the loaded bool in SSBO to true
-void	VoxelSystem::loadChunk(const glm::ivec3 &worldPos) {
-	size_t index = 0;
-	for (ChunkData &chunk : chunks) {
-		if (chunk.worldPos == worldPos) {
-			chunksInfos[index].worldPos.w = true;
-			break;
-		}
-		index++;
-	}
-
-	// Update the SSBO
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, SSBO);
-	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, chunksInfos.size() * sizeof(SSBOData), chunksInfos.data());
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-}
-
-// Set the loaded bool in SSBO to false
-void	VoxelSystem::unloadChunk(const glm::ivec3 &worldPos) {
-	size_t index = 0;
-	for (ChunkData &chunk : chunks) {
-		if (chunk.worldPos == worldPos) {
-			chunksInfos[index].worldPos.w = false;
-			break;
-		}
-		index++;
-	}
 
 	// Update the SSBO
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, SSBO);

@@ -1,14 +1,15 @@
 #version 460 core
 
 layout (points) in;
-layout (triangle_strip, max_vertices = 14) out; // 14 vertices for a cube without redundancies
+layout (triangle_strip, max_vertices = 12) out; // 4 vertex * 3 faces always visibles
 
 uniform mat4	transform;
 uniform vec3	camPos;
 
-flat in uint faces[]; // xxyyzz
+flat in uint faces[1]; // xxyyzz
 
 out vec3	fragPos;
+out float 	fragBlockColor;
 
 // Offsets for the 8 corners of the cube
 vec4 offsets[8] = vec4[](
@@ -69,28 +70,33 @@ void	makeRightFace(vec4 position) {
 	gl_Position = transform * vec4(position + offsets[7]); EmitVertex();
 	EndPrimitive();
 }
+
+float rand(vec2 co){
+    return fract(sin(dot(co, vec2(12.9898, 78.233))) * 43758.5453);
+}
+
 void main() {
 	vec4 position = gl_in[0].gl_Position;
 	fragPos = position.xyz;
+	fragBlockColor = 0.9 * rand(fragPos.xz);
 	
 	// TODO: Fix visible faces (bitmask)
 
 	// x axis faces
-	if (camPos.x > position.x && bool(faces[0] & 0x1))
+	if (camPos.x < position.x && bool(faces[0] & 0x16))
 		makeRightFace(position);
-	if (camPos.x < position.x && bool(faces[0] & 0x2))
+	if (camPos.x > position.x && bool(faces[0] & 0x32))
 		makeLeftFace(position);
 
 	// y axis faces
-	if (camPos.y > position.y && bool(faces[0] & 0x4))
+	if (camPos.y < position.y && bool(faces[0] & 0x4))
 		makeTopFace(position);
-	if (camPos.y < position.y && bool(faces[0] & 0x8))
+	if (camPos.y > position.y && bool(faces[0] & 0x8))
 		makeBottomFace(position);
 	
 	// z axis faces
-	if (camPos.z > position.z && bool(faces[0] & 0x16))
+	if (camPos.z < position.z && bool(faces[0] & 0x1))
 		makeFrontFace(position);
-	if (camPos.z < position.z && bool(faces[0] & 0x32))
+	if (camPos.z > position.z && bool(faces[0] & 0x2))
 		makeBackFace(position);
-	
 }

@@ -37,7 +37,7 @@ void	LayeredChunk::generate(const glm::ivec3 &pos)
 	float	*factors = new float[CHUNK_WIDTH * CHUNK_WIDTH];
 	unsigned int	maxPos = MAX_WORLD_SIZE * CHUNK_WIDTH;
 
-	for (int i = 1; i < CHUNK_WIDTH * CHUNK_WIDTH + 1; i++) {
+	for (int i = 0; i < CHUNK_WIDTH * CHUNK_WIDTH; i++) {
 		float	factor = 0;
 		float	amp = 128;
 		
@@ -50,7 +50,7 @@ void	LayeredChunk::generate(const glm::ivec3 &pos)
 	}
 
 	// Populate the chunk according to the pre-computed perlin noise factors
-	uint8_t	fstBlkPerLayer[CHUNK_HEIGHT] = {0};
+	// uint8_t	fstBlkPerLayer[CHUNK_HEIGHT] = {0};
 	
 	for (int i = pos.x; i < CHUNK_WIDTH + pos.x; i++) {
 		for (int j = pos.z; j < CHUNK_WIDTH + pos.z; j++) {

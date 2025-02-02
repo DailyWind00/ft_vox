@@ -13,6 +13,7 @@
 # include <vector>
 # include <mutex>
 # include <thread>
+# include <atomic>
 # include <type_traits>
 
 /// Dependencies
@@ -68,8 +69,8 @@ class	VoxelSystem {
 		std::list<ChunkData>	pendingChunks;
 		std::mutex		pendingChunkMutex;
 
-		bool			updatingBuffers;
-		std::mutex		updatingBufferMutex;
+		std::atomic<bool>	updatingBuffers;
+		//-std::mutex		updatingBufferMutex;
 
 		std::mutex		VDrawCommandMutex;
 

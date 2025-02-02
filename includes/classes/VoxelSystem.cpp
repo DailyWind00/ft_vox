@@ -69,9 +69,9 @@ VoxelSystem::VoxelSystem(const uint64_t &seed) {
 	this->chunkGenThread = std::thread(&VoxelSystem::chunkGenRoutine, this);
 
 	this->requestedChunkMutex.lock();
-	for (int i = -5; i < 5; i++) {
-		for (int j = -5; j < 5; j++)
-			for (int k = -2; k < 3; k++)
+	for (int i = -15; i < 15; i++) {
+		for (int j = -15; j < 15; j++)
+			for (int k = 0; k < 2; k++)
 			this->requestedChunks.push_back({i, k, j});
 	}
 	this->requestedChunkMutex.unlock();
@@ -284,7 +284,7 @@ void	VoxelSystem::chunkGenRoutine()
 		if (this->requestedChunks.size()) {
 			this->requestedChunkMutex.lock();
 			for (glm::ivec3 rc : this->requestedChunks) {
-				if (chunkBatchLimit == 10)
+				if (chunkBatchLimit == 2)
 					break ;
 				localReqChunks.push_back(rc);
 				chunkBatchLimit++;
@@ -370,10 +370,8 @@ void	VoxelSystem::meshGenRoutine()
 			usleep(1000 * 100);
 
 		// Update the "updatingBuffer" boolean to signal to the main thread that it can update openGL's buffers
-		this->updatingBufferMutex.lock();
 		if (!this->updatingBuffers)
 			this->updatingBuffers = true;
-		this->updatingBufferMutex.unlock();
 	}
 	if (VERBOSE)
 		std::cout << "Mesh generation thread exiting.." << std::endl;
@@ -448,11 +446,10 @@ void	VoxelSystem::deleteChunk(const glm::ivec3 &worldPos) {
 // Draw all chunks using batched rendering
 void	VoxelSystem::update()
 {
-	if (this->updatingBuffers && this->updatingBufferMutex.try_lock()) {
+	if (this->updatingBuffers) {
 		this->updateIB();
 		this->updateSSBO();
 		this->updatingBuffers = false;
-		this->updatingBufferMutex.unlock();
 	}
 }
 

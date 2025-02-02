@@ -2,6 +2,7 @@
 
 // Keep the window alive, exiting this function should mean closing the window
 static void program_loop(Window &window, VoxelSystem &voxelSystem, Shader &shader) {
+	voxelSystem.update();
 	voxelSystem.draw();
 	handleEvents(window, shader);
 	window.setTitle("ft_vox | FPS: " + std::to_string(window.getFPS()) + " | Frame rate: " + std::to_string(window.getFrameTime()));
@@ -19,7 +20,7 @@ void	Rendering(Window &window)
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-	VoxelSystem	voxelSystem;
+	VoxelSystem	voxelSystem(1234);
 	Shader	shader(
 		"shaders/vertex.glsl",
 		"shaders/fragment.glsl",

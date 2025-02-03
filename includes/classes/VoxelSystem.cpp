@@ -69,9 +69,9 @@ VoxelSystem::VoxelSystem(const uint64_t &seed) {
 	this->chunkGenThread = std::thread(&VoxelSystem::chunkGenRoutine, this);
 
 	this->requestedChunkMutex.lock();
-	for (int i = -15; i < 15; i++) {
-		for (int j = -15; j < 15; j++)
-			for (int k = 0; k < 2; k++)
+	for (int i = -5; i < 5; i++) {
+		for (int j = -5; j < 5; j++)
+			for (int k = -2; k < 3; k++)
 			this->requestedChunks.push_back({i, k, j});
 	}
 	this->requestedChunkMutex.unlock();
@@ -307,10 +307,10 @@ void	VoxelSystem::chunkGenRoutine()
 		}
 		localReqChunks.clear();
 
-		if (!count)
-			continue ;
-		else
+		if (!count) {
 			usleep(1000 * 100);
+			continue ;
+		}
 
 		// Stores new chunks in the VoxelSystem and adds them to the pendingChunks for their meshes to be generated
 		this->pendingChunkMutex.lock();
@@ -364,10 +364,10 @@ void	VoxelSystem::meshGenRoutine()
 		localPendingChunks.clear();
 
 		// Check if any mesh has been created
-		if (!count)
-			continue ;
-		else
+		if (!count) {
 			usleep(1000 * 100);
+			continue ;
+		}
 
 		// Update the "updatingBuffer" boolean to signal to the main thread that it can update openGL's buffers
 		if (!this->updatingBuffers)

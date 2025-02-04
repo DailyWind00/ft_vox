@@ -40,7 +40,7 @@ VoxelSystem::VoxelSystem(const uint64_t &seed) {
 	if (!VBOdata)
 		throw std::runtime_error("VoxelSystem : Failed to map the VBO");
 
-	glVertexAttribIPointer(0, 2, GL_UNSIGNED_INT, sizeof(DATA_TYPE), nullptr);
+	glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, sizeof(DATA_TYPE), nullptr);
 
 	glEnableVertexAttribArray(0);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -158,7 +158,7 @@ void	VoxelSystem::reallocateVBO(size_t newSize) {
 		if (!VBOdata)
 			throw std::runtime_error("VoxelSystem : Failed to map the VBO");
 
-		glVertexAttribIPointer(0, 2, GL_UNSIGNED_INT, sizeof(DATA_TYPE), nullptr);
+		glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, sizeof(DATA_TYPE), nullptr);
 
 		glEnableVertexAttribArray(0);
 		glBindBuffer(GL_ARRAY_BUFFER, 0);

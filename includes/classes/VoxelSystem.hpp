@@ -4,7 +4,7 @@
 # define COLOR_HEADER_CXX
 # define BASE_MAX_CHUNKS 256
 # define CHUNK_SIZE 32
-# define DATA_TYPE uint64_t
+# define DATA_TYPE uint32_t
 # define BUFFER_GROWTH_FACTOR 1.5f
 
 /// System includes

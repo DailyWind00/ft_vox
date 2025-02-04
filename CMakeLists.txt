@@ -18,7 +18,7 @@ add_executable(ft_vox
 	includes/classes/Noise.cpp
 	includes/classes/FlagHandler.cpp
 	includes/classes/VoxelSystem.cpp
-	includes/classes/PersistentBuffer.cpp
+	includes/classes/PMapBuffer.cpp
 	includes/classes/Chunks/AChunk.cpp
 	includes/classes/Chunks/ChunkImpl.cpp
 	includes/classes/Chunks/ChunkHandler.cpp

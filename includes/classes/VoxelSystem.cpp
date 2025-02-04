@@ -124,6 +124,7 @@ void	VoxelSystem::updateIB() {
 		IBcapacity *= BUFFER_GROWTH_FACTOR;
 		glBufferData(GL_DRAW_INDIRECT_BUFFER, IBcapacity, nullptr, GL_DYNAMIC_DRAW);
 	}
+	std::cout << "updating" << std::endl;
 	glBufferSubData(GL_DRAW_INDIRECT_BUFFER, 0, commands.size() * sizeof(DrawCommand), commands.data());
 	glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
 }
@@ -255,8 +256,8 @@ DrawCommand	VoxelSystem::genMesh(AChunk *data) {
 	DrawCommand	cmd = {
 		4,
 		(GLuint)count,
-		(GLuint)(currentVertexOffset),
-		0
+		0,
+		(GLuint)currentVertexOffset
 	};
 	currentVertexOffset += vertices.size();
 	return cmd;
@@ -469,9 +470,9 @@ void	VoxelSystem::draw() {
 	glBindBuffer(GL_DRAW_INDIRECT_BUFFER, IB);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, SSBO);
 
-	//-VDrawCommandMutex.lock();
-	glMultiDrawArraysIndirect(GL_TRIANGLE_STRIP, nullptr, 1, sizeof(DrawCommand));
-	//-VDrawCommandMutex.unlock();
+	VDrawCommandMutex.lock();
+	glMultiDrawArraysIndirect(GL_TRIANGLE_STRIP, nullptr, commands.size(), sizeof(DrawCommand));
+	VDrawCommandMutex.unlock();
 	
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 	glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);

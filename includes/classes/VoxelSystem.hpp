@@ -2,7 +2,8 @@
 
 /// Defines
 # define COLOR_HEADER_CXX
-# define BASE_MAX_CHUNKS 256
+# define HORIZONTALE_RENDER_DISTANCE 16
+# define VERTICALE_RENDER_DISTANCE 8
 # define CHUNK_SIZE 32
 # define DATA_TYPE uint32_t
 # define BUFFER_GROWTH_FACTOR 1.5f

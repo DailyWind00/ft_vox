@@ -43,7 +43,7 @@ VoxelSystem::VoxelSystem(const uint64_t &seed) {
 	glGenBuffers(1, &VBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	size_t maxVerticesPerChunk = CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE; // Impossible worst case (just to be sure)
-	VBOcapacity = BASE_MAX_CHUNKS * maxVerticesPerChunk * sizeof(DATA_TYPE);
+	VBOcapacity = VERTICALE_RENDER_DISTANCE * HORIZONTALE_RENDER_DISTANCE * HORIZONTALE_RENDER_DISTANCE * maxVerticesPerChunk * sizeof(DATA_TYPE);
 	
 	if (VERBOSE)
 		std::cout << "> Creating VBO with a capacity of " << VBOcapacity / sizeof(DATA_TYPE) << " blocks" << std::endl;
@@ -62,7 +62,7 @@ VoxelSystem::VoxelSystem(const uint64_t &seed) {
 	glGenBuffers(1, &IB);
 	glBindBuffer(GL_DRAW_INDIRECT_BUFFER, IB);
 
-	IBcapacity = BASE_MAX_CHUNKS * sizeof(DrawCommand);
+	IBcapacity = VERTICALE_RENDER_DISTANCE * HORIZONTALE_RENDER_DISTANCE * HORIZONTALE_RENDER_DISTANCE * sizeof(DrawCommand);
 	glBufferData(GL_DRAW_INDIRECT_BUFFER, IBcapacity, nullptr, GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
 
@@ -70,7 +70,7 @@ VoxelSystem::VoxelSystem(const uint64_t &seed) {
 	glGenBuffers(1, &SSBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, SSBO);
 
-	SSBOcapacity = BASE_MAX_CHUNKS * sizeof(SSBOData);
+	SSBOcapacity = VERTICALE_RENDER_DISTANCE * HORIZONTALE_RENDER_DISTANCE * HORIZONTALE_RENDER_DISTANCE * sizeof(SSBOData);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, SSBOcapacity, nullptr, GL_DYNAMIC_DRAW);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, SSBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
@@ -82,9 +82,9 @@ VoxelSystem::VoxelSystem(const uint64_t &seed) {
 	this->chunkGenThread = std::thread(&VoxelSystem::chunkGenRoutine, this);
 
 	this->requestedChunkMutex.lock();
-	for (int i = -5; i < 5; i++) {
-		for (int j = -5; j < 5; j++)
-			for (int k = -2; k < 3; k++)
+	for (int i = -(HORIZONTALE_RENDER_DISTANCE / 2); i < (HORIZONTALE_RENDER_DISTANCE / 2); i++) {
+		for (int j = -(HORIZONTALE_RENDER_DISTANCE / 2); j < (HORIZONTALE_RENDER_DISTANCE / 2); j++)
+			for (int k = -(VERTICALE_RENDER_DISTANCE / 2); k < (VERTICALE_RENDER_DISTANCE / 2); k++)
 			this->requestedChunks.push_back({i, k, j});
 	}
 	this->requestedChunkMutex.unlock();
@@ -141,7 +141,8 @@ void	VoxelSystem::updateSSBO() {
 }
 
 // Reallocate the VBO with a new capacity, also recompact the data
-void	VoxelSystem::reallocateVBO(size_t newSize) {
+void	VoxelSystem::reallocateVBO(size_t newSize) 
+{
 	void *copy = nullptr;
 
 	size_t VBOstorage = 0;
@@ -248,8 +249,10 @@ DrawCommand	VoxelSystem::genMesh(AChunk *data) {
 
 	// Update the persistent mapped buffer
 	size_t dataSize = vertices.size() * sizeof(DATA_TYPE);
-	while (currentVertexOffset + dataSize > VBOcapacity)
-		reallocateVBO(VBOcapacity * 2);	
+	while ((currentVertexOffset + dataSize + 1) >= VBOcapacity) {
+		reallocateVBO(VBOcapacity * 2);
+		std::cout << "re-allocating VBO\n";
+	}
 
 	std::memcpy(reinterpret_cast<DATA_TYPE *>(VBOdata) + currentVertexOffset, vertices.data(), vertices.size() * sizeof(DATA_TYPE));
 	
@@ -297,7 +300,7 @@ void	VoxelSystem::chunkGenRoutine()
 		if (this->requestedChunks.size()) {
 			this->requestedChunkMutex.lock();
 			for (glm::ivec3 rc : this->requestedChunks) {
-				if (chunkBatchLimit == 2)
+				if (chunkBatchLimit == 16)
 					break ;
 				localReqChunks.push_back(rc);
 				chunkBatchLimit++;
@@ -470,10 +473,10 @@ void	VoxelSystem::draw() {
 	glBindBuffer(GL_DRAW_INDIRECT_BUFFER, IB);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, SSBO);
 
-	VDrawCommandMutex.lock();
-	glMultiDrawArraysIndirect(GL_TRIANGLE_STRIP, nullptr, commands.size(), sizeof(DrawCommand));
-	VDrawCommandMutex.unlock();
-	
+	if (VDrawCommandMutex.try_lock()) {
+		glMultiDrawArraysIndirect(GL_TRIANGLE_STRIP, nullptr, commands.size(), sizeof(DrawCommand));
+		VDrawCommandMutex.unlock();
+	}
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 	glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
 	glBindVertexArray(0);

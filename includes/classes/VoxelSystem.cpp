@@ -444,17 +444,14 @@ void	VoxelSystem::deleteChunk(const glm::ivec3 &worldPos) {
 /// Public functions
 
 // Draw all chunks using batched rendering
-void	VoxelSystem::update()
-{
+void	VoxelSystem::draw() {
+	// Todo: UpdateChunk here (may need to add parameters to the function)
+
 	if (this->updatingBuffers) {
 		this->updateIB();
 		this->updateSSBO();
 		this->updatingBuffers = false;
 	}
-}
-
-void	VoxelSystem::draw() {
-	// Todo: UpdateChunk here (may need to add parameters to the function)
 
 	glBindVertexArray(VAO);
 	glBindBuffer(GL_DRAW_INDIRECT_BUFFER, IB);

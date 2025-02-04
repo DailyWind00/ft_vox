@@ -115,5 +115,4 @@ class	VoxelSystem {
 		/// Public functions
 
 		void	draw();
-		void	update();
 };

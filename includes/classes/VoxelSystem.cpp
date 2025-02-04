@@ -25,10 +25,23 @@ VoxelSystem::VoxelSystem(const uint64_t &seed) {
 	glGenVertexArrays(1, &VAO);
 	glBindVertexArray(VAO);
 
+
+	unsigned int	quadVBO = 0;
+	float	quadVert[] = {
+		0, 0, 0,
+		0, 1, 0,
+		1, 0, 0,
+		1, 1, 0
+	};
+	glGenBuffers(1, &quadVBO);
+	glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(quadVert), quadVert, GL_STATIC_DRAW);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), nullptr);
+	glEnableVertexAttribArray(0);
+
 	// Create and allocate the VBO with persistent mapping
 	glGenBuffers(1, &VBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-
 	size_t maxVerticesPerChunk = CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE; // Impossible worst case (just to be sure)
 	VBOcapacity = BASE_MAX_CHUNKS * maxVerticesPerChunk * sizeof(DATA_TYPE);
 	
@@ -40,11 +53,11 @@ VoxelSystem::VoxelSystem(const uint64_t &seed) {
 	if (!VBOdata)
 		throw std::runtime_error("VoxelSystem : Failed to map the VBO");
 
-	glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, sizeof(DATA_TYPE), nullptr);
+	glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, sizeof(DATA_TYPE), nullptr);
+	glVertexAttribDivisor(1, 1);	
 
-	glEnableVertexAttribArray(0);
+	glEnableVertexAttribArray(1);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
-
 	// Create the IB
 	glGenBuffers(1, &IB);
 	glBindBuffer(GL_DRAW_INDIRECT_BUFFER, IB);
@@ -158,9 +171,9 @@ void	VoxelSystem::reallocateVBO(size_t newSize) {
 		if (!VBOdata)
 			throw std::runtime_error("VoxelSystem : Failed to map the VBO");
 
-		glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, sizeof(DATA_TYPE), nullptr);
-
-		glEnableVertexAttribArray(0);
+		glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, sizeof(DATA_TYPE), nullptr);
+		glVertexAttribDivisor(1, 1);
+		glEnableVertexAttribArray(1);
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 	}
 
@@ -240,12 +253,11 @@ DrawCommand	VoxelSystem::genMesh(AChunk *data) {
 	std::memcpy(reinterpret_cast<DATA_TYPE *>(VBOdata) + currentVertexOffset, vertices.data(), vertices.size() * sizeof(DATA_TYPE));
 	
 	DrawCommand	cmd = {
-		(GLuint)vertices.size(),
-		1,
+		4,
+		(GLuint)count,
 		(GLuint)(currentVertexOffset),
 		0
 	};
-
 	currentVertexOffset += vertices.size();
 	return cmd;
 }
@@ -456,9 +468,9 @@ void	VoxelSystem::draw() {
 	glBindVertexArray(VAO);
 	glBindBuffer(GL_DRAW_INDIRECT_BUFFER, IB);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, SSBO);
-	
+
 	//-VDrawCommandMutex.lock();
-	glMultiDrawArraysIndirect(GL_POINTS, nullptr, commands.size(), sizeof(DrawCommand));
+	glMultiDrawArraysIndirect(GL_TRIANGLE_STRIP, nullptr, 1, sizeof(DrawCommand));
 	//-VDrawCommandMutex.unlock();
 	
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);

@@ -22,8 +22,8 @@ void	Rendering(Window &window)
 	VoxelSystem	voxelSystem;
 	Shader	shader(
 		"shaders/vertex.glsl",
-		"shaders/fragment.glsl",
-		"shaders/geometry.glsl"
+		"shaders/fragment.glsl"
+		//-"shaders/geometry.glsl"
 	);
 	shader.use();
 

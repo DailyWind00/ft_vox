@@ -11,4 +11,5 @@ void	main() {
 	float	randFactor = rand(fragPos.xz) * rand(fragPos.yz) * rand(fragPos.xy);
 
 	ScreenColor = vec4(1.5 * vec3(randFactor) + ivec3(fragPos) * 0.01, 1.0);
+	//-ScreenColor = vec4(1.0f);
 }

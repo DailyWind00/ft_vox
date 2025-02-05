@@ -13,8 +13,15 @@ layout (std430, binding = 0) buffer SSBO {
 uniform mat4	transform;
 
 out vec3	fragPos;
-flat out int	id;
-void main() {
+out float	randFactor;
+
+float rand(vec2 co)
+{
+	return (fract(sin(dot(co, vec2(12.9898, 78.233))) * 43758.5453));
+}
+
+void main()
+{
 	// Decode blockData bitmask :
 	uvec3	position = uvec3(0);
 
@@ -25,7 +32,7 @@ void main() {
 	ivec3 worldOffset = meshData[gl_DrawID].data.zyx * 32;
 	fragPos = vec3(ivec3(position) + worldOffset);
 
-	id = gl_DrawID;
+	randFactor = rand(fragPos.xz) * rand(fragPos.yz) * rand(fragPos.xy);
 
 	gl_Position = transform * vec4((quad + ivec3(position) + worldOffset), 1.0f);
 }

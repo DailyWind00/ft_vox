@@ -1,26 +1,31 @@
 #version 460 core
 
 struct Chunk {
-	ivec4	worldpos; // Fuck you khronos
+	ivec4	data; // Fuck you khronos
 };
 
-layout (location = 0) in uvec2 blockData;
+layout (location = 0) in vec3 quad;
+layout (location = 1) in uint blockData;
 layout (std430, binding = 0) buffer SSBO {
-	Chunk chunks[];
+	Chunk meshData[];
 };
 
-flat out uint faces;
+uniform mat4	transform;
 
+out vec3	fragPos;
+flat out int	id;
 void main() {
 	// Decode blockData bitmask :
-	uvec3	position;
-	position.x = (blockData.x)       & 0x1F;
-	position.y = (blockData.x >> 5)  & 0x1F;
-	position.z = (blockData.x >> 10) & 0x1F;
+	uvec3	position = uvec3(0);
 
-	faces = (blockData.x >> 15) & 0x3F;
+	position.x = (blockData)       & 0x1F;
+	position.y = (blockData >> 5)  & 0x1F;
+	position.z = (blockData >> 10) & 0x1F;
 
-	ivec3 worldOffset = chunks[gl_DrawID].worldpos.zyx * 32;
+	ivec3 worldOffset = meshData[gl_DrawID].data.zyx * 32;
+	fragPos = vec3(ivec3(position) + worldOffset);
 
-	gl_Position = vec4(worldOffset + ivec3(position), 1.0);
+	id = gl_DrawID;
+
+	gl_Position = transform * vec4((quad + ivec3(position) + worldOffset), 1.0f);
 }

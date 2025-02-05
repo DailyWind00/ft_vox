@@ -1,3 +1,6 @@
+# include <unistd.h>
+# include <chrono>
+
 #include "VoxelSystem.hpp"
 
 //// VoxelSystem class
@@ -7,6 +10,9 @@ VoxelSystem::VoxelSystem() : VoxelSystem(0) {}
 VoxelSystem::VoxelSystem(const uint64_t &seed) {
 	if (VERBOSE)
 		std::cout << "Creating VoxelSystem\n";
+
+	this->quitting = false;
+	this->updatingBuffers = false;
 
 	if (!seed) {
 		srand(time(nullptr));
@@ -19,12 +25,25 @@ VoxelSystem::VoxelSystem(const uint64_t &seed) {
 	glGenVertexArrays(1, &VAO);
 	glBindVertexArray(VAO);
 
+
+	unsigned int	quadVBO = 0;
+	float	quadVert[] = {
+		0, 0, 0,
+		0, 1, 0,
+		1, 0, 0,
+		1, 1, 0
+	};
+	glGenBuffers(1, &quadVBO);
+	glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(quadVert), quadVert, GL_STATIC_DRAW);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), nullptr);
+	glEnableVertexAttribArray(0);
+
 	// Create and allocate the VBO with persistent mapping
 	glGenBuffers(1, &VBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-
 	size_t maxVerticesPerChunk = CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE; // Impossible worst case (just to be sure)
-	VBOcapacity = BASE_MAX_CHUNKS * maxVerticesPerChunk * sizeof(DATA_TYPE);
+	VBOcapacity = VERTICALE_RENDER_DISTANCE * HORIZONTALE_RENDER_DISTANCE * HORIZONTALE_RENDER_DISTANCE * maxVerticesPerChunk * sizeof(DATA_TYPE);
 	
 	if (VERBOSE)
 		std::cout << "> Creating VBO with a capacity of " << VBOcapacity / sizeof(DATA_TYPE) << " blocks" << std::endl;
@@ -34,16 +53,16 @@ VoxelSystem::VoxelSystem(const uint64_t &seed) {
 	if (!VBOdata)
 		throw std::runtime_error("VoxelSystem : Failed to map the VBO");
 
-	glVertexAttribIPointer(0, 2, GL_UNSIGNED_INT, sizeof(DATA_TYPE), nullptr);
+	glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, sizeof(DATA_TYPE), nullptr);
+	glVertexAttribDivisor(1, 1);	
 
-	glEnableVertexAttribArray(0);
+	glEnableVertexAttribArray(1);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
-
 	// Create the IB
 	glGenBuffers(1, &IB);
 	glBindBuffer(GL_DRAW_INDIRECT_BUFFER, IB);
 
-	IBcapacity = BASE_MAX_CHUNKS * sizeof(DrawCommand);
+	IBcapacity = VERTICALE_RENDER_DISTANCE * HORIZONTALE_RENDER_DISTANCE * HORIZONTALE_RENDER_DISTANCE * sizeof(DrawCommand);
 	glBufferData(GL_DRAW_INDIRECT_BUFFER, IBcapacity, nullptr, GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
 
@@ -51,25 +70,27 @@ VoxelSystem::VoxelSystem(const uint64_t &seed) {
 	glGenBuffers(1, &SSBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, SSBO);
 
-	SSBOcapacity = BASE_MAX_CHUNKS * sizeof(SSBOData);
+	SSBOcapacity = VERTICALE_RENDER_DISTANCE * HORIZONTALE_RENDER_DISTANCE * HORIZONTALE_RENDER_DISTANCE * sizeof(SSBOData);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, SSBOcapacity, nullptr, GL_DYNAMIC_DRAW);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, SSBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
-	// Create the chunks (to remove)
-	
-	for (int i = -10; i < 10; i++) {
-		for (int j = -10; j < 10; j++) {
-			for (int k = -1; k < 1; k++) {
-				createChunk({i, k, j});
-			}
-		}
-	}
-
 	glBindVertexArray(0);
 
+	// VoxelSystem threads initialization
+	this->meshGenThread = std::thread(&VoxelSystem::meshGenRoutine, this);
+	this->chunkGenThread = std::thread(&VoxelSystem::chunkGenRoutine, this);
+
+	this->requestedChunkMutex.lock();
+	for (int i = -(HORIZONTALE_RENDER_DISTANCE / 2); i < (HORIZONTALE_RENDER_DISTANCE / 2); i++) {
+		for (int j = -(HORIZONTALE_RENDER_DISTANCE / 2); j < (HORIZONTALE_RENDER_DISTANCE / 2); j++)
+			for (int k = -(VERTICALE_RENDER_DISTANCE / 2); k < (VERTICALE_RENDER_DISTANCE / 2); k++)
+			this->requestedChunks.push_back({i, k, j});
+	}
+	this->requestedChunkMutex.unlock();
+
 	if (VERBOSE)
-		std::cout << "VoxelSystem created\n";
+		std::cout << "VoxelSystem initialized\n";
 }
 
 VoxelSystem::~VoxelSystem() {
@@ -80,6 +101,12 @@ VoxelSystem::~VoxelSystem() {
 	glDeleteBuffers(1, &IB);
 	glDeleteBuffers(1, &SSBO);
 	glDeleteVertexArrays(1, &VAO);
+
+	this->quitting = true;
+
+	// waiting for threads to finish
+	this->meshGenThread.join();
+	this->chunkGenThread.join();
 
 	for (ChunkData &chunk : chunks)
 		delete chunk.chunk;
@@ -97,6 +124,7 @@ void	VoxelSystem::updateIB() {
 		IBcapacity *= BUFFER_GROWTH_FACTOR;
 		glBufferData(GL_DRAW_INDIRECT_BUFFER, IBcapacity, nullptr, GL_DYNAMIC_DRAW);
 	}
+	std::cout << "updating" << std::endl;
 	glBufferSubData(GL_DRAW_INDIRECT_BUFFER, 0, commands.size() * sizeof(DrawCommand), commands.data());
 	glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
 }
@@ -113,7 +141,8 @@ void	VoxelSystem::updateSSBO() {
 }
 
 // Reallocate the VBO with a new capacity, also recompact the data
-void	VoxelSystem::reallocateVBO(size_t newSize) {
+void	VoxelSystem::reallocateVBO(size_t newSize) 
+{
 	void *copy = nullptr;
 
 	size_t VBOstorage = 0;
@@ -144,9 +173,9 @@ void	VoxelSystem::reallocateVBO(size_t newSize) {
 		if (!VBOdata)
 			throw std::runtime_error("VoxelSystem : Failed to map the VBO");
 
-		glVertexAttribIPointer(0, 2, GL_UNSIGNED_INT, sizeof(DATA_TYPE), nullptr);
-
-		glEnableVertexAttribArray(0);
+		glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, sizeof(DATA_TYPE), nullptr);
+		glVertexAttribDivisor(1, 1);
+		glEnableVertexAttribArray(1);
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 	}
 
@@ -172,7 +201,8 @@ void	VoxelSystem::reallocateVBO(size_t newSize) {
 // Check if the voxel at the given position is visible
 // Return a bitmask of the visible faces (6 bits : XxYyZz)
 // TODO: Culling techniques (take the camera position as parameter)
-u_int8_t VoxelSystem::isVoxelVisible(const size_t &x, const size_t &y, const size_t &z, AChunk *data) {
+bool	VoxelSystem::isVoxelVisible(const size_t &x, const size_t &y, const size_t &z, AChunk *data)
+{
 	if (BLOCK_AT(data, x, y, z) == 0)
 		return 0;
 
@@ -237,39 +267,148 @@ DrawCommand	VoxelSystem::genMesh(AChunk *data) {
 
 	// Update the persistent mapped buffer
 	size_t dataSize = vertices.size() * sizeof(DATA_TYPE);
-	while (currentVertexOffset + dataSize > VBOcapacity)
+	while ((currentVertexOffset + dataSize + 1) >= VBOcapacity) {
 		reallocateVBO(VBOcapacity * 2);
+		std::cout << "re-allocating VBO\n";
+	}
+
+	std::memcpy(reinterpret_cast<DATA_TYPE *>(VBOdata) + currentVertexOffset, vertices.data(), vertices.size() * sizeof(DATA_TYPE));
 	
-	std::memcpy(reinterpret_cast<DATA_TYPE *>(VBOdata) + currentVertexOffset, vertices.data(), dataSize);
-
-	// Create the draw command
-	DrawCommand command = {
-		(GLuint)vertices.size(),
-		1,
-		(GLuint)(currentVertexOffset),
-		0
+	DrawCommand	cmd = {
+		4,
+		(GLuint)count,
+		0,
+		(GLuint)currentVertexOffset
 	};
-
 	currentVertexOffset += vertices.size();
-
-	return command;
+	return cmd;
 }
 
 // Create a chunk at the given world position
 void	VoxelSystem::createChunk(const glm::ivec3 &worldPos) {
-	AChunk *chunk = ChunkHandler::createChunk(worldPos);
+	//-AChunk *chunk = ChunkHandler::createChunk(worldPos);
 
 	// Store the draw command for the chunk
-	DrawCommand command = genMesh(chunk);
-	if (!command.verticeCount)
-		return;
+	//-DrawCommand command = genMesh(chunk);
+	//-if (!command.verticeCount)
+		//-return;
 
-	commands.push_back(command);
-	chunks.push_back({chunk, worldPos});
-	chunksInfos.push_back({{worldPos.x, worldPos.y, worldPos.z, 0}});
+	//-commands.push_back(command);
+	//-chunks.push_back({chunk, worldPos});
+	//-chunksInfos.push_back({{worldPos.x, worldPos.y, worldPos.z, 0}});
 
-	this->updateIB();
-	this->updateSSBO();
+	//-this->updateIB();
+	//-this->updateSSBO();
+}
+
+void	VoxelSystem::chunkGenRoutine()
+{
+	std::list<glm::ivec3>	localReqChunks;
+	std::list<ChunkData>	localChunks;
+
+	if (VERBOSE)
+		std::cout << "Chunk generation thread started" << std::endl;
+	while (42) {
+		if (this->quitting)
+			break ;
+
+		size_t	chunkBatchLimit = 0;
+
+		// check for new chunks to be generated
+		if (this->requestedChunks.size()) {
+			this->requestedChunkMutex.lock();
+			for (glm::ivec3 rc : this->requestedChunks) {
+				if (chunkBatchLimit == 16)
+					break ;
+				localReqChunks.push_back(rc);
+				chunkBatchLimit++;
+			}
+			for (auto k = this->requestedChunks.begin(); chunkBatchLimit && this->requestedChunks.size(); chunkBatchLimit--) {
+				this->requestedChunks.erase(k);
+				k = this->requestedChunks.begin();
+			}
+			this->requestedChunkMutex.unlock();
+		}
+
+		size_t	count = 0;
+
+		// generate requested chunks and temporarly stores them
+		for (glm::ivec3 chunkPos : localReqChunks) {
+			AChunk	*chunk = ChunkHandler::createChunk(chunkPos);
+
+			localChunks.push_back({chunk, chunkPos});
+			count++;
+		}
+		localReqChunks.clear();
+
+		if (!count) {
+			usleep(1000 * 100);
+			continue ;
+		}
+
+		// Stores new chunks in the VoxelSystem and adds them to the pendingChunks for their meshes to be generated
+		this->pendingChunkMutex.lock();
+		for (ChunkData cd : localChunks) {
+			this->chunks.push_back(cd);
+			this->pendingChunks.push_back(this->chunks.back());
+		}
+		this->pendingChunkMutex.unlock();
+		localChunks.clear();
+	}
+	if (VERBOSE)
+		std::cout << "Chunk generation thread exiting.." << std::endl;
+}
+
+void	VoxelSystem::meshGenRoutine()
+{
+	std::list<ChunkData>	localPendingChunks;
+	
+	if (VERBOSE)
+		std::cout << "Mesh generation thread started" << std::endl;
+	while (42) {
+		if (this->quitting)
+			break ;
+
+		// Check for chunks Mesh to be generated
+		if (this->pendingChunks.size()) {
+			this->pendingChunkMutex.lock();
+			for (ChunkData cd : this->pendingChunks) {
+				localPendingChunks.push_back(cd);
+			}
+			this->pendingChunks.clear();
+			this->pendingChunkMutex.unlock();
+		}
+		
+
+		// Generate chunks meshes and creates their DrawCommands
+		size_t	count = 0;
+
+		if (this->VDrawCommandMutex.try_lock()) {
+		for (ChunkData cd : localPendingChunks) {
+			DrawCommand	cmd = genMesh(cd.chunk);
+			
+			if (!cmd.verticeCount)
+				continue ;
+			this->commands.push_back(cmd);
+			chunksInfos.push_back({{cd.worldPos.x, cd.worldPos.y, cd.worldPos.z, 0}});
+			count++;
+		}
+		this->VDrawCommandMutex.unlock();
+		}
+		localPendingChunks.clear();
+
+		// Check if any mesh has been created
+		if (!count) {
+			usleep(1000 * 100);
+			continue ;
+		}
+
+		// Update the "updatingBuffer" boolean to signal to the main thread that it can update openGL's buffers
+		if (!this->updatingBuffers)
+			this->updatingBuffers = true;
+	}
+	if (VERBOSE)
+		std::cout << "Mesh generation thread exiting.." << std::endl;
 }
 
 // Update the chunk at the given world position
@@ -340,19 +479,20 @@ void	VoxelSystem::deleteChunk(const glm::ivec3 &worldPos) {
 
 // Draw all chunks using batched rendering
 void	VoxelSystem::draw() {
-	// Todo: UpdateChunk here (may need to add parameters to the function)
-
-	// for (int i = -10; i < 10; i++) {
-	// 	updateChunk({0, 0, 0});
-	// }
-	// updateChunk({0, 0, 0});
+	if (this->updatingBuffers) {
+		this->updateIB();
+		this->updateSSBO();
+		this->updatingBuffers = false;
+	}
 
 	glBindVertexArray(VAO);
 	glBindBuffer(GL_DRAW_INDIRECT_BUFFER, IB);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, SSBO);
-	
-	glMultiDrawArraysIndirect(GL_POINTS, nullptr, commands.size(), sizeof(DrawCommand));
-	
+
+	//-if (VDrawCommandMutex.try_lock()) {
+	glMultiDrawArraysIndirect(GL_TRIANGLE_STRIP, nullptr, commands.size(), sizeof(DrawCommand));
+		//-VDrawCommandMutex.unlock();
+	//-}
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 	glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
 	glBindVertexArray(0);

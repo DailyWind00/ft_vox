@@ -13,21 +13,24 @@ static glm::mat4 cameraHandler(Window &window, Shader &shader) {
 	camCurrentSpeed *= window.getFrameTime() / 3;
 
 	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-		cameraPos.x += cameraFront.x * camCurrentSpeed;
-		cameraPos.z += cameraFront.z * camCurrentSpeed;
+		cameraPos += cameraFront * camCurrentSpeed;
+		//-cameraPos.z += cameraFront.z * camCurrentSpeed;
 	}
 	else if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-		cameraPos.x -= cameraFront.x * camCurrentSpeed;
-		cameraPos.z -= cameraFront.z * camCurrentSpeed;
+		cameraPos -= cameraFront * camCurrentSpeed;
+		//-cameraPos.x -= cameraFront.x * camCurrentSpeed;
+		//-cameraPos.z -= cameraFront.z * camCurrentSpeed;
 	}
 
 	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-		cameraPos.x += cameraRight.x * camCurrentSpeed;
-		cameraPos.z += cameraRight.z * camCurrentSpeed;
+		cameraPos += cameraRight * camCurrentSpeed;
+		//-cameraPos.x += cameraRight.x * camCurrentSpeed;
+		//-cameraPos.z += cameraRight.z * camCurrentSpeed;
 	}
 	else if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-		cameraPos.x -= cameraRight.x * camCurrentSpeed;
-		cameraPos.z -= cameraRight.z * camCurrentSpeed;
+		cameraPos -= cameraRight * camCurrentSpeed;
+		//-cameraPos.x -= cameraRight.x * camCurrentSpeed;
+		//-cameraPos.z -= cameraRight.z * camCurrentSpeed;
 	}
 
 	if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
@@ -70,7 +73,6 @@ void	handleEvents(Window &window, Shader &shader)
 
 	glm::mat4 model = glm::mat4(1.0f);
 	glm::mat4 view = cameraHandler(window, shader);
-	glm::mat4 projection = glm::perspective(glm::radians(FOV), 800.0f / 600.0f, 0.1f, 10000.0f);
-
+	glm::mat4 projection = glm::perspective(glm::radians(FOV), (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, 0.1f, 10000.0f);
 	shader.setUniform("transform", projection * view * model);
 }

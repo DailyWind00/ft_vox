@@ -292,23 +292,6 @@ DrawCommand	VoxelSystem::genMesh(ChunkData data) {
 	return cmd;
 }
 
-// Create a chunk at the given world position
-void	VoxelSystem::createChunk(const glm::ivec3 &worldPos) {
-	//-AChunk *chunk = ChunkHandler::createChunk(worldPos);
-
-	// Store the draw command for the chunk
-	//-DrawCommand command = genMesh(chunk);
-	//-if (!command.verticeCount)
-		//-return;
-
-	//-commands.push_back(command);
-	//-chunks.push_back({chunk, worldPos});
-	//-chunksInfos.push_back({{worldPos.x, worldPos.y, worldPos.z, 0}});
-
-	//-this->updateIB();
-	//-this->updateSSBO();
-}
-
 void	VoxelSystem::chunkGenRoutine()
 {
 	std::list<glm::ivec3>	localReqChunks;
@@ -416,67 +399,6 @@ void	VoxelSystem::meshGenRoutine()
 	}
 	if (VERBOSE)
 		std::cout << "Mesh generation thread exiting.." << std::endl;
-}
-
-// Update the chunk at the given world position
-void	VoxelSystem::updateChunk(const glm::ivec3 &worldPos) {
-	size_t index = 0;
-	bool found = false;
-	for (std::pair<glm::ivec3, AChunk *> chunk : chunks) {
-		if (chunk.first == worldPos) {
-			deleteChunk(worldPos);
-			createChunk(worldPos);
-
-			found = true;
-			break;
-		}
-		index++;
-	}
-	if (!found) return;
-
-	this->updateIB();
-	this->updateSSBO();
-}
-
-// Delete the chunk at the given world position
-void	VoxelSystem::deleteChunk(const glm::ivec3 &worldPos) {
-	size_t index = 0;
-	bool found = false;
-	for (std::pair<glm::ivec3, AChunk *> chunk : chunks) {
-		if (chunk.first == worldPos) {
-			delete chunk.second;
-
-			chunks.remove(chunk);
-			commands.erase(commands.begin() + index);
-			chunksInfos.erase(chunksInfos.begin() + index);
-
-			found = true;
-			break;
-		}
-		index++;
-	}
-	if (!found) return;
-
-	// Recompact the VBO
-	size_t newVertexOffset = 0;
-	for (DrawCommand &command : commands) {
-		size_t dataSize = command.verticeCount * sizeof(DATA_TYPE);
-
-		// Only copy if there's data to shift
-		if (newVertexOffset != command.offset) {
-			std::memmove(
-				reinterpret_cast<DATA_TYPE *>(VBOdata) + newVertexOffset,
-				reinterpret_cast<DATA_TYPE *>(VBOdata) + command.offset,
-				dataSize
-			);
-		}
-
-		command.offset = newVertexOffset;
-		newVertexOffset += command.verticeCount;
-	}
-	
-	this->updateIB();
-	this->updateSSBO();
 }
 /// ---
 

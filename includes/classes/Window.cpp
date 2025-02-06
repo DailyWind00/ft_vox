@@ -25,7 +25,6 @@ Window::Window(int posX, int posY, int width, int height, const std::string &tit
 		throw std::runtime_error("Failed to create window");
 	
 	glfwMakeContextCurrent(window);
-	//-glfwSwapInterval(0);
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
 		glfwDestroyWindow(window);
 		throw std::runtime_error("Failed to initialize GLAD");
@@ -34,9 +33,6 @@ Window::Window(int posX, int posY, int width, int height, const std::string &tit
 		std::cout << "> GLAD initialized" << std::endl;
 
 	glfwSetWindowPos(window, posX, posY);
-
-	int viewportSize = std::min(width, height); // Square viewport
-	//-glViewport((width - viewportSize) / 2, (height - viewportSize) / 2, viewportSize, viewportSize);
 
 	if (VERBOSE)
 		std::cout << "Window created" << std::endl;

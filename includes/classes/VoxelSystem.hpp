@@ -108,10 +108,7 @@ class	VoxelSystem {
 		void		chunkGenRoutine();
 		void		meshGenRoutine();
 
-		DrawCommand 	genMesh(ChunkData data);
-		void		createChunk(const glm::ivec3 &worldPos);
-		void		updateChunk(const glm::ivec3 &worldPos); // Broken
-		void		deleteChunk(const glm::ivec3 &worldPos);
+		DrawCommand 	genMesh(ChunkData data);	
 
 	public:
 		VoxelSystem(); // Random seed

@@ -290,22 +290,18 @@ DrawCommand	VoxelSystem::genMesh(const ChunkData &chunk) {
 
 	AChunk	*neightboursChunks[6] = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
 
-	glm::ivec3	wPos = chunk.first;
-	for (ChunkData currChunk : chunks) { // TODO : switch to a unordered_map
-		glm::ivec3	currWPos = currChunk.first;
+	glm::ivec3	neightbours[6] = { // I don't know wtf happened here
+		{chunk.first.x - 1, chunk.first.y, chunk.first.z},
+		{chunk.first.x + 1, chunk.first.y, chunk.first.z},
+		{chunk.first.x, chunk.first.y - 1, chunk.first.z},
+		{chunk.first.x, chunk.first.y + 1, chunk.first.z},
+		{chunk.first.x, chunk.first.y, chunk.first.z - 1},
+		{chunk.first.x, chunk.first.y, chunk.first.z + 1}
+	};
 
-		if      (wPos.x == currWPos.x - 1 && wPos.y == currWPos.y && wPos.z == currWPos.z)
-			neightboursChunks[0] = chunk.second;
-		else if (wPos.x == currWPos.x + 1 && wPos.y == currWPos.y && wPos.z == currWPos.z)
-			neightboursChunks[1] = chunk.second;
-		else if (wPos.x == currWPos.x && wPos.y == currWPos.y - 1 && wPos.z == currWPos.z)
-			neightboursChunks[2] = chunk.second;
-		else if (wPos.x == currWPos.x && wPos.y == currWPos.y + 1 && wPos.z == currWPos.z)
-			neightboursChunks[3] = chunk.second;
-		else if (wPos.x == currWPos.x && wPos.y == currWPos.y && wPos.z == currWPos.z - 1)
-			neightboursChunks[4] = chunk.second;
-		else if (wPos.x == currWPos.x && wPos.y == currWPos.y && wPos.z == currWPos.z + 1)
-			neightboursChunks[5] = chunk.second;
+	for (size_t i = 0; i < 6; i++) {
+		if (chunks.find(neightbours[i]) != chunks.end())
+			neightboursChunks[i] = chunks[neightbours[i]];
 	}
 
 	// Generate vertices for visible faces
@@ -358,7 +354,7 @@ DrawCommand	VoxelSystem::genMesh(const ChunkData &chunk) {
 void	VoxelSystem::chunkGenRoutine()
 {
 	std::list<glm::ivec3>	localReqChunks;
-	VChunks			localChunks;
+	ChunkMap				localChunks;
 
 	while (42) {
 		if (this->quitting)
@@ -384,11 +380,13 @@ void	VoxelSystem::chunkGenRoutine()
 
 		size_t	count = 0;
 
-		// generate requested chunks and temporarly stores them
+		// generate requested chunks and temporary stores them
 		for (glm::ivec3 chunkPos : localReqChunks) {
 			AChunk	*chunk = ChunkHandler::createChunk(chunkPos);
+			if (!chunk)
+				continue ;
 
-			localChunks.push_back(ChunkData(chunkPos, chunk));
+			localChunks[chunkPos] = chunk;
 			count++;
 		}
 		localReqChunks.clear();
@@ -401,8 +399,8 @@ void	VoxelSystem::chunkGenRoutine()
 		// Stores new chunks in the VoxelSystem and adds them to the pendingChunks for their meshes to be generated
 		this->pendingChunkMutex.lock();
 		for (ChunkData chunk : localChunks) {
-			this->chunks.push_back(ChunkData(chunk.first, chunk.second));
-			this->pendingChunks.push_back(ChunkData(chunk.first, chunk.second));
+			this->chunks[chunk.first] = chunk.second;
+			this->pendingChunks[chunk.first] = chunk.second;
 		}
 		this->pendingChunkMutex.unlock();
 		localChunks.clear();
@@ -411,7 +409,7 @@ void	VoxelSystem::chunkGenRoutine()
 
 void	VoxelSystem::meshGenRoutine()
 {
-	VChunks	localPendingChunks;
+	ChunkMap	localPendingChunks;
 	
 	while (42) {
 		if (this->quitting)
@@ -421,7 +419,7 @@ void	VoxelSystem::meshGenRoutine()
 		if (this->pendingChunks.size()) {
 			this->pendingChunkMutex.lock();
 			for (std::pair<glm::ivec3, AChunk *> chunk : this->pendingChunks)
-				localPendingChunks.push_back(ChunkData(chunk.first, chunk.second));
+				localPendingChunks[chunk.first] = chunk.second;
 
 			this->pendingChunks.clear();
 			this->pendingChunkMutex.unlock();

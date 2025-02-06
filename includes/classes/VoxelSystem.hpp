@@ -6,6 +6,7 @@
 # define CHUNK_SIZE 32
 # define DATA_TYPE uint32_t
 # define BUFFER_GROWTH_FACTOR 1.5f
+# define GLM_ENABLE_EXPERIMENTAL
 
 /// System includes
 # include <iostream>
@@ -15,10 +16,12 @@
 # include <thread>
 # include <atomic>
 # include <type_traits>
+# include <unordered_map>
 
 /// Dependencies
 # include <glad/glad.h>
 # include <glfw/glfw3.h>
+# include "glm/gtx/hash.hpp" // Required for glm::ivec3 hash
 # include "Noise.hpp"
 # include "color.h"
 # include "chunk.h"
@@ -28,7 +31,7 @@ extern bool VERBOSE;
 
 // Data structure for CPU-side chunk data management
 typedef std::pair<glm::ivec3, AChunk *>	ChunkData;
-typedef std::list<ChunkData> VChunks;
+typedef std::unordered_map<glm::ivec3, AChunk *>	ChunkMap;
 
 // Data structure for SSBO (Shader Storage Buffer Object)
 typedef struct SSBOData {
@@ -54,7 +57,7 @@ class	VoxelSystem {
 	//   - Batch all chunks in a single draw call
 	private:
 		GLuint			VAO;
-		VChunks			chunks;
+		ChunkMap		chunks;
 
 		// Multithreading related data
 		std::thread		meshGenThread;
@@ -63,7 +66,7 @@ class	VoxelSystem {
 		std::list<glm::ivec3>	requestedChunks;
 		std::mutex		requestedChunkMutex;
 		
-		VChunks		pendingChunks;
+		ChunkMap	pendingChunks;
 		std::mutex	pendingChunkMutex;
 
 		std::atomic<bool>	updatingBuffers;

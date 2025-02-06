@@ -1,8 +1,7 @@
 #pragma once
-
 /// Defines
 # define COLOR_HEADER_CXX
-# define HORIZONTALE_RENDER_DISTANCE 10
+# define HORIZONTALE_RENDER_DISTANCE 32
 # define VERTICALE_RENDER_DISTANCE 8
 # define CHUNK_SIZE 32
 # define DATA_TYPE uint32_t
@@ -12,6 +11,7 @@
 # include <iostream>
 # include <list>
 # include <vector>
+# include <map>
 # include <mutex>
 # include <thread>
 # include <atomic>
@@ -24,15 +24,21 @@
 # include "color.h"
 # include "chunk.h"
 
+#ifndef __UTIL_GLM__
+#define __UTIL_GLM__
+namespace glm {
+	bool operator<(const ivec3& a,const ivec3& b);
+};
+#endif
 /// Global variables
 extern bool VERBOSE;
 
 // Data structure for CPU-side chunk data management
-typedef struct ChunkData {
-	AChunk	   *chunk;
-	glm::ivec3	worldPos;
-}	ChunkData;
-typedef std::vector<ChunkData> VChunks;
+//-typedef struct ChunkData {
+	//-AChunk	   *chunk;
+	//-glm::ivec3	worldPos;
+//-}	ChunkData;
+typedef std::map<glm::ivec3, AChunk *> VChunks;
 
 // Data structure for SSBO (Shader Storage Buffer Object)
 typedef struct SSBOData {
@@ -67,11 +73,10 @@ class	VoxelSystem {
 		std::list<glm::ivec3>	requestedChunks;
 		std::mutex		requestedChunkMutex;
 		
-		std::list<ChunkData>	pendingChunks;
-		std::mutex		pendingChunkMutex;
+		VChunks		pendingChunks;
+		std::mutex	pendingChunkMutex;
 
 		std::atomic<bool>	updatingBuffers;
-		//-std::mutex		updatingBufferMutex;
 
 		std::mutex		VDrawCommandMutex;
 

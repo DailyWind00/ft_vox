@@ -108,8 +108,9 @@ VoxelSystem::~VoxelSystem() {
 	this->meshGenThread.join();
 	this->chunkGenThread.join();
 
-	for (ChunkData &chunk : chunks)
-		delete chunk.chunk;
+	for (std::pair<glm::ivec3, AChunk *> chunk : chunks)
+		delete chunk.second;
+	chunks.clear();
 }
 /// ---
 
@@ -233,7 +234,11 @@ bool	VoxelSystem::isVoxelVisible(const size_t &x, const size_t &y, const size_t 
 DrawCommand	VoxelSystem::genMesh(AChunk *data) {
 	std::vector<DATA_TYPE>	vertices;
 	int count = 0;
-	
+
+	AChunk	*neighbour[6] = {
+
+	};
+
 	// Generate vertices for visible faces
 	for (size_t x = 0; x < CHUNK_SIZE; ++x) {
 		for (size_t y = 0; y < CHUNK_SIZE; ++y) {
@@ -304,7 +309,7 @@ void	VoxelSystem::createChunk(const glm::ivec3 &worldPos) {
 void	VoxelSystem::chunkGenRoutine()
 {
 	std::list<glm::ivec3>	localReqChunks;
-	std::list<ChunkData>	localChunks;
+	VChunks			localChunks;
 
 	if (VERBOSE)
 		std::cout << "Chunk generation thread started" << std::endl;
@@ -336,7 +341,7 @@ void	VoxelSystem::chunkGenRoutine()
 		for (glm::ivec3 chunkPos : localReqChunks) {
 			AChunk	*chunk = ChunkHandler::createChunk(chunkPos);
 
-			localChunks.push_back({chunk, chunkPos});
+			localChunks[chunkPos] = chunk;
 			count++;
 		}
 		localReqChunks.clear();
@@ -348,9 +353,9 @@ void	VoxelSystem::chunkGenRoutine()
 
 		// Stores new chunks in the VoxelSystem and adds them to the pendingChunks for their meshes to be generated
 		this->pendingChunkMutex.lock();
-		for (ChunkData cd : localChunks) {
-			this->chunks.push_back(cd);
-			this->pendingChunks.push_back(this->chunks.back());
+		for (std::pair<glm::ivec3, AChunk *> chunk : localChunks) {
+			this->chunks[chunk.first] = chunk.second;
+			this->pendingChunks[chunk.first] = chunk.second;
 		}
 		this->pendingChunkMutex.unlock();
 		localChunks.clear();
@@ -361,7 +366,7 @@ void	VoxelSystem::chunkGenRoutine()
 
 void	VoxelSystem::meshGenRoutine()
 {
-	std::list<ChunkData>	localPendingChunks;
+	VChunks	localPendingChunks;
 	
 	if (VERBOSE)
 		std::cout << "Mesh generation thread started" << std::endl;
@@ -372,25 +377,24 @@ void	VoxelSystem::meshGenRoutine()
 		// Check for chunks Mesh to be generated
 		if (this->pendingChunks.size()) {
 			this->pendingChunkMutex.lock();
-			for (ChunkData cd : this->pendingChunks) {
-				localPendingChunks.push_back(cd);
-			}
+			for (std::pair<glm::ivec3, AChunk *> chunk : this->pendingChunks)
+				localPendingChunks[chunk.first] = chunk.second;
+
 			this->pendingChunks.clear();
 			this->pendingChunkMutex.unlock();
 		}
-		
 
 		// Generate chunks meshes and creates their DrawCommands
 		size_t	count = 0;
 
 		if (this->VDrawCommandMutex.try_lock()) {
-		for (ChunkData cd : localPendingChunks) {
-			DrawCommand	cmd = genMesh(cd.chunk);
+		for (std::pair<glm::ivec3, AChunk *> chunk : localPendingChunks) {
+			DrawCommand	cmd = genMesh(chunk.second);
 			
 			if (!cmd.verticeCount)
 				continue ;
 			this->commands.push_back(cmd);
-			chunksInfos.push_back({{cd.worldPos.x, cd.worldPos.y, cd.worldPos.z, 0}});
+			chunksInfos.push_back({{chunk.first.x, chunk.first.y, chunk.first.z, 0}});
 			count++;
 		}
 		this->VDrawCommandMutex.unlock();
@@ -415,8 +419,8 @@ void	VoxelSystem::meshGenRoutine()
 void	VoxelSystem::updateChunk(const glm::ivec3 &worldPos) {
 	size_t index = 0;
 	bool found = false;
-	for (ChunkData &chunk : chunks) {
-		if (chunk.worldPos == worldPos) {
+	for (std::pair<glm::ivec3, AChunk *> chunk : chunks) {
+		if (chunk.first == worldPos) {
 			deleteChunk(worldPos);
 			createChunk(worldPos);
 
@@ -435,11 +439,11 @@ void	VoxelSystem::updateChunk(const glm::ivec3 &worldPos) {
 void	VoxelSystem::deleteChunk(const glm::ivec3 &worldPos) {
 	size_t index = 0;
 	bool found = false;
-	for (ChunkData &chunk : chunks) {
-		if (chunk.worldPos == worldPos) {
-			delete chunk.chunk;
+	for (std::pair<glm::ivec3, AChunk *> chunk : chunks) {
+		if (chunk.first == worldPos) {
+			delete chunk.second;
 
-			chunks.erase(chunks.begin() + index);
+			chunks.erase(chunk.first);
 			commands.erase(commands.begin() + index);
 			chunksInfos.erase(chunksInfos.begin() + index);
 

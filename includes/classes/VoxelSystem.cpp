@@ -83,11 +83,11 @@ VoxelSystem::VoxelSystem(const uint64_t &seed) {
 	this->chunkGenThread = std::thread(&VoxelSystem::chunkGenRoutine, this);
 
 	this->requestedChunkMutex.lock();
-	// for (int i = -(HORIZONTALE_RENDER_DISTANCE / 2); i < (HORIZONTALE_RENDER_DISTANCE / 2); i++) {
-	// 	for (int j = -(HORIZONTALE_RENDER_DISTANCE / 2); j < (HORIZONTALE_RENDER_DISTANCE / 2); j++)
-	// 		for (int k = -(VERTICALE_RENDER_DISTANCE / 2); k < (VERTICALE_RENDER_DISTANCE / 2); k++)
-	// 		this->requestedChunks.push_back({i, k, j});
-	// }
+	for (int i = -(HORIZONTALE_RENDER_DISTANCE / 2); i < (HORIZONTALE_RENDER_DISTANCE / 2); i++) {
+		for (int j = -(HORIZONTALE_RENDER_DISTANCE / 2); j < (HORIZONTALE_RENDER_DISTANCE / 2); j++)
+			for (int k = -(VERTICALE_RENDER_DISTANCE / 2); k < (VERTICALE_RENDER_DISTANCE / 2); k++)
+			this->requestedChunks.push_back({i, k, j});
+	}
 	this->requestedChunks.push_back({ 0, 0,  0});
 	this->requestedChunks.push_back({ 0, -5,  0});
 
@@ -290,8 +290,8 @@ DrawCommand	VoxelSystem::genMesh(const ChunkData &chunk) {
 
 	AChunk	*neightboursChunks[6] = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
 
+	glm::ivec3	wPos = chunk.first;
 	for (ChunkData currChunk : chunks) { // TODO : switch to a unordered_map
-		glm::ivec3	wPos = chunk.first;
 		glm::ivec3	currWPos = currChunk.first;
 
 		if      (wPos.x == currWPos.x - 1 && wPos.y == currWPos.y && wPos.z == currWPos.z)
@@ -326,9 +326,7 @@ DrawCommand	VoxelSystem::genMesh(const ChunkData &chunk) {
 					data |= (x & 0x1F);       // 5 bits for x
 					data |= (y & 0x1F) << 5;  // 5 bits for y
 					data |= (z & 0x1F) << 10; // 5 bits for z
-
-					data |= (visibleFaces & 0x3F) << 15; // 6 bits for the visible faces (to remove)
-
+					
 					vertices.push_back(data);
 					count++;
 				}

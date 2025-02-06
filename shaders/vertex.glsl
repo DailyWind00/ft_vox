@@ -29,6 +29,8 @@ void main()
 	position.y = (blockData >> 5)  & 0x1F;
 	position.z = (blockData >> 10) & 0x1F;
 
+	uint face = (blockData >> 15) & 0x3F;
+
 	ivec3 worldOffset = meshData[gl_DrawID].data.zyx * 32;
 	fragPos = vec3(ivec3(position) + worldOffset);
 

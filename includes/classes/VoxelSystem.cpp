@@ -217,7 +217,7 @@ uint8_t	VoxelSystem::isVoxelVisible(const size_t &x, const size_t &y, const size
 
 	uint8_t	visibleFaces = 0;
 
-	glm::ivec3	neightbours[6] = {
+	glm::ivec3	neightbours[6] = { // I don't know wtf happened here
 		{x - 1, y, z},
 		{x + 1, y, z},
 		{x, y - 1, z},
@@ -230,16 +230,16 @@ uint8_t	VoxelSystem::isVoxelVisible(const size_t &x, const size_t &y, const size
 	// Also check if the neightbours are in the same chunk or in another one
 	for (const glm::ivec3 &pos : neightbours) {
 		/// X axis
-		// outer chunk
+		// Border
 		if (pos.x < 0) {
-			if (!neightboursChunks[0] || !BLOCK_AT(neightboursChunks[0], CHUNK_SIZE - 1, pos.y, pos.z))
+			if (!neightboursChunks[5] || !BLOCK_AT(neightboursChunks[5], CHUNK_SIZE - 1, pos.y, pos.z))
 				visibleFaces |= 1;
 		}
 		else if (pos.x >= CHUNK_SIZE) {
-			if (!neightboursChunks[1] || !BLOCK_AT(neightboursChunks[1], 0, pos.y, pos.z))
+			if (!neightboursChunks[4] || !BLOCK_AT(neightboursChunks[4], 0, pos.y, pos.z))
 				visibleFaces |= 2;
 		}
-		// inner chunk
+		// Inside
 		else if (size_t(pos.x) < x && !BLOCK_AT(data.second, pos.x, pos.y, pos.z))
 			visibleFaces |= 1;
 		else if (size_t(pos.x) > x && !BLOCK_AT(data.second, pos.x, pos.y, pos.z))
@@ -247,16 +247,16 @@ uint8_t	VoxelSystem::isVoxelVisible(const size_t &x, const size_t &y, const size
 
 
 		/// y axis
-		// outer chunk
+		// Border
 		if (pos.y < 0) {
-			if (!neightboursChunks[2] || !BLOCK_AT(neightboursChunks[2], pos.x, CHUNK_SIZE - 1, pos.z))
+			if (!neightboursChunks[3] || !BLOCK_AT(neightboursChunks[3], pos.x, CHUNK_SIZE - 1, pos.z))
 				visibleFaces |= 4;
 		}
 		else if (pos.y >= CHUNK_SIZE) {
-			if (!neightboursChunks[3] || !BLOCK_AT(neightboursChunks[3], pos.x, 0, pos.z))
+			if (!neightboursChunks[2] || !BLOCK_AT(neightboursChunks[2], pos.x, 0, pos.z))
 				visibleFaces |= 8;
 		}
-		// inner chunk
+		// Inside
 		else if (size_t(pos.y) < y && !BLOCK_AT(data.second, pos.x, pos.y, pos.z))
 			visibleFaces |= 4;
 		else if (size_t(pos.y) > y && !BLOCK_AT(data.second, pos.x, pos.y, pos.z))
@@ -264,16 +264,16 @@ uint8_t	VoxelSystem::isVoxelVisible(const size_t &x, const size_t &y, const size
 
 
 		/// z axis
-		// outer chunk
+		// Border
 		if (pos.z < 0) {
-			if (!neightboursChunks[4] || !BLOCK_AT(neightboursChunks[4], pos.x, pos.y, CHUNK_SIZE - 1))
+			if (!neightboursChunks[1] || !BLOCK_AT(neightboursChunks[1], pos.x, pos.y, CHUNK_SIZE - 1))
 				visibleFaces |= 16;
 		}
 		else if (pos.z >= CHUNK_SIZE) {
-			if (!neightboursChunks[5] || !BLOCK_AT(neightboursChunks[5], pos.x, pos.y, 0))
+			if (!neightboursChunks[0] || !BLOCK_AT(neightboursChunks[0], pos.x, pos.y, 0))
 				visibleFaces |= 32;
 		}
-		// inner chunk
+		// Inside
 		else if (size_t(pos.z) < z && !BLOCK_AT(data.second, pos.x, pos.y, pos.z))
 			visibleFaces |= 16;
 		else if (size_t(pos.z) > z && !BLOCK_AT(data.second, pos.x, pos.y, pos.z))
@@ -290,9 +290,9 @@ DrawCommand	VoxelSystem::genMesh(const ChunkData &chunk) {
 
 	AChunk	*neightboursChunks[6] = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
 
-	for (ChunkData chunk : chunks) {
+	for (ChunkData currChunk : chunks) { // TODO : switch to a unordered_map
 		glm::ivec3	wPos = chunk.first;
-		glm::ivec3	currWPos = chunk.first;
+		glm::ivec3	currWPos = currChunk.first;
 
 		if      (wPos.x == currWPos.x - 1 && wPos.y == currWPos.y && wPos.z == currWPos.z)
 			neightboursChunks[0] = chunk.second;
@@ -327,7 +327,7 @@ DrawCommand	VoxelSystem::genMesh(const ChunkData &chunk) {
 					data |= (y & 0x1F) << 5;  // 5 bits for y
 					data |= (z & 0x1F) << 10; // 5 bits for z
 
-					//-data |= (visibleFaces & 0x3F) << 15; // 6 bits for the visible faces
+					data |= (visibleFaces & 0x3F) << 15; // 6 bits for the visible faces (to remove)
 
 					vertices.push_back(data);
 					count++;

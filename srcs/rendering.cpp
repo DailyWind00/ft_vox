@@ -4,7 +4,7 @@
 static void program_loop(Window &window, VoxelSystem &voxelSystem, Shader &shader) {
 	voxelSystem.draw();
 	handleEvents(window, shader);
-	window.setTitle("ft_vox | FPS: " + std::to_string(window.getFPS()) + " | Frame rate: " + std::to_string(window.getFrameTime()));
+	window.setTitle("ft_vox | FPS: " + std::to_string(window.getFPS()) + " | FrameTime: " + std::to_string(window.getFrameTime()) + "ms");
 }
 
 // Setup variables and call the program loop
@@ -23,7 +23,6 @@ void	Rendering(Window &window)
 	Shader	shader(
 		"shaders/vertex.glsl",
 		"shaders/fragment.glsl"
-		//-"shaders/geometry.glsl"
 	);
 	shader.use();
 

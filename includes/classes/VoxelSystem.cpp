@@ -28,10 +28,10 @@ VoxelSystem::VoxelSystem(const uint64_t &seed) {
 
 	unsigned int	quadVBO = 0;
 	float	quadVert[] = {
-		0, 0, 0,
 		0, 1, 0,
-		1, 0, 0,
-		1, 1, 0
+		0, 1, 1,
+		1, 1, 0,
+		1, 1, 1
 	};
 	glGenBuffers(1, &quadVBO);
 	glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
@@ -42,7 +42,7 @@ VoxelSystem::VoxelSystem(const uint64_t &seed) {
 	// Create and allocate the VBO with persistent mapping
 	glGenBuffers(1, &VBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	size_t maxVerticesPerChunk = CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE; // Impossible worst case (just to be sure)
+	size_t maxVerticesPerChunk = (CHUNK_SIZE / 2) * (CHUNK_SIZE / 2) * (CHUNK_SIZE / 2); // Impossible worst case (just to be sure)
 	VBOcapacity = VERTICALE_RENDER_DISTANCE * HORIZONTALE_RENDER_DISTANCE * HORIZONTALE_RENDER_DISTANCE * maxVerticesPerChunk * sizeof(DATA_TYPE);
 	
 	if (VERBOSE)

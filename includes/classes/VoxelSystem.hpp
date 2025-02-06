@@ -1,8 +1,8 @@
 #pragma once
 /// Defines
 # define COLOR_HEADER_CXX
-# define HORIZONTALE_RENDER_DISTANCE 32
-# define VERTICALE_RENDER_DISTANCE 12
+# define HORIZONTALE_RENDER_DISTANCE 8
+# define VERTICALE_RENDER_DISTANCE 8
 # define CHUNK_SIZE 32
 # define DATA_TYPE uint32_t
 # define BUFFER_GROWTH_FACTOR 1.5f
@@ -103,7 +103,7 @@ class	VoxelSystem {
 		void		updateIB();
 		void		updateSSBO();
 		void		reallocateVBO(size_t newSize);
-		uint8_t		isVoxelVisible(const size_t &x, const size_t &y, const size_t &z, ChunkData data, AChunk *neightboursChunks[6]);
+		uint8_t		isVoxelVisible(const size_t &x, const size_t &y, const size_t &z, const ChunkData &data);
 	
 		void		chunkGenRoutine();
 		void		meshGenRoutine();

@@ -202,48 +202,92 @@ void	VoxelSystem::reallocateVBO(size_t newSize)
 // Check if the voxel at the given position is visible
 // Return a bitmask of the visible faces (6 bits : XxYyZz)
 // TODO: Culling techniques (take the camera position as parameter)
-bool	VoxelSystem::isVoxelVisible(const size_t &x, const size_t &y, const size_t &z, AChunk *data)
+uint8_t	VoxelSystem::isVoxelVisible(const size_t &x, const size_t &y, const size_t &z, ChunkData data, AChunk *neightboursChunks[6])
 {
-	if (BLOCK_AT(data, x, y, z) == 0)
-		return 0;
+	glm::ivec3	neightbours[6] = {
+		{x - 1, y, z},
+		{x + 1, y, z},
+		{x, y - 1, z},
+		{x, y + 1, z},
+		{x, y, z - 1},
+		{x, y, z + 1}
+	};
 
-	u_int8_t visibleFaces = 0;
+	if (!BLOCK_AT(data.second, x, y, z))
+		return (0);
 
-	// x axis
-	if (!x || !BLOCK_AT(data, x - 1, y, z))
-		visibleFaces |= 1;
-	if (x >= CHUNK_SIZE - 1 || !BLOCK_AT(data, x + 1, y, z))
-		visibleFaces |= 2;
+	int	neightbourID = -1;
 
-	// y axis
-	if (!y || !BLOCK_AT(data, x, y - 1, z))
-		visibleFaces |= 4;
-	if (y >= CHUNK_SIZE - 1 || !BLOCK_AT(data, x, y + 1, z))
-		visibleFaces |= 8;
+	for (glm::ivec3 pos : neightbours) {
+		if (pos.x < 0) {
+			neightbourID = 0;
+			pos.x = 31;
+		}
+		else if (pos.x >= CHUNK_SIZE) {
+			neightbourID = 1;
+			pos.x = 0;
+		}
+		else if (pos.y < 0) {
+			neightbourID = 2;
+			pos.y = 31;
+		}
+		else if (pos.y >= CHUNK_SIZE) {
+			neightbourID = 3;
+			pos.y = 0;
+		}
+		else if (pos.z < 0) {
+			neightbourID = 4;
+			pos.z = 31;
+		}
+		else if (pos.z >= CHUNK_SIZE) {
+			neightbourID = 5;
+			pos.z = 0;
+		}
 
-	// z axis
-	if (!z || !BLOCK_AT(data, x, y, z - 1))
-		visibleFaces |= 16;
-	if (z >= CHUNK_SIZE - 1 || !BLOCK_AT(data, x, y, z + 1))
-		visibleFaces |= 32;
+		if (neightbourID != -1) {
+			if (!neightboursChunks[neightbourID])
+				return (0);
+			if (BLOCK_AT(neightboursChunks[neightbourID], pos.x, pos.y, pos.z))
+				return (0);
+			return (0);
+		 }
 
-	return visibleFaces;
+		 if (!BLOCK_AT(data.second, pos.x, pos.y, pos.z)) return (1);
+	}
+	
+	return (0);
 }
 
 // Create/update the mesh of the given chunk and store it in the VBO
-DrawCommand	VoxelSystem::genMesh(AChunk *data) {
+DrawCommand	VoxelSystem::genMesh(ChunkData data) {
 	std::vector<DATA_TYPE>	vertices;
 	int count = 0;
 
-	AChunk	*neighbour[6] = {
+	AChunk	*neightboursChunks[6] = {NULL};
 
-	};
+	for (ChunkData chunk : chunks) {
+		glm::ivec3	wPos = chunk.first;
+		glm::ivec3	currWPos = data.first;
+
+		if (wPos.x == currWPos.x - 1 && wPos.y == currWPos.y && wPos.z == currWPos.z)
+			neightboursChunks[0] = chunk.second;
+		else if (wPos.x == currWPos.x + 1 && wPos.y == currWPos.y && wPos.z == currWPos.z)
+			neightboursChunks[1] = chunk.second;
+		else if (wPos.x == currWPos.x && wPos.y == currWPos.y - 1 && wPos.z == currWPos.z)
+			neightboursChunks[2] = chunk.second;
+		else if (wPos.x == currWPos.x - 1 && wPos.y == currWPos.y + 1 && wPos.z == currWPos.z)
+			neightboursChunks[3] = chunk.second;
+		else if (wPos.x == currWPos.x - 1 && wPos.y == currWPos.y && wPos.z == currWPos.z - 1)
+			neightboursChunks[4] = chunk.second;
+		else if (wPos.x == currWPos.x - 1 && wPos.y == currWPos.y && wPos.z == currWPos.z + 1)
+			neightboursChunks[5] = chunk.second;
+	}
 
 	// Generate vertices for visible faces
 	for (size_t x = 0; x < CHUNK_SIZE; ++x) {
 		for (size_t y = 0; y < CHUNK_SIZE; ++y) {
 			for (size_t z = 0; z < CHUNK_SIZE; ++z) {
-				u_int8_t visibleFaces = isVoxelVisible(x, y, z, data);
+				u_int8_t visibleFaces = isVoxelVisible(x, y, z, data, neightboursChunks);
 
 				if (visibleFaces) {
 					DATA_TYPE data = 0;
@@ -259,7 +303,7 @@ DrawCommand	VoxelSystem::genMesh(AChunk *data) {
 					data |= (y & 0x1F) << 5;  // 5 bits for y
 					data |= (z & 0x1F) << 10; // 5 bits for z
 
-					data |= (visibleFaces & 0x3F) << 15; // 6 bits for the visible faces
+					//-data |= (visibleFaces & 0x3F) << 15; // 6 bits for the visible faces
 
 					vertices.push_back(data);
 					count++;
@@ -323,7 +367,7 @@ void	VoxelSystem::chunkGenRoutine()
 		if (this->requestedChunks.size()) {
 			this->requestedChunkMutex.lock();
 			for (glm::ivec3 rc : this->requestedChunks) {
-				if (chunkBatchLimit == 16)
+				if (chunkBatchLimit == 8)
 					break ;
 				localReqChunks.push_back(rc);
 				chunkBatchLimit++;
@@ -341,7 +385,7 @@ void	VoxelSystem::chunkGenRoutine()
 		for (glm::ivec3 chunkPos : localReqChunks) {
 			AChunk	*chunk = ChunkHandler::createChunk(chunkPos);
 
-			localChunks[chunkPos] = chunk;
+			localChunks.push_back(ChunkData(chunkPos, chunk));
 			count++;
 		}
 		localReqChunks.clear();
@@ -353,9 +397,9 @@ void	VoxelSystem::chunkGenRoutine()
 
 		// Stores new chunks in the VoxelSystem and adds them to the pendingChunks for their meshes to be generated
 		this->pendingChunkMutex.lock();
-		for (std::pair<glm::ivec3, AChunk *> chunk : localChunks) {
-			this->chunks[chunk.first] = chunk.second;
-			this->pendingChunks[chunk.first] = chunk.second;
+		for (ChunkData chunk : localChunks) {
+			this->chunks.push_back(ChunkData(chunk.first, chunk.second));
+			this->pendingChunks.push_back(ChunkData(chunk.first, chunk.second));
 		}
 		this->pendingChunkMutex.unlock();
 		localChunks.clear();
@@ -378,7 +422,7 @@ void	VoxelSystem::meshGenRoutine()
 		if (this->pendingChunks.size()) {
 			this->pendingChunkMutex.lock();
 			for (std::pair<glm::ivec3, AChunk *> chunk : this->pendingChunks)
-				localPendingChunks[chunk.first] = chunk.second;
+				localPendingChunks.push_back(ChunkData(chunk.first, chunk.second));
 
 			this->pendingChunks.clear();
 			this->pendingChunkMutex.unlock();
@@ -389,7 +433,7 @@ void	VoxelSystem::meshGenRoutine()
 
 		if (this->VDrawCommandMutex.try_lock()) {
 		for (std::pair<glm::ivec3, AChunk *> chunk : localPendingChunks) {
-			DrawCommand	cmd = genMesh(chunk.second);
+			DrawCommand	cmd = genMesh(chunk);
 			
 			if (!cmd.verticeCount)
 				continue ;
@@ -443,7 +487,7 @@ void	VoxelSystem::deleteChunk(const glm::ivec3 &worldPos) {
 		if (chunk.first == worldPos) {
 			delete chunk.second;
 
-			chunks.erase(chunk.first);
+			chunks.remove(chunk);
 			commands.erase(commands.begin() + index);
 			chunksInfos.erase(chunksInfos.begin() + index);
 

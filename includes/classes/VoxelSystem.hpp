@@ -1,8 +1,8 @@
 #pragma once
 /// Defines
 # define COLOR_HEADER_CXX
-# define HORIZONTALE_RENDER_DISTANCE 32
-# define VERTICALE_RENDER_DISTANCE 8
+# define HORIZONTALE_RENDER_DISTANCE 42
+# define VERTICALE_RENDER_DISTANCE 12
 # define CHUNK_SIZE 32
 # define DATA_TYPE uint32_t
 # define BUFFER_GROWTH_FACTOR 1.5f
@@ -11,7 +11,6 @@
 # include <iostream>
 # include <list>
 # include <vector>
-# include <map>
 # include <mutex>
 # include <thread>
 # include <atomic>
@@ -38,7 +37,8 @@ extern bool VERBOSE;
 	//-AChunk	   *chunk;
 	//-glm::ivec3	worldPos;
 //-}	ChunkData;
-typedef std::map<glm::ivec3, AChunk *> VChunks;
+typedef std::pair<glm::ivec3, AChunk *>	ChunkData;
+typedef std::list<ChunkData> VChunks;
 
 // Data structure for SSBO (Shader Storage Buffer Object)
 typedef struct SSBOData {
@@ -103,12 +103,12 @@ class	VoxelSystem {
 		void		updateIB();
 		void		updateSSBO();
 		void		reallocateVBO(size_t newSize);
-		bool		isVoxelVisible(const size_t &x, const size_t &y, const size_t &z, AChunk *data);
+		uint8_t		isVoxelVisible(const size_t &x, const size_t &y, const size_t &z, ChunkData data, AChunk *neightboursChunks[6]);
 	
 		void		chunkGenRoutine();
 		void		meshGenRoutine();
 
-		DrawCommand 	genMesh(AChunk *data);
+		DrawCommand 	genMesh(ChunkData data);
 		void		createChunk(const glm::ivec3 &worldPos);
 		void		updateChunk(const glm::ivec3 &worldPos); // Broken
 		void		deleteChunk(const glm::ivec3 &worldPos);

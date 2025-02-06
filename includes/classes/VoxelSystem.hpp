@@ -93,7 +93,7 @@ class	VoxelSystem {
 		void		updateIB();
 		void		updateSSBO();
 		void		reallocateVBO(size_t newSize);
-		uint8_t		isVoxelVisible(const size_t &x, const size_t &y, const size_t &z, const ChunkData &data);
+		uint8_t		isVoxelVisible(const size_t &x, const size_t &y, const size_t &z, const ChunkData &data, AChunk *neightboursChunks[6]);
 	
 		void		chunkGenRoutine();
 		void		meshGenRoutine();

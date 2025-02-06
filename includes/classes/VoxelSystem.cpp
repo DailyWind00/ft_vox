@@ -83,11 +83,20 @@ VoxelSystem::VoxelSystem(const uint64_t &seed) {
 	this->chunkGenThread = std::thread(&VoxelSystem::chunkGenRoutine, this);
 
 	this->requestedChunkMutex.lock();
-	for (int i = -(HORIZONTALE_RENDER_DISTANCE / 2); i < (HORIZONTALE_RENDER_DISTANCE / 2); i++) {
-		for (int j = -(HORIZONTALE_RENDER_DISTANCE / 2); j < (HORIZONTALE_RENDER_DISTANCE / 2); j++)
-			for (int k = -(VERTICALE_RENDER_DISTANCE / 2); k < (VERTICALE_RENDER_DISTANCE / 2); k++)
-			this->requestedChunks.push_back({i, k, j});
-	}
+	// for (int i = -(HORIZONTALE_RENDER_DISTANCE / 2); i < (HORIZONTALE_RENDER_DISTANCE / 2); i++) {
+	// 	for (int j = -(HORIZONTALE_RENDER_DISTANCE / 2); j < (HORIZONTALE_RENDER_DISTANCE / 2); j++)
+	// 		for (int k = -(VERTICALE_RENDER_DISTANCE / 2); k < (VERTICALE_RENDER_DISTANCE / 2); k++)
+	// 		this->requestedChunks.push_back({i, k, j});
+	// }
+	this->requestedChunks.push_back({ 0, -5,  0});
+
+	this->requestedChunks.push_back({ 1, -5,  0});
+	this->requestedChunks.push_back({-1, -5,  0});
+	this->requestedChunks.push_back({ 0, -4,  0});
+	this->requestedChunks.push_back({ 0, -6,  0});
+	this->requestedChunks.push_back({ 0, -5,  1});
+	this->requestedChunks.push_back({ 0, -5, -1});
+
 	this->requestedChunkMutex.unlock();
 
 	if (VERBOSE)
@@ -200,10 +209,13 @@ void	VoxelSystem::reallocateVBO(size_t newSize)
 }
 
 // Check if the voxel at the given position is visible
-// Return a bitmask of the visible faces (6 bits : XxYyZz)
-// TODO: Culling techniques (take the camera position as parameter)
-uint8_t	VoxelSystem::isVoxelVisible(const size_t &x, const size_t &y, const size_t &z, const ChunkData &data)
-{
+// Return a bitmask of the visible faces (6 bits : ZzYyXx)
+uint8_t	VoxelSystem::isVoxelVisible(const size_t &x, const size_t &y, const size_t &z, const ChunkData &data, AChunk *neightboursChunks[6]) {
+	if (!BLOCK_AT(data.second, x, y, z))
+		return (0);
+
+	uint8_t	visibleFaces = 0;
+
 	glm::ivec3	neightbours[6] = {
 		{x - 1, y, z},
 		{x + 1, y, z},
@@ -213,28 +225,59 @@ uint8_t	VoxelSystem::isVoxelVisible(const size_t &x, const size_t &y, const size
 		{x, y, z + 1}
 	};
 
-	if (!BLOCK_AT(data.second, x, y, z))
-		return (0);
-//-
+	// Check if the face is visible
+	// Also check if the neightbours are in the same chunk or in another one
 	for (glm::ivec3 pos : neightbours) {
-		if (pos.x < 0)
+		// x axis
+		if (pos.x < 0) {
+			visibleFaces |= 1;
+       		pos.x = CHUNK_SIZE - 1;
+		}
+		else if (pos.x >= CHUNK_SIZE) {
+			visibleFaces |= 2;
 			pos.x = 0;
-		else if (pos.x >= CHUNK_SIZE)
-			pos.x = 31;
-		if (pos.y < 0)
-			pos.y = 0;
-		else if (pos.y >= CHUNK_SIZE)
-			pos.y = 31;
+		}
 
-		if (pos.z < 0)
+		// y axis
+		if (pos.y < 0) {
+			visibleFaces |= 4;
+			pos.y = CHUNK_SIZE - 1;
+		}
+		else if (pos.y >= CHUNK_SIZE) {
+			visibleFaces |= 8;
+			pos.y = 0;
+		}
+
+		// z axis
+		if (pos.z < 0) {
+			visibleFaces |= 16;
+			pos.z = CHUNK_SIZE - 1;
+		}
+		else if (pos.z >= CHUNK_SIZE) {
+			visibleFaces |= 32;
 			pos.z = 0;
-		else if (pos.z >= CHUNK_SIZE)
-			pos.z = 31;
-		
-		if (!BLOCK_AT(data.second, pos.x, pos.y, pos.z)) return (1);
+		}
+
+		// Check if the neightbour chunk block the face
+		for (int i = 0; i < 6; i++) {
+			if (visibleFaces & (1 << i) && neightboursChunks[i] && BLOCK_AT(neightboursChunks[i], pos.x, pos.y, pos.z))
+				visibleFaces &= ~(1 << i); // Delete the face
+		}
+	} // TODO: add base behaviour in-chunk for the face, fix the neightboursChunks[i] check 
+
+	if (visibleFaces != 0) {
+		std::cout << "Visible faces : ";
+		for (int i = 0; i < 6; i++) {
+			if (visibleFaces & (1 << i))
+				std::cout << "1 ";
+			else 
+				std::cout << "0 ";
+		}
+		std::cout << std::endl;
 	}
-	
-	return (0);
+		
+
+	return visibleFaces;
 }
 
 // Create/update the mesh of the given chunk and store it in the VBO
@@ -242,11 +285,31 @@ DrawCommand	VoxelSystem::genMesh(const ChunkData &chunk) {
 	std::vector<DATA_TYPE>	vertices;
 	int count = 0;
 
+	AChunk	*neightboursChunks[6] = {NULL};
+
+	for (ChunkData chunk : chunks) {
+		glm::ivec3	wPos = chunk.first;
+		glm::ivec3	currWPos = chunk.first;
+
+		if      (wPos.x == currWPos.x - 1 && wPos.y == currWPos.y && wPos.z == currWPos.z)
+			neightboursChunks[0] = chunk.second;
+		else if (wPos.x == currWPos.x + 1 && wPos.y == currWPos.y && wPos.z == currWPos.z)
+			neightboursChunks[1] = chunk.second;
+		else if (wPos.x == currWPos.x && wPos.y == currWPos.y - 1 && wPos.z == currWPos.z)
+			neightboursChunks[2] = chunk.second;
+		else if (wPos.x == currWPos.x && wPos.y == currWPos.y + 1 && wPos.z == currWPos.z)
+			neightboursChunks[3] = chunk.second;
+		else if (wPos.x == currWPos.x && wPos.y == currWPos.y && wPos.z == currWPos.z - 1)
+			neightboursChunks[4] = chunk.second;
+		else if (wPos.x == currWPos.x && wPos.y == currWPos.y && wPos.z == currWPos.z + 1)
+			neightboursChunks[5] = chunk.second;
+	}
+
 	// Generate vertices for visible faces
 	for (size_t x = 0; x < CHUNK_SIZE; ++x) {
 		for (size_t y = 0; y < CHUNK_SIZE; ++y) {
 			for (size_t z = 0; z < CHUNK_SIZE; ++z) {
-				u_int8_t visibleFaces = isVoxelVisible(x, y, z, chunk);
+				u_int8_t visibleFaces = isVoxelVisible(x, y, z, chunk, neightboursChunks);
 
 				if (visibleFaces) {
 					DATA_TYPE data = 0;
@@ -296,8 +359,6 @@ void	VoxelSystem::chunkGenRoutine()
 	std::list<glm::ivec3>	localReqChunks;
 	VChunks			localChunks;
 
-	if (VERBOSE)
-		std::cout << "Chunk generation thread started" << std::endl;
 	while (42) {
 		if (this->quitting)
 			break ;
@@ -345,16 +406,12 @@ void	VoxelSystem::chunkGenRoutine()
 		this->pendingChunkMutex.unlock();
 		localChunks.clear();
 	}
-	if (VERBOSE)
-		std::cout << "Chunk generation thread exiting.." << std::endl;
 }
 
 void	VoxelSystem::meshGenRoutine()
 {
 	VChunks	localPendingChunks;
 	
-	if (VERBOSE)
-		std::cout << "Mesh generation thread started" << std::endl;
 	while (42) {
 		if (this->quitting)
 			break ;
@@ -396,8 +453,6 @@ void	VoxelSystem::meshGenRoutine()
 		if (!this->updatingBuffers)
 			this->updatingBuffers = true;
 	}
-	if (VERBOSE)
-		std::cout << "Mesh generation thread exiting.." << std::endl;
 }
 /// ---
 

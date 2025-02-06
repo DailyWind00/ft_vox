@@ -252,9 +252,9 @@ uint8_t	VoxelSystem::isVoxelVisible(const size_t &x, const size_t &y, const size
 			visibleFaces |= 8;
 			pos.y = 0;
 		}
-		else if (size_t(pos.x) < y && !BLOCK_AT(data.second, pos.x, pos.y, pos.z))
+		else if (size_t(pos.y) < y && !BLOCK_AT(data.second, pos.x, pos.y, pos.z))
 			visibleFaces |= 4;
-		else if (size_t(pos.x) > y && !BLOCK_AT(data.second, pos.x, pos.y, pos.z))
+		else if (size_t(pos.y) > y && !BLOCK_AT(data.second, pos.x, pos.y, pos.z))
 			visibleFaces |= 8;
 
 		// z axis
@@ -266,9 +266,9 @@ uint8_t	VoxelSystem::isVoxelVisible(const size_t &x, const size_t &y, const size
 			visibleFaces |= 32;
 			pos.z = 0;
 		}
-		else if (size_t(pos.x) < z && !BLOCK_AT(data.second, pos.x, pos.y, pos.z))
+		else if (size_t(pos.z) < z && !BLOCK_AT(data.second, pos.x, pos.y, pos.z))
 			visibleFaces |= 16;
-		else if (size_t(pos.x) > z && !BLOCK_AT(data.second, pos.x, pos.y, pos.z))
+		else if (size_t(pos.z) > z && !BLOCK_AT(data.second, pos.x, pos.y, pos.z))
 			visibleFaces |= 32;
 
 		// Check if the neightbour chunk block the face

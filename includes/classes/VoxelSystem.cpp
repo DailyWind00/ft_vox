@@ -326,7 +326,7 @@ DrawCommand	VoxelSystem::genMesh(const ChunkData &chunk) {
 					data |= (x & 0x1F);       // 5 bits for x
 					data |= (y & 0x1F) << 5;  // 5 bits for y
 					data |= (z & 0x1F) << 10; // 5 bits for z
-					
+
 					vertices.push_back(data);
 					count++;
 				}
@@ -429,18 +429,18 @@ void	VoxelSystem::meshGenRoutine()
 
 		// Generate chunks meshes and creates their DrawCommands
 		size_t	count = 0;
-
 		if (this->VDrawCommandMutex.try_lock()) {
-		for (std::pair<glm::ivec3, AChunk *> chunk : localPendingChunks) {
-			DrawCommand	cmd = genMesh(chunk);
-			
-			if (!cmd.verticeCount)
-				continue ;
-			this->commands.push_back(cmd);
-			chunksInfos.push_back({{chunk.first.x, chunk.first.y, chunk.first.z, 0}});
-			count++;
-		}
-		this->VDrawCommandMutex.unlock();
+			for (std::pair<glm::ivec3, AChunk *> chunk : localPendingChunks) {
+				DrawCommand	cmd = genMesh(chunk);
+				if (!cmd.verticeCount)
+					continue ;
+
+				// TODO: update already generated chunks meshes next to the new one
+				this->commands.push_back(cmd);
+				chunksInfos.push_back({{chunk.first.x, chunk.first.y, chunk.first.z, 0}});
+				count++;
+			}
+			this->VDrawCommandMutex.unlock();
 		}
 		localPendingChunks.clear();
 
@@ -450,9 +450,8 @@ void	VoxelSystem::meshGenRoutine()
 			continue ;
 		}
 
-		// Update the "updatingBuffer" boolean to signal to the main thread that it can update openGL's buffers
-		if (!this->updatingBuffers)
-			this->updatingBuffers = true;
+		// Signal the main thread that it can update openGL's buffers
+		this->updatingBuffers = true;
 	}
 }
 /// ---

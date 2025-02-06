@@ -88,6 +88,7 @@ VoxelSystem::VoxelSystem(const uint64_t &seed) {
 	// 		for (int k = -(VERTICALE_RENDER_DISTANCE / 2); k < (VERTICALE_RENDER_DISTANCE / 2); k++)
 	// 		this->requestedChunks.push_back({i, k, j});
 	// }
+	this->requestedChunks.push_back({ 0, 0,  0});
 	this->requestedChunks.push_back({ 0, -5,  0});
 
 	this->requestedChunks.push_back({ 1, -5,  0});
@@ -227,7 +228,7 @@ uint8_t	VoxelSystem::isVoxelVisible(const size_t &x, const size_t &y, const size
 
 	// Check if the face is visible
 	// Also check if the neightbours are in the same chunk or in another one
-	for (glm::ivec3 pos : neightbours) {
+	for (glm::ivec3 &pos : neightbours) {
 		// x axis
 		if (pos.x < 0) {
 			visibleFaces |= 1;
@@ -237,6 +238,10 @@ uint8_t	VoxelSystem::isVoxelVisible(const size_t &x, const size_t &y, const size
 			visibleFaces |= 2;
 			pos.x = 0;
 		}
+		else if (size_t(pos.x) < x && !BLOCK_AT(data.second, pos.x, pos.y, pos.z))
+			visibleFaces |= 1;
+		else if (size_t(pos.x) > x && !BLOCK_AT(data.second, pos.x, pos.y, pos.z))
+			visibleFaces |= 2;
 
 		// y axis
 		if (pos.y < 0) {
@@ -247,6 +252,10 @@ uint8_t	VoxelSystem::isVoxelVisible(const size_t &x, const size_t &y, const size
 			visibleFaces |= 8;
 			pos.y = 0;
 		}
+		else if (size_t(pos.x) < y && !BLOCK_AT(data.second, pos.x, pos.y, pos.z))
+			visibleFaces |= 4;
+		else if (size_t(pos.x) > y && !BLOCK_AT(data.second, pos.x, pos.y, pos.z))
+			visibleFaces |= 8;
 
 		// z axis
 		if (pos.z < 0) {
@@ -257,13 +266,17 @@ uint8_t	VoxelSystem::isVoxelVisible(const size_t &x, const size_t &y, const size
 			visibleFaces |= 32;
 			pos.z = 0;
 		}
+		else if (size_t(pos.x) < z && !BLOCK_AT(data.second, pos.x, pos.y, pos.z))
+			visibleFaces |= 16;
+		else if (size_t(pos.x) > z && !BLOCK_AT(data.second, pos.x, pos.y, pos.z))
+			visibleFaces |= 32;
 
 		// Check if the neightbour chunk block the face
 		for (int i = 0; i < 6; i++) {
 			if (visibleFaces & (1 << i) && neightboursChunks[i] && BLOCK_AT(neightboursChunks[i], pos.x, pos.y, pos.z))
 				visibleFaces &= ~(1 << i); // Delete the face
 		}
-	} // TODO: add base behaviour in-chunk for the face, fix the neightboursChunks[i] check 
+	} // TODO: fix the neightboursChunks[i] check 
 
 	if (visibleFaces != 0) {
 		std::cout << "Visible faces : ";

@@ -1,7 +1,7 @@
 #pragma once
 /// Defines
 # define COLOR_HEADER_CXX
-# define HORIZONTALE_RENDER_DISTANCE 8
+# define HORIZONTALE_RENDER_DISTANCE 16
 # define VERTICALE_RENDER_DISTANCE 8
 # define CHUNK_SIZE 32
 # define DATA_TYPE uint32_t
@@ -23,20 +23,10 @@
 # include "color.h"
 # include "chunk.h"
 
-#ifndef __UTIL_GLM__
-#define __UTIL_GLM__
-namespace glm {
-	bool operator<(const ivec3& a,const ivec3& b);
-};
-#endif
 /// Global variables
 extern bool VERBOSE;
 
 // Data structure for CPU-side chunk data management
-//-typedef struct ChunkData {
-	//-AChunk	   *chunk;
-	//-glm::ivec3	worldPos;
-//-}	ChunkData;
 typedef std::pair<glm::ivec3, AChunk *>	ChunkData;
 typedef std::list<ChunkData> VChunks;
 
@@ -90,7 +80,7 @@ class	VoxelSystem {
 
 		// Indirect Buffer
 		GLuint			IB;
-		VDrawCommand		commands; // Stores the draw commands for each chunk
+		VDrawCommand	commands; // Stores the draw commands for each chunk
 		size_t			IBcapacity = 0;
 
 		// Shader Storage Buffer Object
@@ -108,7 +98,7 @@ class	VoxelSystem {
 		void		chunkGenRoutine();
 		void		meshGenRoutine();
 
-		DrawCommand 	genMesh(ChunkData data);	
+		DrawCommand genMesh(const ChunkData &data);	
 
 	public:
 		VoxelSystem(); // Random seed

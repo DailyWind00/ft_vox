@@ -58,6 +58,7 @@ VoxelSystem::VoxelSystem(const uint64_t &seed) {
 
 	glEnableVertexAttribArray(1);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
 	// Create the IB
 	glGenBuffers(1, &IB);
 	glBindBuffer(GL_DRAW_INDIRECT_BUFFER, IB);
@@ -125,7 +126,6 @@ void	VoxelSystem::updateIB() {
 		IBcapacity *= BUFFER_GROWTH_FACTOR;
 		glBufferData(GL_DRAW_INDIRECT_BUFFER, IBcapacity, nullptr, GL_DYNAMIC_DRAW);
 	}
-	std::cout << "updating" << std::endl;
 	glBufferSubData(GL_DRAW_INDIRECT_BUFFER, 0, commands.size() * sizeof(DrawCommand), commands.data());
 	glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
 }
@@ -238,7 +238,7 @@ uint8_t	VoxelSystem::isVoxelVisible(const size_t &x, const size_t &y, const size
 }
 
 // Create/update the mesh of the given chunk and store it in the VBO
-DrawCommand	VoxelSystem::genMesh(ChunkData data) {
+DrawCommand	VoxelSystem::genMesh(const ChunkData &chunk) {
 	std::vector<DATA_TYPE>	vertices;
 	int count = 0;
 
@@ -246,16 +246,15 @@ DrawCommand	VoxelSystem::genMesh(ChunkData data) {
 	for (size_t x = 0; x < CHUNK_SIZE; ++x) {
 		for (size_t y = 0; y < CHUNK_SIZE; ++y) {
 			for (size_t z = 0; z < CHUNK_SIZE; ++z) {
-				u_int8_t visibleFaces = isVoxelVisible(x, y, z, data);
+				u_int8_t visibleFaces = isVoxelVisible(x, y, z, chunk);
 
 				if (visibleFaces) {
 					DATA_TYPE data = 0;
 
 					// Bitmask :
-					// position = 15 bits (5 bits per axis)
-					// faces = 6 bits
+					// position = 15 bits (5 bits per 3D axis)
 					// uv = 7 bits
-					// length = 15 bits (5 bits per axis) (greedy meshing)
+					// length = 10 bits (5 bits per 2D axis) (greedy meshing)
 
 					// Encode position
 					data |= (x & 0x1F);       // 5 bits for x
@@ -283,7 +282,7 @@ DrawCommand	VoxelSystem::genMesh(ChunkData data) {
 	std::memcpy(reinterpret_cast<DATA_TYPE *>(VBOdata) + currentVertexOffset, vertices.data(), vertices.size() * sizeof(DATA_TYPE));
 	
 	DrawCommand	cmd = {
-		4,
+		4, // TRIANGLE_STRIP quad
 		(GLuint)count,
 		0,
 		(GLuint)currentVertexOffset

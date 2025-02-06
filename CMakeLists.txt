@@ -11,8 +11,6 @@ add_executable(ft_vox
 	srcs/events.cpp
 	srcs/utils.cpp
 
-	includes/glm-ext.cpp
-
 	# Framework includes
 	includes/classes/Shader.cpp
 	includes/classes/Window.cpp

@@ -3,6 +3,7 @@
 /// Defines
 # define COLOR_HEADER_CXX
 
+# define FOV 80.0f
 # define WINDOW_WIDTH  1920
 # define WINDOW_HEIGHT 1080
 # define CAMERA_SPEED  0.02f
@@ -47,3 +48,4 @@ void	printVerbose(const string &message);
 bool	isNum(const std::string &str);
 
 std::vector<std::string>	split(const std::string &str, const char &c);
+

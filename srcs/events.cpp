@@ -73,7 +73,6 @@ void	handleEvents(Window &window, Shader &shader)
 
 	glm::mat4 model = glm::mat4(1.0f);
 	glm::mat4 view = cameraHandler(window, shader);
-	glm::mat4 projection = glm::perspective(glm::radians(80.0f), 800.0f / 600.0f, 0.1f, 10000.0f);
-
+	glm::mat4 projection = glm::perspective(glm::radians(FOV), (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, 0.1f, 10000.0f);
 	shader.setUniform("transform", projection * view * model);
 }

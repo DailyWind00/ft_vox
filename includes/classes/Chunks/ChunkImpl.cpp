@@ -39,12 +39,12 @@ void	LayeredChunk::generate(const glm::ivec3 &pos)
 
 	for (int i = 0; i < CHUNK_WIDTH * CHUNK_WIDTH; i++) {
 		float	factor = 0;
-		float	amp = 128;
+		float	amp = 256;
 		
-		for (int j = 0; j < 4; j++) {
-			factor += Noise::perlin2D(glm::vec2{(pos.x + maxPos + (i % CHUNK_WIDTH)) / amp,
-					(pos.z + maxPos + ((float)i / CHUNK_WIDTH)) / amp}) * amp;
-			amp -= 32;
+		for (int j = 0; j < 16; j++) {
+			factor += Noise::perlin2D(glm::vec2{(pos.x + maxPos + (i % CHUNK_WIDTH)) / (amp * 3),
+					(pos.z + maxPos + ((float)i / CHUNK_WIDTH)) / (amp * 3)}) * (amp / 2);
+			amp -= 16;
 		}
 		factors[i] = factor;
 	}

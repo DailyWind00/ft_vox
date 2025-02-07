@@ -1,12 +1,12 @@
 #pragma once
-
 /// Defines
 # define COLOR_HEADER_CXX
-# define HORIZONTALE_RENDER_DISTANCE 10
-# define VERTICALE_RENDER_DISTANCE 8
+# define HORIZONTALE_RENDER_DISTANCE 32
+# define VERTICALE_RENDER_DISTANCE 12
 # define CHUNK_SIZE 32
 # define DATA_TYPE uint32_t
 # define BUFFER_GROWTH_FACTOR 1.5f
+# define GLM_ENABLE_EXPERIMENTAL
 
 /// System includes
 # include <iostream>
@@ -16,10 +16,12 @@
 # include <thread>
 # include <atomic>
 # include <type_traits>
+# include <unordered_map>
 
 /// Dependencies
 # include <glad/glad.h>
 # include <glfw/glfw3.h>
+# include "glm/gtx/hash.hpp" // Required for glm::ivec3 hash
 # include "Noise.hpp"
 # include "color.h"
 # include "chunk.h"
@@ -28,11 +30,8 @@
 extern bool VERBOSE;
 
 // Data structure for CPU-side chunk data management
-typedef struct ChunkData {
-	AChunk	   *chunk;
-	glm::ivec3	worldPos;
-}	ChunkData;
-typedef std::vector<ChunkData> VChunks;
+typedef std::pair<glm::ivec3, AChunk *>	ChunkData;
+typedef std::unordered_map<glm::ivec3, AChunk *>	ChunkMap;
 
 // Data structure for SSBO (Shader Storage Buffer Object)
 typedef struct SSBOData {
@@ -58,7 +57,7 @@ class	VoxelSystem {
 	//   - Batch all chunks in a single draw call
 	private:
 		GLuint			VAO;
-		VChunks			chunks;
+		ChunkMap		chunks;
 
 		// Multithreading related data
 		std::thread		meshGenThread;
@@ -67,11 +66,10 @@ class	VoxelSystem {
 		std::list<glm::ivec3>	requestedChunks;
 		std::mutex		requestedChunkMutex;
 		
-		std::list<ChunkData>	pendingChunks;
-		std::mutex		pendingChunkMutex;
+		ChunkMap	pendingChunks;
+		std::mutex	pendingChunkMutex;
 
 		std::atomic<bool>	updatingBuffers;
-		//-std::mutex		updatingBufferMutex;
 
 		std::mutex		VDrawCommandMutex;
 
@@ -85,7 +83,7 @@ class	VoxelSystem {
 
 		// Indirect Buffer
 		GLuint			IB;
-		VDrawCommand		commands; // Stores the draw commands for each chunk
+		VDrawCommand	commands; // Stores the draw commands for each chunk
 		size_t			IBcapacity = 0;
 
 		// Shader Storage Buffer Object
@@ -98,15 +96,12 @@ class	VoxelSystem {
 		void		updateIB();
 		void		updateSSBO();
 		void		reallocateVBO(size_t newSize);
-		bool		isVoxelVisible(const size_t &x, const size_t &y, const size_t &z, AChunk *data);
-
+		uint8_t		isVoxelVisible(const size_t &x, const size_t &y, const size_t &z, const ChunkData &data, AChunk *neightboursChunks[6]);
+	
 		void		chunkGenRoutine();
 		void		meshGenRoutine();
 
-		DrawCommand 	genMesh(AChunk *data);
-		void		createChunk(const glm::ivec3 &worldPos);
-		void		updateChunk(const glm::ivec3 &worldPos); // Broken
-		void		deleteChunk(const glm::ivec3 &worldPos);
+		std::vector<DrawCommand>	genMesh(const ChunkData &data);	
 
 	public:
 		VoxelSystem(); // Random seed

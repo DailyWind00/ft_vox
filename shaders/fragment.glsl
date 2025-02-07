@@ -1,16 +1,13 @@
 #version 460 core
 
-out vec4 ScreenColor;
+out vec4	ScreenColor;
 
-in vec3	fragPos;
+in float	randFactor;
+in vec3		fragPos;
+flat in uint	face;
 
-flat in int	id;
-
-float rand(vec2 co){
-    return fract(sin(dot(co, vec2(12.9898, 78.233))) * 43758.5453);
-}
-void	main() {
-	float	randFactor = rand(fragPos.xz) * rand(fragPos.yz) * rand(fragPos.xy);
-
-	ScreenColor= vec4(1.5 * vec3(randFactor) + ivec3(fragPos) * 0.01, 1.0);
+void	main()
+{
+	//-ScreenColor= vec4((face * 1.8) * (0.2 * vec3(randFactor)) + ivec3(fragPos) * 0.01, 1.0);
+	ScreenColor = vec4(vec3(0.3 * (face + 1) * (fragPos.y + 100) * 0.005), 1.0f);
 }

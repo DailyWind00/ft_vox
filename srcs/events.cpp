@@ -70,8 +70,8 @@ void	handleEvents(Window &window, ShaderHandler &shaders) {
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
 
-	static float time = 0;
-
+	static float time = 0; time += 0.1;
+	
 	glm::mat4 model      = glm::mat4(1.0f);
 	glm::mat4 view       = cameraHandler(window, shaders);
 	glm::mat4 projection = glm::perspective(glm::radians(FOV), (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, 0.1f, 10000.0f);
@@ -79,6 +79,4 @@ void	handleEvents(Window &window, ShaderHandler &shaders) {
 	shaders.setUniform((*shaders[0])->getID(), "time", time);
 	shaders.setUniform((*shaders[0])->getID(), "camera", projection * glm::mat4(glm::mat3(view))); // Get rid of the translation part
 	shaders.setUniform((*shaders[1])->getID(), "transform", projection * view * model);
-
-	time += 0.1;
 }

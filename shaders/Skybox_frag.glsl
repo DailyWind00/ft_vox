@@ -4,6 +4,7 @@ in vec3 TexCoords;
 out vec4 FragColor;
 
 uniform float time;
+uniform samplerCube cubemap;
 
 // Random function for dithering
 float rand(vec2 co) {

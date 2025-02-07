@@ -8,6 +8,6 @@ uniform mat4 camera;
 
 void main()
 {
-    TexCoords = normalize(aPos);
+    TexCoords = aPos;
     gl_Position = (camera * vec4(aPos, 1.0)).xyww; // Push skybox to far plane
 } 

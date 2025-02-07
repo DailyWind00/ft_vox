@@ -211,13 +211,14 @@ void	VoxelSystem::reallocateVBO(size_t newSize)
 
 // Check if the voxel at the given position is visible
 // Return a bitmask of the visible faces (6 bits : ZzYyXx)
-uint8_t	VoxelSystem::isVoxelVisible(const size_t &x, const size_t &y, const size_t &z, const ChunkData &data, AChunk *neightboursChunks[6]) {
+uint8_t	VoxelSystem::isVoxelVisible(const size_t &x, const size_t &y, const size_t &z, const ChunkData &data, AChunk *neightboursChunks[6])
+{
+	// check if the voxel is solid
 	if (!BLOCK_AT(data.second, x, y, z))
 		return (0);
 
-	uint8_t	visibleFaces = 0;
-
-	glm::ivec3	neightbours[6] = { // I don't know wtf happened here
+	// define neightbouring blocks positions
+	glm::ivec3	neightbours[6] = {
 		{x - 1, y, z},
 		{x + 1, y, z},
 		{x, y - 1, z},
@@ -228,6 +229,8 @@ uint8_t	VoxelSystem::isVoxelVisible(const size_t &x, const size_t &y, const size
 
 	// Check if the face is visible
 	// Also check if the neightbours are in the same chunk or in another one
+	uint8_t	visibleFaces = 0;
+
 	for (const glm::ivec3 &pos : neightbours) {
 		/// X axis
 		// Border
@@ -285,12 +288,9 @@ uint8_t	VoxelSystem::isVoxelVisible(const size_t &x, const size_t &y, const size
 
 // Create/update the mesh of the given chunk and store it in the VBO
 DrawCommand	VoxelSystem::genMesh(const ChunkData &chunk) {
-	std::vector<DATA_TYPE>	vertices;
-	int count = 0;
 
-	AChunk	*neightboursChunks[6] = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
-
-	glm::ivec3	neightbours[6] = { // I don't know wtf happened here
+	// define neightbouring chunks positions
+	glm::ivec3	neightbours[6] = { 
 		{chunk.first.x - 1, chunk.first.y, chunk.first.z},
 		{chunk.first.x + 1, chunk.first.y, chunk.first.z},
 		{chunk.first.x, chunk.first.y - 1, chunk.first.z},
@@ -299,12 +299,17 @@ DrawCommand	VoxelSystem::genMesh(const ChunkData &chunk) {
 		{chunk.first.x, chunk.first.y, chunk.first.z + 1}
 	};
 
+	// search in the global chunk hash map for neightbouring chunks
+	AChunk	*neightboursChunks[6] = {NULL};
+	
 	for (size_t i = 0; i < 6; i++) {
 		if (chunks.find(neightbours[i]) != chunks.end())
 			neightboursChunks[i] = chunks[neightbours[i]];
 	}
 
 	// Generate vertices for visible faces
+	std::vector<DATA_TYPE>	vertices;
+	
 	for (size_t x = 0; x < CHUNK_SIZE; ++x) {
 		for (size_t y = 0; y < CHUNK_SIZE; ++y) {
 			for (size_t z = 0; z < CHUNK_SIZE; ++z) {
@@ -324,7 +329,6 @@ DrawCommand	VoxelSystem::genMesh(const ChunkData &chunk) {
 					data |= (z & 0x1F) << 10; // 5 bits for z
 
 					vertices.push_back(data);
-					count++;
 				}
 			}
 		}
@@ -334,6 +338,8 @@ DrawCommand	VoxelSystem::genMesh(const ChunkData &chunk) {
 
 	// Update the persistent mapped buffer
 	size_t dataSize = vertices.size() * sizeof(DATA_TYPE);
+
+	// -- does not works for now --
 	while ((currentVertexOffset + dataSize + 1) >= VBOcapacity) {
 		reallocateVBO(VBOcapacity * 2);
 		std::cout << "re-allocating VBO\n";
@@ -343,7 +349,7 @@ DrawCommand	VoxelSystem::genMesh(const ChunkData &chunk) {
 	
 	DrawCommand	cmd = {
 		4, // TRIANGLE_STRIP quad
-		(GLuint)count,
+		(GLuint)vertices.size(),
 		0,
 		(GLuint)currentVertexOffset
 	};
@@ -366,7 +372,7 @@ void	VoxelSystem::chunkGenRoutine()
 		if (this->requestedChunks.size()) {
 			this->requestedChunkMutex.lock();
 			for (glm::ivec3 rc : this->requestedChunks) {
-				if (chunkBatchLimit == 8)
+				if (chunkBatchLimit == 16000)
 					break ;
 				localReqChunks.push_back(rc);
 				chunkBatchLimit++;

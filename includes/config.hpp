@@ -23,6 +23,7 @@
 # include "FlagHandler.hpp"
 # include "Profiler.hpp"
 # include "VoxelSystem.hpp"
+# include "SkyBox.hpp"
 # include "color.h"
 
 /// Global variables
@@ -38,7 +39,7 @@ void	Rendering(Window &window);
 
 // events.cpp
 
-void	handleEvents(Window &window, Shader &shader);
+void	handleEvents(Window &window, ShaderHandler &shaders);
 
 
 // utils.cpp

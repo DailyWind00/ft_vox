@@ -125,9 +125,6 @@ GLuint Shader::make_shader() {
 // Set this shader as the current shader
 void Shader::use() {
 	glUseProgram(shaderID);
-
-	if (VERBOSE)
-		std::cout << "Shader " << shaderID << " in use\n";
 }
 
 // Recompile the shader
@@ -222,6 +219,9 @@ ShaderHandler::~ShaderHandler() {
 
 // Use the shader given with the shaderID,
 void ShaderHandler::use(GLuint shaderID) {
+	if (currentShaderID == shaderID)
+		return;
+
 	for (Shader *shader : shaders) {
 		if (shader->getID() == shaderID) {
 			shader->use();
@@ -229,6 +229,15 @@ void ShaderHandler::use(GLuint shaderID) {
 			return;
 		}
 	}
+}
+
+// Use the shader given with the shader iterator
+void ShaderHandler::use(VShaders::const_iterator shader) {
+	if (currentShaderID == (*shader)->getID())
+		return;
+
+	(*shader)->use();
+	currentShaderID = (*shader)->getID();
 }
 
 // Recompile the shader given with the shaderID
@@ -333,37 +342,51 @@ GLuint	ShaderHandler::setPreviousShader() {
 
 // Set a boolean uniform
 void ShaderHandler::setUniform(const GLuint &shaderID, const std::string &name, bool value) {
+	glUseProgram(shaderID);
 	glUniform1i(glGetUniformLocation(shaderID, name.c_str()), (int)value);
+	glUseProgram(currentShaderID);
 }
 
 // Set an integer uniform
 void ShaderHandler::setUniform(const GLuint &shaderID, const std::string &name, int value) {
+	glUseProgram(shaderID);
 	glUniform1i(glGetUniformLocation(shaderID, name.c_str()), value);
+	glUseProgram(currentShaderID);
 }
 
 // Set a float uniform
 void ShaderHandler::setUniform(const GLuint &shaderID, const std::string &name, float value) {
+	glUseProgram(shaderID);
 	glUniform1f(glGetUniformLocation(shaderID, name.c_str()), value);
+	glUseProgram(currentShaderID);
 }
 
 // Set a vec2 uniform
 void ShaderHandler::setUniform(const GLuint &shaderID, const std::string &name, glm::vec2 value) {
+	glUseProgram(shaderID);
 	glUniform2f(glGetUniformLocation(shaderID, name.c_str()), value[0], value[1]);
+	glUseProgram(currentShaderID);
 }
 
 // Set a vec3 uniform
 void ShaderHandler::setUniform(const GLuint &shaderID, const std::string &name, glm::vec3 value) {
+	glUseProgram(shaderID);
 	glUniform3f(glGetUniformLocation(shaderID, name.c_str()), value[0], value[1], value[2]);
+	glUseProgram(currentShaderID);
 }
 
 // Set a vec4 uniform
 void ShaderHandler::setUniform(const GLuint &shaderID, const std::string &name, glm::vec4 value) {
+	glUseProgram(shaderID);
 	glUniform4f(glGetUniformLocation(shaderID, name.c_str()), value[0], value[1], value[2], value[3]);
+	glUseProgram(currentShaderID);
 }
 
 // Set a mat4 uniform
 void ShaderHandler::setUniform(const GLuint &shaderID, const std::string &name, glm::mat4 value) {
+	glUseProgram(shaderID);
 	glUniformMatrix4fv(glGetUniformLocation(shaderID, name.c_str()), 1, GL_FALSE, glm::value_ptr(value));
+	glUseProgram(currentShaderID);
 }
 /// ---
 

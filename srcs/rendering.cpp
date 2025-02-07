@@ -1,9 +1,14 @@
 #include "config.hpp"
 
 // Keep the window alive, exiting this function should mean closing the window
-static void program_loop(Window &window, VoxelSystem &voxelSystem, Shader &shader) {
+static void program_loop(Window &window, VoxelSystem &voxelSystem, SkyBox &skybox, ShaderHandler &shaders) {
+	shaders.use(shaders[0]); // Use the Skybox shader
+	skybox.draw();
+
+	shaders.use(shaders[1]); // Use the Voxel shader
 	voxelSystem.draw();
-	handleEvents(window, shader);
+
+	handleEvents(window, shaders);
 	window.setTitle("ft_vox | FPS: " + std::to_string(window.getFPS()) + " | FrameTime: " + std::to_string(window.getFrameTime()) + "ms");
 }
 
@@ -19,12 +24,11 @@ void	Rendering(Window &window)
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-	VoxelSystem	voxelSystem(1234);
-	Shader	shader(
-		"shaders/vertex.glsl",
-		"shaders/fragment.glsl"
-	);
-	shader.use();
+	VoxelSystem		voxelSystem(1234);
+	SkyBox			skybox;
+	ShaderHandler	shaders; // Skybox -> Voxels -> UI
+	shaders.add_shader("shaders/Skybox_vert.glsl", "shaders/Skybox_frag.glsl"); // Used by default
+	shaders.add_shader("shaders/Voxel_vert.glsl", "shaders/Voxel_frag.glsl");
 
-	window.mainLoop(program_loop, window, voxelSystem, shader);
+	window.mainLoop(program_loop, window, voxelSystem, skybox, shaders);
 }

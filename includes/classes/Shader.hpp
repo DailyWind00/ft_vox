@@ -77,6 +77,7 @@ class ShaderHandler {
         /// public functions
 
         void    use(GLuint shaderID);
+		void	use(VShaders::const_iterator shader);
         GLuint  recompile(GLuint shaderID);
         GLuint  add_shader(const std::string &vertexPath, const std::string &fragmentPath);
 		GLuint	add_shader(const std::string &vertexPath, const std::string &fragmentPath, const std::string &geometryPath);

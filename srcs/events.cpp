@@ -1,8 +1,8 @@
 #include "config.hpp"
 
 // Handle the camera movements/interactions
-static glm::mat4 cameraHandler(Window &window, Shader &shader) {
-	static glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, -10.0f);
+static glm::mat4 cameraHandler(Window &window, ShaderHandler &shaders) {
+	static glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 0.0f);
 	static glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, 1.0f);
 	static glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 	static glm::vec3 cameraRight = glm::normalize(glm::cross(cameraFront, cameraUp));
@@ -60,19 +60,20 @@ static glm::mat4 cameraHandler(Window &window, Shader &shader) {
 	
 	glfwSetCursorPos(window, (float)WINDOW_WIDTH / 2, (float)WINDOW_HEIGHT / 2);
 
-	shader.setUniform("camPos", cameraPos);
+	shaders.setUniform((*shaders[1])->getID(), "camPos", cameraPos);
 
 	return glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 }
 
 // Handle all keyboard & other events
-void	handleEvents(Window &window, Shader &shader)
-{
+void	handleEvents(Window &window, ShaderHandler &shaders) {
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
 
 	glm::mat4 model = glm::mat4(1.0f);
-	glm::mat4 view = cameraHandler(window, shader);
+	glm::mat4 view = cameraHandler(window, shaders);
 	glm::mat4 projection = glm::perspective(glm::radians(FOV), (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, 0.1f, 10000.0f);
-	shader.setUniform("transform", projection * view * model);
+
+	shaders.setUniform((*shaders[0])->getID(), "camera", projection * glm::mat4(glm::mat3(view))); // Get rid of the translation part
+	shaders.setUniform((*shaders[1])->getID(), "transform", projection * view * model);
 }

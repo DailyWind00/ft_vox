@@ -14,6 +14,7 @@ uniform mat4	transform;
 
 out vec3	fragPos;
 out float	randFactor;
+flat out uint	face;
 
 float rand(vec2 co)
 {
@@ -34,5 +35,28 @@ void main()
 
 	randFactor = rand(fragPos.xz) * rand(fragPos.yz) * rand(fragPos.xy);
 
-	gl_Position = transform * vec4((quad + ivec3(position) + worldOffset), 1.0f);
+	face = meshData[gl_DrawID].data.w;
+	vec3	fQuad;
+
+	if (face == 1)
+		fQuad = quad.yzx;
+	else if (face == 0) {
+		fQuad = quad.yxz;
+		fQuad.x = 0;
+	}
+	
+	if (face == 3)
+		fQuad = quad;
+	else if (face == 2) {
+		fQuad = quad;
+		fQuad.y = 0;
+	}
+
+	if (face == 5)
+		fQuad = quad.zxy;
+	else if (face == 4) {
+		fQuad = quad.xzy;
+		fQuad.z = 0;
+	}
+	gl_Position = transform * vec4((fQuad + ivec3(position) + worldOffset), 1.0f);
 }

@@ -36,6 +36,8 @@ Window::Window(int posX, int posY, int width, int height, const std::string &tit
 
 	if (VERBOSE)
 		std::cout << "Window created" << std::endl;
+
+	glEnable(GL_CULL_FACE);
 }
 
 Window::~Window() {

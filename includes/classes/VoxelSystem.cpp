@@ -63,7 +63,7 @@ VoxelSystem::VoxelSystem(const uint64_t &seed) {
 	glGenBuffers(1, &IB);
 	glBindBuffer(GL_DRAW_INDIRECT_BUFFER, IB);
 
-	IBcapacity = VERTICALE_RENDER_DISTANCE * HORIZONTALE_RENDER_DISTANCE * HORIZONTALE_RENDER_DISTANCE * sizeof(DrawCommand);
+	IBcapacity = VERTICALE_RENDER_DISTANCE * HORIZONTALE_RENDER_DISTANCE * HORIZONTALE_RENDER_DISTANCE * 6 * sizeof(DrawCommand);
 	glBufferData(GL_DRAW_INDIRECT_BUFFER, IBcapacity, nullptr, GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
 
@@ -88,16 +88,6 @@ VoxelSystem::VoxelSystem(const uint64_t &seed) {
 			for (int k = -(VERTICALE_RENDER_DISTANCE / 2); k < (VERTICALE_RENDER_DISTANCE / 2); k++)
 			this->requestedChunks.push_back({i, k, j});
 	}
-	this->requestedChunks.push_back({ 0, 0,  0});
-	this->requestedChunks.push_back({ 0, -5,  0});
-
-	this->requestedChunks.push_back({ 1, -5,  0});
-	this->requestedChunks.push_back({-1, -5,  0});
-	this->requestedChunks.push_back({ 0, -4,  0});
-	this->requestedChunks.push_back({ 0, -6,  0});
-	this->requestedChunks.push_back({ 0, -5,  1});
-	this->requestedChunks.push_back({ 0, -5, -1});
-
 	this->requestedChunkMutex.unlock();
 
 	if (VERBOSE)
@@ -235,60 +225,60 @@ uint8_t	VoxelSystem::isVoxelVisible(const size_t &x, const size_t &y, const size
 		/// X axis
 		// Border
 		if (pos.x < 0) {
-			if (!neightboursChunks[5] || !BLOCK_AT(neightboursChunks[5], CHUNK_SIZE - 1, pos.y, pos.z))
-				visibleFaces |= 1;
+			if (!neightboursChunks[4] || !BLOCK_AT(neightboursChunks[4], CHUNK_SIZE - 1, pos.y, pos.z))
+				visibleFaces |= (1 << 0);
 		}
 		else if (pos.x >= CHUNK_SIZE) {
-			if (!neightboursChunks[4] || !BLOCK_AT(neightboursChunks[4], 0, pos.y, pos.z))
-				visibleFaces |= 2;
+			if (!neightboursChunks[5] || !BLOCK_AT(neightboursChunks[5], 0, pos.y, pos.z))
+				visibleFaces |= (1 << 1);
 		}
 		// Inside
 		else if (size_t(pos.x) < x && !BLOCK_AT(data.second, pos.x, pos.y, pos.z))
-			visibleFaces |= 1;
+				visibleFaces |= (1 << 0);
 		else if (size_t(pos.x) > x && !BLOCK_AT(data.second, pos.x, pos.y, pos.z))
-			visibleFaces |= 2;
+				visibleFaces |= (1 << 1);
 
 
 		/// y axis
 		// Border
 		if (pos.y < 0) {
-			if (!neightboursChunks[3] || !BLOCK_AT(neightboursChunks[3], pos.x, CHUNK_SIZE - 1, pos.z))
-				visibleFaces |= 4;
+			if (!neightboursChunks[2] || !BLOCK_AT(neightboursChunks[2], pos.x, CHUNK_SIZE - 1, pos.z))
+				visibleFaces |= (1 << 2);
 		}
 		else if (pos.y >= CHUNK_SIZE) {
-			if (!neightboursChunks[2] || !BLOCK_AT(neightboursChunks[2], pos.x, 0, pos.z))
-				visibleFaces |= 8;
+			if (!neightboursChunks[3] || !BLOCK_AT(neightboursChunks[3], pos.x, 0, pos.z))
+				visibleFaces |= (1 << 3);
 		}
 		// Inside
 		else if (size_t(pos.y) < y && !BLOCK_AT(data.second, pos.x, pos.y, pos.z))
-			visibleFaces |= 4;
+				visibleFaces |= (1 << 2);
 		else if (size_t(pos.y) > y && !BLOCK_AT(data.second, pos.x, pos.y, pos.z))
-			visibleFaces |= 8;
+				visibleFaces |= (1 << 3);
 
 
 		/// z axis
 		// Border
 		if (pos.z < 0) {
-			if (!neightboursChunks[1] || !BLOCK_AT(neightboursChunks[1], pos.x, pos.y, CHUNK_SIZE - 1))
-				visibleFaces |= 16;
+			if (!neightboursChunks[0] || !BLOCK_AT(neightboursChunks[0], pos.x, pos.y, CHUNK_SIZE - 1))
+				visibleFaces |= (1 << 4);
 		}
 		else if (pos.z >= CHUNK_SIZE) {
-			if (!neightboursChunks[0] || !BLOCK_AT(neightboursChunks[0], pos.x, pos.y, 0))
-				visibleFaces |= 32;
+			if (!neightboursChunks[1] || !BLOCK_AT(neightboursChunks[1], pos.x, pos.y, 0))
+				visibleFaces |= (1 << 5);
 		}
 		// Inside
 		else if (size_t(pos.z) < z && !BLOCK_AT(data.second, pos.x, pos.y, pos.z))
-			visibleFaces |= 16;
+				visibleFaces |= (1 << 4);
 		else if (size_t(pos.z) > z && !BLOCK_AT(data.second, pos.x, pos.y, pos.z))
-			visibleFaces |= 32;
+				visibleFaces |= (1 << 5);
 	}	
 
 	return visibleFaces;
 }
 
 // Create/update the mesh of the given chunk and store it in the VBO
-DrawCommand	VoxelSystem::genMesh(const ChunkData &chunk) {
-
+std::vector<DrawCommand>	VoxelSystem::genMesh(const ChunkData &chunk)
+{
 	// define neightbouring chunks positions
 	glm::ivec3	neightbours[6] = { 
 		{chunk.first.x - 1, chunk.first.y, chunk.first.z},
@@ -308,12 +298,12 @@ DrawCommand	VoxelSystem::genMesh(const ChunkData &chunk) {
 	}
 
 	// Generate vertices for visible faces
-	std::vector<DATA_TYPE>	vertices;
+	std::vector<DATA_TYPE>	vertices[6];
 	
 	for (size_t x = 0; x < CHUNK_SIZE; ++x) {
 		for (size_t y = 0; y < CHUNK_SIZE; ++y) {
 			for (size_t z = 0; z < CHUNK_SIZE; ++z) {
-				u_int8_t visibleFaces = isVoxelVisible(x, y, z, chunk, neightboursChunks);
+				uint8_t visibleFaces = isVoxelVisible(x, y, z, chunk, neightboursChunks);
 
 				if (visibleFaces) {
 					DATA_TYPE data = 0;
@@ -328,33 +318,31 @@ DrawCommand	VoxelSystem::genMesh(const ChunkData &chunk) {
 					data |= (y & 0x1F) << 5;  // 5 bits for y
 					data |= (z & 0x1F) << 10; // 5 bits for z
 
-					vertices.push_back(data);
+					for (int i = 0; i < 6; i++) {
+						if (visibleFaces & (1 << i))
+							vertices[i].push_back(data);
+					}
 				}
 			}
 		}
 	}
-	if (vertices.empty())
-		return {0, 0, 0, 0};
 
-	// Update the persistent mapped buffer
-	size_t dataSize = vertices.size() * sizeof(DATA_TYPE);
+	// create a draw command for each face with data inside
+	std::vector<DrawCommand>	cmds(6, {0, 0, 0, 0});
 
-	// -- does not works for now --
-	while ((currentVertexOffset + dataSize + 1) >= VBOcapacity) {
-		reallocateVBO(VBOcapacity * 2);
-		std::cout << "re-allocating VBO\n";
+	for (int i = 0; i < 6; i++) {
+		size_t		dataSize = vertices[i].size() * sizeof(DATA_TYPE);
+		
+		if (vertices[i].size()) {
+			std::memcpy(reinterpret_cast<DATA_TYPE *>(VBOdata) + currentVertexOffset, vertices[i].data(), dataSize);
+			
+			cmds[i] = {4, (GLuint)vertices[i].size(), 0, (GLuint)currentVertexOffset};
+
+			currentVertexOffset += vertices[i].size();
+		}
 	}
 
-	std::memcpy(reinterpret_cast<DATA_TYPE *>(VBOdata) + currentVertexOffset, vertices.data(), vertices.size() * sizeof(DATA_TYPE));
-	
-	DrawCommand	cmd = {
-		4, // TRIANGLE_STRIP quad
-		(GLuint)vertices.size(),
-		0,
-		(GLuint)currentVertexOffset
-	};
-	currentVertexOffset += vertices.size();
-	return cmd;
+	return cmds;
 }
 
 void	VoxelSystem::chunkGenRoutine()
@@ -372,7 +360,7 @@ void	VoxelSystem::chunkGenRoutine()
 		if (this->requestedChunks.size()) {
 			this->requestedChunkMutex.lock();
 			for (glm::ivec3 rc : this->requestedChunks) {
-				if (chunkBatchLimit == 16000)
+				if (chunkBatchLimit == 100024)
 					break ;
 				localReqChunks.push_back(rc);
 				chunkBatchLimit++;
@@ -435,14 +423,19 @@ void	VoxelSystem::meshGenRoutine()
 		size_t	count = 0;
 		if (this->VDrawCommandMutex.try_lock()) {
 			for (std::pair<glm::ivec3, AChunk *> chunk : localPendingChunks) {
-				DrawCommand	cmd = genMesh(chunk);
-				if (!cmd.verticeCount)
-					continue ;
+				// store draw commands and meshData
+				std::vector<DrawCommand>	cmds = genMesh(chunk);
 
-				// TODO: update already generated chunks meshes next to the new one
-				this->commands.push_back(cmd);
-				chunksInfos.push_back({{chunk.first.x, chunk.first.y, chunk.first.z, 0}});
-				count++;
+				for (size_t i = 0; i < cmds.size(); i++) {
+					// TODO: update already generated chunks meshes next to the new one
+					
+					if (!cmds[i].verticeCount)
+						continue ;
+
+					this->commands.push_back(cmds[i]);
+					chunksInfos.push_back({{chunk.first.x, chunk.first.y, chunk.first.z, i}});
+					count++;
+				}
 			}
 			this->VDrawCommandMutex.unlock();
 		}

@@ -19,7 +19,7 @@ void	Rendering(Window &window)
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-	VoxelSystem	voxelSystem;
+	VoxelSystem	voxelSystem(1234);
 	Shader	shader(
 		"shaders/vertex.glsl",
 		"shaders/fragment.glsl"

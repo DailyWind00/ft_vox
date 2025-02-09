@@ -1,8 +1,8 @@
 #pragma once
 /// Defines
 # define COLOR_HEADER_CXX
-# define HORIZONTALE_RENDER_DISTANCE 16
-# define VERTICALE_RENDER_DISTANCE 8
+# define HORIZONTALE_RENDER_DISTANCE 32
+# define VERTICALE_RENDER_DISTANCE 16
 # define CHUNK_SIZE 32
 # define DATA_TYPE uint32_t
 # define BUFFER_GROWTH_FACTOR 1.5f
@@ -48,6 +48,13 @@ typedef struct {
 }	DrawCommand;
 typedef std::vector<DrawCommand>	VDrawCommand;
 
+typedef struct {
+	std::vector<DATA_TYPE>	vertices[6];
+	DrawCommand		cmd[6];
+	glm::ivec3		wPos;
+}	DrawCommandData;
+typedef std::list<DrawCommandData>	VDrawCommandData;
+
 // Core class for the voxel system
 // Create chunks and their meshes & manage their rendering
 class	VoxelSystem {
@@ -71,6 +78,7 @@ class	VoxelSystem {
 
 		std::atomic<bool>	updatingBuffers;
 
+		VDrawCommandData	cmdData;
 		std::mutex		VDrawCommandMutex;
 
 		bool			quitting;
@@ -82,9 +90,9 @@ class	VoxelSystem {
 		size_t		currentVertexOffset = 0;
 
 		// Indirect Buffer
-		GLuint			IB;
+		GLuint		IB;
 		VDrawCommand	commands; // Stores the draw commands for each chunk
-		size_t			IBcapacity = 0;
+		size_t		IBcapacity = 0;
 
 		// Shader Storage Buffer Object
 		GLuint		SSBO;
@@ -93,15 +101,16 @@ class	VoxelSystem {
 
 		/// Private functions
 
-		void		updateIB();
-		void		updateSSBO();
-		void		reallocateVBO(size_t newSize);
-		uint8_t		isVoxelVisible(const size_t &x, const size_t &y, const size_t &z, const ChunkData &data, AChunk *neightboursChunks[6]);
+		void	updateDrawCommands();
+		void	updateIB();
+		void	updateSSBO();
+		void	reallocateVBO(size_t newSize);
+		uint8_t	isVoxelVisible(const size_t &x, const size_t &y, const size_t &z, const ChunkData &data, AChunk *neightboursChunks[6]);
 	
-		void		chunkGenRoutine();
-		void		meshGenRoutine();
+		void	chunkGenRoutine();
+		void	meshGenRoutine();
 
-		std::vector<DrawCommand>	genMesh(const ChunkData &data);	
+		DrawCommandData	genMesh(const ChunkData &data);	
 
 	public:
 		VoxelSystem(); // Random seed

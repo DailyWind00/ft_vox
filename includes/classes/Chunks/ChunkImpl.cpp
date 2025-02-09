@@ -12,7 +12,7 @@ LayeredChunk::LayeredChunk(const uint8_t &id)
 	// Chunk Layer allocation
 	this->_layer = new AChunkLayer*[CHUNK_HEIGHT];
 	for (int i = 0; i < CHUNK_HEIGHT; i++)
-		this->_layer[i] = new ChunkLayer(id);
+		this->_layer[i] = new SingleBlockChunkLayer(id);
 }
 
 LayeredChunk::~LayeredChunk()
@@ -50,7 +50,10 @@ void	LayeredChunk::generate(const glm::ivec3 &pos)
 	}
 
 	// Populate the chunk according to the pre-computed perlin noise factors
-	// uint8_t	fstBlkPerLayer[CHUNK_HEIGHT] = {0};
+	uint8_t	fstBlkPerLayer[CHUNK_HEIGHT] = {0};
+
+	for (int i = pos.y; i < CHUNK_HEIGHT + pos.y; i++)
+		fstBlkPerLayer[i - pos.y] = (i < factors[0]);
 	
 	for (int i = pos.x; i < CHUNK_WIDTH + pos.x; i++) {
 		for (int j = pos.z; j < CHUNK_WIDTH + pos.z; j++) {
@@ -59,12 +62,9 @@ void	LayeredChunk::generate(const glm::ivec3 &pos)
 			for (int k = pos.y; k < CHUNK_HEIGHT + pos.y; k++) {
 				uint8_t	id = (k < factors[idx]);
 
-				//-if (id != fstBlkPerLayer[k - pos.y] && i != pos.x && j != pos.z
-						//-&& dynamic_cast<SingleBlockChunkLayer *>(this->_layer[k - pos.y]))
-					//-this->_layer[k - pos.y] = _blockToLayer(this->_layer[k - pos.y]);
+				if (id != fstBlkPerLayer[k - pos.y] && dynamic_cast<SingleBlockChunkLayer *>(this->_layer[k - pos.y]))
+					this->_layer[k - pos.y] = _blockToLayer(this->_layer[k - pos.y]);
 				(*this->_layer[k - pos.y])[idx] = id;
-				//-if (i == pos.x && j == pos.z)
-					//-fstBlkPerLayer[k - pos.y] = id;
 			}
 		}
 	}

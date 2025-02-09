@@ -86,7 +86,8 @@ VoxelSystem::VoxelSystem(const uint64_t &seed) {
 	for (int i = -(HORIZONTALE_RENDER_DISTANCE / 2); i < (HORIZONTALE_RENDER_DISTANCE / 2); i++) {
 		for (int j = -(HORIZONTALE_RENDER_DISTANCE / 2); j < (HORIZONTALE_RENDER_DISTANCE / 2); j++)
 			for (int k = -(VERTICALE_RENDER_DISTANCE / 2); k < (VERTICALE_RENDER_DISTANCE / 2); k++)
-			this->requestedChunks.push_back({i, k, j});
+				if (i != -3 && j != -3 && k != -3)
+					this->requestedChunks.push_back({i, k, j});
 	}
 	this->requestedChunkMutex.unlock();
 
@@ -118,6 +119,32 @@ VoxelSystem::~VoxelSystem() {
 
 
 /// Private functions
+
+void	VoxelSystem::updateDrawCommands()
+{
+	this->VDrawCommandMutex.lock();
+	
+	for (DrawCommandData cmds : cmdData) {
+		for (size_t i = 0; i < 6; i++) {
+			// TODO: update already generated chunks meshes next to the new one
+			size_t	dataSize = cmds.vertices[i].size() * sizeof(DATA_TYPE);	
+
+			if (!cmds.vertices[i].size())
+				continue ;
+			std::memcpy(reinterpret_cast<DATA_TYPE *>(VBOdata) + cmds.cmd[i].baseInstance, cmds.vertices[i].data(), dataSize);
+
+			std::cout << "sending " << cmds.cmd[i].verticeCount
+				<< " | " << cmds.cmd[i].instanceCount
+				<< " | " << cmds.cmd[i].offset
+				<< " | " << cmds.cmd[i].baseInstance << std::endl;
+
+			this->commands.push_back(cmds.cmd[i]);
+			chunksInfos.push_back({{cmds.wPos.x, cmds.wPos.y, cmds.wPos.z, i}});
+		}
+	}
+	cmdData.clear();
+	this->VDrawCommandMutex.unlock();
+}
 
 // Update the indirect buffer
 void	VoxelSystem::updateIB() {
@@ -277,7 +304,7 @@ uint8_t	VoxelSystem::isVoxelVisible(const size_t &x, const size_t &y, const size
 }
 
 // Create/update the mesh of the given chunk and store it in the VBO
-std::vector<DrawCommand>	VoxelSystem::genMesh(const ChunkData &chunk)
+DrawCommandData	VoxelSystem::genMesh(const ChunkData &chunk)
 {
 	// define neightbouring chunks positions
 	glm::ivec3	neightbours[6] = { 
@@ -301,6 +328,8 @@ std::vector<DrawCommand>	VoxelSystem::genMesh(const ChunkData &chunk)
 	std::vector<DATA_TYPE>	vertices[6];
 
 	for (size_t x = 0; x < CHUNK_SIZE; ++x) {
+		if (IS_CHUNK_COMPRESSED(chunk.second) && !BLOCK_AT(chunk.second, 0, 0, 0))
+			break ;
 		for (size_t y = 0; y < CHUNK_SIZE; ++y) {
 			uint32_t	rowBitMasks[6] = {0};
 
@@ -335,7 +364,9 @@ std::vector<DrawCommand>	VoxelSystem::genMesh(const ChunkData &chunk)
 					if (rowBitMasks[j] & (1 << i))
 						currLen.second++;
 				}
-				if ((currLen.first && currLen.second))
+				if (currLen.second == 32)
+					currLen.second = 31;
+				if (currLen.second)
 					lengths.push_back(currLen);
 
 				for (std::pair<uint8_t, uint8_t> l : lengths) {
@@ -355,21 +386,18 @@ std::vector<DrawCommand>	VoxelSystem::genMesh(const ChunkData &chunk)
 	}
 
 	// create a draw command for each face with data inside
-	std::vector<DrawCommand>	cmds(6, {0, 0, 0, 0});
-
+	DrawCommandData	datas;
+	
+	for (int i = 0; i < 6; i++)
+		datas.vertices[i] = vertices[i];
 	for (int i = 0; i < 6; i++) {
-		size_t		dataSize = vertices[i].size() * sizeof(DATA_TYPE);
-		
-		if (vertices[i].size()) {
-			std::memcpy(reinterpret_cast<DATA_TYPE *>(VBOdata) + currentVertexOffset, vertices[i].data(), dataSize);
-			
-			cmds[i] = {4, (GLuint)vertices[i].size(), 0, (GLuint)currentVertexOffset};
-
-			currentVertexOffset += vertices[i].size();
-		}
+		datas.cmd[i] = {4, (GLuint)vertices[i].size(), 0, (GLuint)currentVertexOffset};
+		currentVertexOffset += vertices[i].size();
 	}
+	datas.wPos = chunk.first;
 
-	return cmds;
+
+	return datas;
 }
 
 void	VoxelSystem::chunkGenRoutine()
@@ -452,18 +480,10 @@ void	VoxelSystem::meshGenRoutine()
 		if (this->VDrawCommandMutex.try_lock()) {
 			for (std::pair<glm::ivec3, AChunk *> chunk : localPendingChunks) {
 				// store draw commands and meshData
-				std::vector<DrawCommand>	cmds = genMesh(chunk);
+				DrawCommandData	datas = genMesh(chunk);
 
-				for (size_t i = 0; i < cmds.size(); i++) {
-					// TODO: update already generated chunks meshes next to the new one
-					
-					if (!cmds[i].verticeCount)
-						continue ;
-
-					this->commands.push_back(cmds[i]);
-					chunksInfos.push_back({{chunk.first.x, chunk.first.y, chunk.first.z, i}});
-					count++;
-				}
+				this->cmdData.push_back(datas);
+				count++;
 			}
 			this->VDrawCommandMutex.unlock();
 		}
@@ -488,6 +508,7 @@ void	VoxelSystem::meshGenRoutine()
 // Draw all chunks using batched rendering
 void	VoxelSystem::draw() {
 	if (this->updatingBuffers) {
+		this->updateDrawCommands();
 		this->updateIB();
 		this->updateSSBO();
 		this->updatingBuffers = false;

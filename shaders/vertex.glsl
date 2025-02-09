@@ -32,6 +32,8 @@ void main()
 	position.z = (blockData >> 10) & 0x1F;
 
 	len.x = (blockData >> 22) & 0x1F;
+	if (len.x == 31)
+		len.x = 32;
 
 	ivec3 worldOffset = meshData[gl_DrawID].data.zyx * 32;
 	fragPos = vec3(ivec3(position) + worldOffset);
@@ -56,7 +58,7 @@ void main()
 		fQuad.z *= len.x;
 	}
 	else if (face == 2) {
-		fQuad = quad;
+		fQuad = quad.zyx;
 		fQuad.z *= len.x;
 		fQuad.y = 0;
 	}

@@ -71,7 +71,7 @@ VoxelSystem::VoxelSystem(const uint64_t &seed) {
 	glGenBuffers(1, &SSBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, SSBO);
 
-	SSBOcapacity = VERTICALE_RENDER_DISTANCE * HORIZONTALE_RENDER_DISTANCE * HORIZONTALE_RENDER_DISTANCE * sizeof(SSBOData);
+	SSBOcapacity = VERTICALE_RENDER_DISTANCE * HORIZONTALE_RENDER_DISTANCE * HORIZONTALE_RENDER_DISTANCE * 6 * sizeof(SSBOData);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, SSBOcapacity, nullptr, GL_DYNAMIC_DRAW);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, SSBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
@@ -299,29 +299,56 @@ std::vector<DrawCommand>	VoxelSystem::genMesh(const ChunkData &chunk)
 
 	// Generate vertices for visible faces
 	std::vector<DATA_TYPE>	vertices[6];
-	
+
 	for (size_t x = 0; x < CHUNK_SIZE; ++x) {
 		for (size_t y = 0; y < CHUNK_SIZE; ++y) {
+			uint32_t	rowBitMasks[6] = {0};
+
 			for (size_t z = 0; z < CHUNK_SIZE; ++z) {
 				uint8_t visibleFaces = isVoxelVisible(x, y, z, chunk, neightboursChunks);
 
-				if (visibleFaces) {
+				for (int i = 0; i < 6; i++)
+					if (visibleFaces & (1 << i))
+						rowBitMasks[i] |= (1 << z);
+			}
+
+			// Bitmask :
+			// position = 15 bits (5 bits per 3D axis)
+			// uv = 7 bits
+			// length = 10 bits (5 bits per 2D axis) (greedy meshing)
+				
+
+			for (int j = 0; j < 6; j++) {
+				std::list<std::pair<uint8_t, uint8_t> >	lengths;
+				std::pair<uint8_t, uint8_t>		currLen;
+				
+				for (int i = 0; i < 32; i++) {
+
+					if (!i || !(rowBitMasks[j] & (1 << (i - 1))))
+						currLen.first = i;
+
+					if (!(rowBitMasks[j] & (1 << i)) && (rowBitMasks[j] & (1 << (i - 1)))) {
+						lengths.push_back(currLen);
+						currLen.second = 0;
+					}
+					
+					if (rowBitMasks[j] & (1 << i))
+						currLen.second++;
+				}
+				if ((currLen.first && currLen.second))
+					lengths.push_back(currLen);
+
+				for (std::pair<uint8_t, uint8_t> l : lengths) {
 					DATA_TYPE data = 0;
-
-					// Bitmask :
-					// position = 15 bits (5 bits per 3D axis)
-					// uv = 7 bits
-					// length = 10 bits (5 bits per 2D axis) (greedy meshing)
-
 					// Encode position
 					data |= (x & 0x1F);       // 5 bits for x
 					data |= (y & 0x1F) << 5;  // 5 bits for y
-					data |= (z & 0x1F) << 10; // 5 bits for z
+					data |= (l.first & 0x1F) << 10; // 5 bits for z
+			
+					// Encode face length
+					data |= (l.second & 0x1F) << 22; // 5 bits for length
 
-					for (int i = 0; i < 6; i++) {
-						if (visibleFaces & (1 << i))
-							vertices[i].push_back(data);
-					}
+					vertices[j].push_back(data);
 				}
 			}
 		}
@@ -421,6 +448,7 @@ void	VoxelSystem::meshGenRoutine()
 
 		// Generate chunks meshes and creates their DrawCommands
 		size_t	count = 0;
+
 		if (this->VDrawCommandMutex.try_lock()) {
 			for (std::pair<glm::ivec3, AChunk *> chunk : localPendingChunks) {
 				// store draw commands and meshData

@@ -116,7 +116,6 @@ VoxelSystem::~VoxelSystem() {
 /// ---
 
 
-
 /// Private functions
 
 void	VoxelSystem::updateDrawCommands()

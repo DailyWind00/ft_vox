@@ -13,7 +13,7 @@ AChunk	* ChunkHandler::createChunk(const glm::ivec3 &chunkPos)
 		chunkPos.z * CHUNK_WIDTH,
 	};
 
-	AChunk	* chunk = new LayeredChunk(0);
+	AChunk	* chunk = new LayeredChunk(1);
 	chunk->generate(wordPos);
 	
 	size_t	count = 0;

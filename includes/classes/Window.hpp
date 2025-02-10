@@ -23,7 +23,7 @@ class Window {
 
 		// Only used for the main loop
 		size_t		fps = 0;
-		size_t		frameTime = 0;
+		double		frameTime = 0;
 
 		/// Private functions
 
@@ -59,9 +59,10 @@ class Window {
 		/// Getters
 
 		GLFWwindow *getGLFWwindow() const;
-		operator GLFWwindow *() const;
+		operator	GLFWwindow *() const;
+
 		size_t	getFPS();
-		size_t	getFrameTime() const;
+		double	getFrameTime() const;
 
 		/// Setters
 

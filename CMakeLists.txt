@@ -14,10 +14,12 @@ add_executable(ft_vox
 	# Framework includes
 	includes/classes/Shader.cpp
 	includes/classes/Window.cpp
+	includes/classes/Camera.cpp
 	includes/classes/Profiler.cpp
 	includes/classes/Noise.cpp
 	includes/classes/FlagHandler.cpp
 	includes/classes/VoxelSystem.cpp
+	includes/classes/SkyBox.cpp
 	includes/classes/PMapBuffer.cpp
 	includes/classes/Chunks/AChunk.cpp
 	includes/classes/Chunks/ChunkImpl.cpp

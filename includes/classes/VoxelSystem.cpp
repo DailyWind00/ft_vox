@@ -112,6 +112,9 @@ VoxelSystem::~VoxelSystem() {
 	for (std::pair<glm::ivec3, AChunk *> chunk : chunks)
 		delete chunk.second;
 	chunks.clear();
+	
+	if (VERBOSE)
+		std::cout << "VoxelSystem destroyed\n";
 }
 /// ---
 
@@ -130,11 +133,6 @@ void	VoxelSystem::updateDrawCommands()
 			if (!cmds.vertices[i].size())
 				continue ;
 			std::memcpy(reinterpret_cast<DATA_TYPE *>(VBOdata) + cmds.cmd[i].baseInstance, cmds.vertices[i].data(), dataSize);
-
-			std::cout << "sending " << cmds.cmd[i].verticeCount
-				<< " | " << cmds.cmd[i].instanceCount
-				<< " | " << cmds.cmd[i].offset
-				<< " | " << cmds.cmd[i].baseInstance << std::endl;
 
 			this->commands.push_back(cmds.cmd[i]);
 			chunksInfos.push_back({{cmds.wPos.x, cmds.wPos.y, cmds.wPos.z, i}});
@@ -527,10 +525,8 @@ void	VoxelSystem::draw() {
 	glBindBuffer(GL_DRAW_INDIRECT_BUFFER, IB);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, SSBO);
 
-	//-if (VDrawCommandMutex.try_lock()) {
 	glMultiDrawArraysIndirect(GL_TRIANGLE_STRIP, nullptr, commands.size(), sizeof(DrawCommand));
-		//-VDrawCommandMutex.unlock();
-	//-}
+
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 	glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
 	glBindVertexArray(0);

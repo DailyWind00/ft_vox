@@ -1,7 +1,7 @@
 #pragma once
 /// Defines
 # define COLOR_HEADER_CXX
-# define HORIZONTALE_RENDER_DISTANCE 32
+# define HORIZONTALE_RENDER_DISTANCE 48
 # define VERTICALE_RENDER_DISTANCE 12
 # define CHUNK_SIZE 32
 # define DATA_TYPE uint32_t

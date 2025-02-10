@@ -23,6 +23,8 @@ float rand(vec2 co)
 
 void main()
 {
+	ivec3 worldOffset = meshData[gl_DrawID].data.zyx * 32;
+
 	// Decode blockData bitmask :
 	uvec3	position = uvec3(0);
 	uvec2	len = uvec2(0);
@@ -32,17 +34,18 @@ void main()
 	position.z = (blockData >> 10) & 0x1F;
 
 	len.x = (blockData >> 22) & 0x1F;
-	if (len.x == 31)
-		len.x = 32;
+	if (len.x == 31) len.x = 32;
 
-	ivec3 worldOffset = meshData[gl_DrawID].data.zyx * 32;
+	// Color modifiers for the fragment shader
 	fragPos = vec3(ivec3(position) + worldOffset);
-
 	randFactor = rand(fragPos.xz) * rand(fragPos.yz) * rand(fragPos.xy);
 
-	face = meshData[gl_DrawID].data.w;
+	// Create the final face mesh
 	vec3	fQuad;
 
+	face = meshData[gl_DrawID].data.w;
+	
+	// x axis
 	if (face == 1) {
 		fQuad = quad.yzx;
 		fQuad.z *= len.x;
@@ -53,6 +56,7 @@ void main()
 		fQuad.x = 0;
 	}
 	
+	// y axis
 	if (face == 3) {
 		fQuad = quad;
 		fQuad.z *= len.x;
@@ -63,6 +67,7 @@ void main()
 		fQuad.y = 0;
 	}
 
+	// z axis
 	if (face == 5) {
 		fQuad = quad.zxy;
 	}

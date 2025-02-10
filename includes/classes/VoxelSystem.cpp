@@ -86,8 +86,7 @@ VoxelSystem::VoxelSystem(const uint64_t &seed) {
 	for (int i = -(HORIZONTALE_RENDER_DISTANCE / 2); i < (HORIZONTALE_RENDER_DISTANCE / 2); i++) {
 		for (int j = -(HORIZONTALE_RENDER_DISTANCE / 2); j < (HORIZONTALE_RENDER_DISTANCE / 2); j++)
 			for (int k = -(VERTICALE_RENDER_DISTANCE / 2); k < (VERTICALE_RENDER_DISTANCE / 2); k++)
-				if (i != -3 && j != -3 && k != -3)
-					this->requestedChunks.push_back({i, k, j});
+				this->requestedChunks.push_back({i, k, j});
 	}
 	this->requestedChunkMutex.unlock();
 
@@ -356,7 +355,6 @@ DrawCommandData	VoxelSystem::genMesh(const ChunkData &chunk)
 				
 				// Create a list of the starts and ends of the faces in each rows
 				for (int i = 0; i < 32; i++) {
-
 					if (!i || !(rowBitMasks[j] & (1 << (i - 1))))
 						currLen.first = i;
 

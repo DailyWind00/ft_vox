@@ -328,29 +328,33 @@ DrawCommandData	VoxelSystem::genMesh(const ChunkData &chunk)
 	std::vector<DATA_TYPE>	vertices[6];
 
 	for (size_t x = 0; x < CHUNK_SIZE; ++x) {
+		// Check if there is any mesh needed in the chunk and skip if not
 		if (IS_CHUNK_COMPRESSED(chunk.second) && !BLOCK_AT(chunk.second, 0, 0, 0))
 			break ;
-		for (size_t y = 0; y < CHUNK_SIZE; ++y) {
-			uint32_t	rowBitMasks[6] = {0};
 
+		for (size_t y = 0; y < CHUNK_SIZE; ++y) {
+			// Check if there is any mesh needed in the layer and skip if not
+			if (IS_LAYER_COMPRESSED(chunk.second, y) && !BLOCK_AT(chunk.second, 0, y, 0))
+				continue ;
+
+			// Creat a bit mask per face direction
+			uint32_t	rowBitMasks[6] = {0};
+			
 			for (size_t z = 0; z < CHUNK_SIZE; ++z) {
 				uint8_t visibleFaces = isVoxelVisible(x, y, z, chunk, neightboursChunks);
 
-				for (int i = 0; i < 6; i++)
+				for (int i = 0; i < 6; i++) {
 					if (visibleFaces & (1 << i))
 						rowBitMasks[i] |= (1 << z);
+				}
 			}
 
-			// Bitmask :
-			// position = 15 bits (5 bits per 3D axis)
-			// uv = 7 bits
-			// length = 10 bits (5 bits per 2D axis) (greedy meshing)
-				
-
+			// create the meshes from the bit masks
 			for (int j = 0; j < 6; j++) {
 				std::list<std::pair<uint8_t, uint8_t> >	lengths;
 				std::pair<uint8_t, uint8_t>		currLen;
 				
+				// Create a list of the starts and ends of the faces in each rows
 				for (int i = 0; i < 32; i++) {
 
 					if (!i || !(rowBitMasks[j] & (1 << (i - 1))))
@@ -364,17 +368,27 @@ DrawCommandData	VoxelSystem::genMesh(const ChunkData &chunk)
 					if (rowBitMasks[j] & (1 << i))
 						currLen.second++;
 				}
+				// clamp the data to avoid overflow
 				if (currLen.second == 32)
 					currLen.second = 31;
+
+				// get the last value that has not been push in the list
 				if (currLen.second)
 					lengths.push_back(currLen);
 
+				// fill the vertices buffers
 				for (std::pair<uint8_t, uint8_t> l : lengths) {
+					// Bitmask :
+					// position = 15 bits (5 bits per 3D axis)
+					// uv = 7 bits
+					// length = 10 bits (5 bits per 2D axis) (greedy meshing)
+					
 					DATA_TYPE data = 0;
+					
 					// Encode position
-					data |= (x & 0x1F);       // 5 bits for x
-					data |= (y & 0x1F) << 5;  // 5 bits for y
-					data |= (l.first & 0x1F) << 10; // 5 bits for z
+					data |= (x & 0x1F);     	// 5 bits for x
+					data |= (y & 0x1F) << 5;	// 5 bits for y
+					data |= (l.first & 0x1F) << 10;	// 5 bits for z
 			
 					// Encode face length
 					data |= (l.second & 0x1F) << 22; // 5 bits for length
@@ -385,7 +399,7 @@ DrawCommandData	VoxelSystem::genMesh(const ChunkData &chunk)
 		}
 	}
 
-	// create a draw command for each face with data inside
+	// Create a draw command for each face with data inside
 	DrawCommandData	datas;
 	
 	for (int i = 0; i < 6; i++)
@@ -395,8 +409,6 @@ DrawCommandData	VoxelSystem::genMesh(const ChunkData &chunk)
 		currentVertexOffset += vertices[i].size();
 	}
 	datas.wPos = chunk.first;
-
-
 	return datas;
 }
 
@@ -415,7 +427,7 @@ void	VoxelSystem::chunkGenRoutine()
 		if (this->requestedChunks.size()) {
 			this->requestedChunkMutex.lock();
 			for (glm::ivec3 rc : this->requestedChunks) {
-				if (chunkBatchLimit == 100024)
+				if (chunkBatchLimit == 2048)
 					break ;
 				localReqChunks.push_back(rc);
 				chunkBatchLimit++;

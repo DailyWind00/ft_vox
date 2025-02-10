@@ -54,14 +54,19 @@ Window::~Window() {
 // Update the frame rate and the fps counters
 void	Window::updateFrameRate() {
 	static double	lastTime = glfwGetTime();
+	static double	lastFrame = glfwGetTime();
 	static size_t	frames = 0;
 
-	double currentTime = glfwGetTime();
 	frames++;
 
+	// Update the frame time
+	double currentTime = glfwGetTime();
+	this->frameTime = (currentTime - lastFrame) * 1000.0;
+	lastFrame = currentTime;
+
+	// Update the fps counter every second
 	if (currentTime - lastTime >= 1.0) {
 		this->fps = frames;
-		this->frameTime = 1000.0 / double(fps);
 		frames = 0;
 		lastTime = currentTime;
 	}
@@ -88,7 +93,7 @@ size_t	Window::getFPS() {
 }
 
 // Return the frameTime of the window
-size_t	Window::getFrameTime() const {
+double	Window::getFrameTime() const {
 	return frameTime;
 }
 /// ---

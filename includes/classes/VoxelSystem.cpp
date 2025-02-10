@@ -134,11 +134,6 @@ void	VoxelSystem::updateDrawCommands()
 				continue ;
 			std::memcpy(reinterpret_cast<DATA_TYPE *>(VBOdata) + cmds.cmd[i].baseInstance, cmds.vertices[i].data(), dataSize);
 
-			std::cout << "sending " << cmds.cmd[i].verticeCount
-				<< " | " << cmds.cmd[i].instanceCount
-				<< " | " << cmds.cmd[i].offset
-				<< " | " << cmds.cmd[i].baseInstance << std::endl;
-
 			this->commands.push_back(cmds.cmd[i]);
 			chunksInfos.push_back({{cmds.wPos.x, cmds.wPos.y, cmds.wPos.z, i}});
 		}

@@ -36,9 +36,6 @@ Window::Window(int posX, int posY, int width, int height, const std::string &tit
 
 	if (VERBOSE)
 		std::cout << "Window created" << std::endl;
-
-	glEnable(GL_CULL_FACE);
-	glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
 }
 
 Window::~Window() {

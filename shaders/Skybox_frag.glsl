@@ -7,7 +7,7 @@ uniform float time;
 
 // Constants
 const float PI = 3.14159265;
-const float dayDuration = 10.0; // Duration of a full day cycle in seconds
+const float dayDuration = 360.0; // Duration of a full day cycle in seconds
 
 // Function to generate pseudo-random noise based on fragment position
 float random(vec2 st) {

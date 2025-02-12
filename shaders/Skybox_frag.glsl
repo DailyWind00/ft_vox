@@ -16,14 +16,20 @@ float random(vec2 st) {
 
 // Function to compute the sun's brightness and color
 vec3 getSunColor(vec3 direction, vec3 sunPos) {
-    float sunIntensity = max(dot(direction, sunPos), 0.0);
-    return vec3(1.0, 0.9, 0.6) * pow(sunIntensity, 128.0);
+	vec3	sunColor = vec3(1.0, 0.9, 0.6);
+	float	dist = length(direction - sunPos) * 0.15;
+	float	glow = clamp(0.01 / dist, 0.0, 1.0);
+
+	return sunColor * glow;
 }
 
-// Function to compute the moon's brightness and color
+// Function to compute the moon's brightness and color (solid, constant)
 vec3 getMoonColor(vec3 direction, vec3 moonPos) {
-    float moonIntensity = max(dot(direction, moonPos), 0.0);
-    return vec3(0.8, 0.8, 1.0) * pow(moonIntensity, 64.0);
+	vec3	moonColor = vec3(1.0, 0.9, 0.6);
+	float	dist = length(direction - moonPos) * 0.5;
+	float	glow = clamp(0.01 / dist, 0.0, 1.0);
+
+	return moonColor * glow;
 }
 
 // Function to calculate the base sky color gradient
@@ -31,14 +37,14 @@ vec3 getSkyGradient(vec3 direction) {
 	vec3 horizonColor = vec3(0.1, 0.2, 0.5);   // Near the horizon (darker blue)
 	vec3 skyColor = vec3(0.8, 0.6, 0.9);       // Above the horizon (blue)
 	vec3 zenithColor = vec3(0.45, 0.75, 0.95); // Directly above (lighter blue)
-	
+
 	// Use smoother interpolation with double smoothstep for extra softness
 	float t = smoothstep(0.0, 1.0, direction.y * 0.5 + 0.5);
 	t = smoothstep(0.0, 1.0, t); // Apply smoothstep twice for a softer gradient
-	
+
 	// Mix between skyColor and zenithColor depending on the direction
 	vec3 mixedSkyColor = mix(skyColor, zenithColor, t);
-	
+
 	return mix(horizonColor, mixedSkyColor, t);
 }
 

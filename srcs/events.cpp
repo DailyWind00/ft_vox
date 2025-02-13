@@ -62,8 +62,15 @@ void	handleEvents(GameData &gameData) {
 
 	cameraMovement(window, camera);
 
+	float		dayDuration = 360;
+	float		angle = (time / dayDuration) * M_PI;
+	glm::vec3	sunPos = glm::normalize(glm::vec3(cosf(angle), sinf(angle), 0.0f));
+
 	glm::mat4 skyboxView = camera.getProjectionMatrix() * glm::mat4(glm::mat3(camera.getViewMatrix())); // Get rid of the translation part
 	shaders.setUniform((*shaders[0])->getID(), "time", time);
 	shaders.setUniform((*shaders[0])->getID(), "camera", skyboxView);
+	shaders.setUniform((*shaders[0])->getID(), "sunPos", sunPos);
+	shaders.setUniform((*shaders[1])->getID(), "time", time);
 	shaders.setUniform((*shaders[1])->getID(), "transform", camera);
+	shaders.setUniform((*shaders[1])->getID(), "sunPos", sunPos);
 }

@@ -3,7 +3,8 @@
 in vec3 fPos;
 out vec4 FragColor;
 
-uniform float time;
+uniform float	time;
+uniform vec3	sunPos;
 
 // Constants
 const float PI = 3.14159265;
@@ -96,7 +97,6 @@ vec3 getSkyGradient(vec3 direction, float sunHeight) {
 void main() {
 	// Variables
     float	angle = (time / dayDuration) * PI;
-    vec3	sunPos = normalize(vec3(cos(angle), sin(angle), 0.0f));
     vec3	moonPos = -sunPos;
     vec3	direction = normalize(fPos);
 

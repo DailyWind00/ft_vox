@@ -3,26 +3,39 @@
 // Handle the camera movements/interactions
 static void	cameraMovement(Window &window, Camera &camera) {
 	CameraInfo	cameraInfo = camera.getCameraInfo();
+
+	/// Movements
 	vec3	cameraFront = cameraInfo.lookAt - cameraInfo.position;
 	vec3	cameraRight = normalize(cross(cameraFront, cameraInfo.up));
+	cameraFront.y = 0; cameraRight.y = 0; // Remove the Y axis
+
+	vec3	move = vec3(0);
 
 	float camSpeed = (CAMERA_SPEED + (CAMERA_SPRINT_BOOST * (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS))) * window.getFrameTime();
 
+	if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+		move += cameraInfo.up;
+	if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+		move -= cameraInfo.up;
+
 	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-		cameraInfo.position += cameraFront * camSpeed;
+		move += cameraFront;
 	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-		cameraInfo.position -= cameraFront * camSpeed;
+		move -= cameraFront;
 
 	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-		cameraInfo.position -= cameraRight * camSpeed;
+		move -= cameraRight;
 	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-		cameraInfo.position += cameraRight * camSpeed;
+		move += cameraRight;
 
-	if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
-		cameraInfo.position += cameraInfo.up * camSpeed;
-	if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
-		cameraInfo.position -= cameraInfo.up * camSpeed;
+	// Diagonal movement fix
+	if (length(move) > 0)
+		move = normalize(move);
+	
+	cameraInfo.position += move * camSpeed;
+	/// ---
 
+	/// Mouse
 	double mouseX, mouseY;
 	glfwGetCursorPos(window, &mouseX, &mouseY);
 
@@ -42,10 +55,11 @@ static void	cameraMovement(Window &window, Camera &camera) {
 		sin(radians(angles.x)) * cos(radians(angles.y))
 	};
 
-	cameraInfo.lookAt = cameraInfo.position + normalize(cameraDir);
+	cameraInfo.lookAt = cameraInfo.position + cameraDir;
 
 	glfwSetCursorPos(window, (float)WINDOW_WIDTH / 2, (float)WINDOW_HEIGHT / 2);
-
+	/// ---
+	
 	camera.setCameraInfo(cameraInfo);
 }
 

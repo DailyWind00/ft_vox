@@ -82,12 +82,6 @@ class	VoxelSystem {
 		std::mutex		VDrawCommandMutex;
 
 		bool			quitting;
-
-		// Deferred Rendering Buffers
-		GLuint	gBuffer;
-		GLuint	gPosition;
-		GLuint	gNormal;
-		GLuint	gColor;
 		
 		// Vertex Buffer Object
 		GLuint		VBO;

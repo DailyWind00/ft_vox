@@ -1,8 +1,5 @@
 #pragma once
 
-/// Defines
-# define COLOR_HEADER_CXX
-
 /// System includes
 # include <iostream>
 # include <cstring>

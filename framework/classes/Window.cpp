@@ -192,7 +192,7 @@ VGLFWwindows::const_iterator	WindowsHandler::end() const {
 	return windows.cend();
 }
 
-// Return the index of the given window, or FAILURE if the window is not found
+// Return the index of the given window, or FAILURE (-1) if the window is not found
 int	WindowsHandler::getIndexOf(Window *window) const {
 	for (size_t i = 0; i < windows.size(); i++) {
 		if (windows[i] == window)

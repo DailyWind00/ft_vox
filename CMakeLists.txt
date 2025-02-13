@@ -5,22 +5,23 @@ cmake_policy(SET CMP0072 NEW)
 find_package(OpenGL REQUIRED)
 
 add_executable(ft_vox
-	# sources (UI)
+	# Sources (UI)
 	srcs/main.cpp
 	srcs/rendering.cpp
 	srcs/events.cpp
 	srcs/utils.cpp
 
-	# Framework includes
-	includes/classes/Shader.cpp
-	includes/classes/Window.cpp
-	includes/classes/Camera.cpp
-	includes/classes/Profiler.cpp
-	includes/classes/Noise.cpp
-	includes/classes/FlagHandler.cpp
+	# Framework
+	framework/classes/Shader.cpp
+	framework/classes/Window.cpp
+	framework/classes/Camera.cpp
+	framework/classes/Profiler.cpp
+	framework/classes/Noise.cpp
+	framework/classes/SkyBox.cpp
+	framework/classes/PMapBuffer.cpp
+
+	# Includes
 	includes/classes/VoxelSystem.cpp
-	includes/classes/SkyBox.cpp
-	includes/classes/PMapBuffer.cpp
 	includes/classes/Chunks/AChunk.cpp
 	includes/classes/Chunks/ChunkImpl.cpp
 	includes/classes/Chunks/ChunkHandler.cpp
@@ -34,6 +35,8 @@ add_executable(ft_vox
 
 target_include_directories(ft_vox PRIVATE
 	${CMAKE_SOURCE_DIR}/dependencies
+	${CMAKE_SOURCE_DIR}/framework
+	${CMAKE_SOURCE_DIR}/framework/classes
 	${CMAKE_SOURCE_DIR}/includes
 	${CMAKE_SOURCE_DIR}/includes/classes
 	${CMAKE_SOURCE_DIR}/includes/classes/Chunks

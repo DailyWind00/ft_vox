@@ -1,7 +1,5 @@
 # pragma once
 
-/// Defines
-
 /// System includes
 # include <cstdlib>
 

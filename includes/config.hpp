@@ -16,16 +16,17 @@
 # include <string.h>
 # include <sstream>
 
-/// Custom includes (*.hpp & *.tpp)
+/// Framework includes
 # include "Window.hpp"
 # include "Shader.hpp"
 # include "Noise.hpp"
-# include "FlagHandler.hpp"
 # include "Profiler.hpp"
-# include "VoxelSystem.hpp"
 # include "SkyBox.hpp"
 # include "Camera.hpp"
 # include "color.h"
+
+/// Custom includes (*.hpp & *.tpp)
+# include "VoxelSystem.hpp"
 
 /// Global variables
 using namespace std;

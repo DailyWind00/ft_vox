@@ -1,8 +1,8 @@
 #pragma once
 /// Defines
 # define COLOR_HEADER_CXX
-# define HORIZONTALE_RENDER_DISTANCE 8
-# define VERTICALE_RENDER_DISTANCE 8
+# define HORIZONTALE_RENDER_DISTANCE 32
+# define VERTICALE_RENDER_DISTANCE 12
 # define CHUNK_SIZE 32
 # define DATA_TYPE uint32_t
 # define BUFFER_GROWTH_FACTOR 1.5f
@@ -82,6 +82,12 @@ class	VoxelSystem {
 		std::mutex		VDrawCommandMutex;
 
 		bool			quitting;
+
+		// Deferred Rendering Buffers
+		GLuint	gBuffer;
+		GLuint	gPosition;
+		GLuint	gNormal;
+		GLuint	gColor;
 		
 		// Vertex Buffer Object
 		GLuint		VBO;

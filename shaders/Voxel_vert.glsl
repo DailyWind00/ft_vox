@@ -12,9 +12,19 @@ layout (std430, binding = 0) buffer SSBO {
 
 uniform mat4	transform;
 
+out vec3	Normal;
 out vec3	fragPos;
 out float	randFactor;
 flat out uint	face;
+
+vec3	Normals[] = {
+	vec3(-1, 0, 0),
+	vec3( 1, 0, 0),
+	vec3(0, -1, 0),
+	vec3(0,  1, 0),
+	vec3(0, 0, -1),
+	vec3(0, 0,  1)
+};
 
 float rand(vec2 co)
 {
@@ -75,6 +85,8 @@ void main()
 		fQuad = quad.xzy;
 		fQuad.z = 0;
 	}
+
+	Normal = Normals[meshData[gl_DrawID].data.w];
 
 	gl_Position = transform * vec4((fQuad + ivec3(position) + worldOffset), 1.0f);
 }

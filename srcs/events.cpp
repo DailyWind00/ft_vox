@@ -11,8 +11,6 @@ static void	cameraMovement(Window &window, Camera &camera) {
 
 	vec3	move = vec3(0);
 
-	float camSpeed = (CAMERA_SPEED + (CAMERA_SPRINT_BOOST * (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS))) * window.getFrameTime();
-
 	if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
 		move += cameraInfo.up;
 	if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
@@ -29,6 +27,8 @@ static void	cameraMovement(Window &window, Camera &camera) {
 		move += cameraRight;
 
 	if (length(move) > 0) {
+		const float &camSpeed = (CAMERA_SPEED + (CAMERA_SPRINT_BOOST * (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS))) * window.getFrameTime();
+
 		move = normalize(move);
 		cameraInfo.position += move * camSpeed;
 	}

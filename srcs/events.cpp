@@ -28,11 +28,10 @@ static void	cameraMovement(Window &window, Camera &camera) {
 	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
 		move += cameraRight;
 
-	// Diagonal movement fix
-	if (length(move) > 0)
+	if (length(move) > 0) {
 		move = normalize(move);
-	
-	cameraInfo.position += move * camSpeed;
+		cameraInfo.position += move * camSpeed;
+	}
 	/// ---
 
 	/// Mouse

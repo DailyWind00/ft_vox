@@ -30,6 +30,7 @@
 
 /// Global variables
 using namespace std;
+using namespace glm;
 
 typedef struct GameData {
 	Window			&window;

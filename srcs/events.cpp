@@ -3,8 +3,8 @@
 // Handle the camera movements/interactions
 static void	cameraMovement(Window &window, Camera &camera) {
 	CameraInfo	cameraInfo = camera.getCameraInfo();
-	glm::vec3	cameraFront = cameraInfo.lookAt - cameraInfo.position;
-	glm::vec3	cameraRight = glm::normalize(glm::cross(cameraFront, cameraInfo.up));
+	vec3	cameraFront = cameraInfo.lookAt - cameraInfo.position;
+	vec3	cameraRight = normalize(cross(cameraFront, cameraInfo.up));
 
 	float camSpeed = (CAMERA_SPEED + (CAMERA_SPRINT_BOOST * (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS))) * window.getFrameTime();
 
@@ -26,7 +26,7 @@ static void	cameraMovement(Window &window, Camera &camera) {
 	double mouseX, mouseY;
 	glfwGetCursorPos(window, &mouseX, &mouseY);
 
-	static glm::vec2	angles = glm::vec2(0, 0);
+	static vec2	angles = vec2(0, 0);
 
 	angles.x += (mouseX - ((float)WINDOW_WIDTH / 2)) * CAMERA_SENSITIVITY * window.getFrameTime();
 	angles.y -= (mouseY - ((float)WINDOW_HEIGHT / 2)) * CAMERA_SENSITIVITY * window.getFrameTime();
@@ -36,13 +36,13 @@ static void	cameraMovement(Window &window, Camera &camera) {
 	if (angles.y < -89)
 		angles.y = -89;
 
-	glm::vec3		cameraDir = glm::vec3{
-		cos(glm::radians(angles.x)) * cos(glm::radians(angles.y)),
-		sin(glm::radians(angles.y)),
-		sin(glm::radians(angles.x)) * cos(glm::radians(angles.y))
+	vec3		cameraDir = vec3{
+		cos(radians(angles.x)) * cos(radians(angles.y)),
+		sin(radians(angles.y)),
+		sin(radians(angles.x)) * cos(radians(angles.y))
 	};
 
-	cameraInfo.lookAt = cameraInfo.position + glm::normalize(cameraDir);
+	cameraInfo.lookAt = cameraInfo.position + normalize(cameraDir);
 
 	glfwSetCursorPos(window, (float)WINDOW_WIDTH / 2, (float)WINDOW_HEIGHT / 2);
 
@@ -64,9 +64,9 @@ void	handleEvents(GameData &gameData) {
 
 	float		dayDuration = 360;
 	float		angle = (time / dayDuration) * M_PI;
-	glm::vec3	sunPos = glm::normalize(glm::vec3(cosf(angle), sinf(angle), 0.0f));
+	vec3	sunPos = normalize(vec3(cosf(angle), sinf(angle), 0.0f));
 
-	glm::mat4 skyboxView = camera.getProjectionMatrix() * glm::mat4(glm::mat3(camera.getViewMatrix())); // Get rid of the translation part
+	mat4 skyboxView = camera.getProjectionMatrix() * mat4(mat3(camera.getViewMatrix())); // Get rid of the translation part
 	shaders.setUniform((*shaders[0])->getID(), "time", time);
 	shaders.setUniform((*shaders[0])->getID(), "camera", skyboxView);
 	shaders.setUniform((*shaders[0])->getID(), "sunPos", sunPos);

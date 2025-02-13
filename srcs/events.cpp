@@ -9,29 +9,21 @@ static void	cameraMovement(Window &window, Camera &camera) {
 	vec3	cameraRight = normalize(cross(cameraFront, cameraInfo.up));
 	cameraFront.y = 0; cameraRight.y = 0; // Remove the Y axis
 
-	vec3	move = vec3(0);
+	const float camSpeed = (CAMERA_SPEED + (CAMERA_SPRINT_BOOST * (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS))) * window.getFrameTime();
 
-	if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
-		move += cameraInfo.up;
-	if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
-		move -= cameraInfo.up;
+	vec3 move = vec3(0);
+	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) move += cameraFront;
+	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) move -= cameraFront;
+	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) move -= cameraRight;
+	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) move += cameraRight;
+	if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) move += cameraInfo.up;
+	if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) move -= cameraInfo.up;
 
-	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-		move += cameraFront;
-	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-		move -= cameraFront;
-
-	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-		move -= cameraRight;
-	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-		move += cameraRight;
-
-	if (length(move) > 0) {
-		const float &camSpeed = (CAMERA_SPEED + (CAMERA_SPRINT_BOOST * (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS))) * window.getFrameTime();
-
+	// Prevent diagonal movement from being too fast
+	if (length(move) > 1.0f)
 		move = normalize(move);
-		cameraInfo.position += move * camSpeed;
-	}
+
+	cameraInfo.position += move * camSpeed;
 	/// ---
 
 	/// Mouse
@@ -39,14 +31,9 @@ static void	cameraMovement(Window &window, Camera &camera) {
 	glfwGetCursorPos(window, &mouseX, &mouseY);
 
 	static vec2	angles = vec2(0, 0);
-
 	angles.x += (mouseX - ((float)WINDOW_WIDTH / 2)) * CAMERA_SENSITIVITY * window.getFrameTime();
 	angles.y -= (mouseY - ((float)WINDOW_HEIGHT / 2)) * CAMERA_SENSITIVITY * window.getFrameTime();
-
-	if (angles.y > 89)
-		angles.y = 89;
-	if (angles.y < -89)
-		angles.y = -89;
+	clamp(angles.y, -89.0f, 89.0f);
 
 	vec3		cameraDir = vec3{
 		cos(radians(angles.x)) * cos(radians(angles.y)),

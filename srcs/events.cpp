@@ -67,10 +67,20 @@ void	handleEvents(GameData &gameData) {
 	glm::vec3	sunPos = glm::normalize(glm::vec3(cosf(angle), sinf(angle), 0.0f));
 
 	glm::mat4 skyboxView = camera.getProjectionMatrix() * glm::mat4(glm::mat3(camera.getViewMatrix())); // Get rid of the translation part
+	
+	// Skybox Shader parameters
 	shaders.setUniform((*shaders[0])->getID(), "time", time);
 	shaders.setUniform((*shaders[0])->getID(), "camera", skyboxView);
 	shaders.setUniform((*shaders[0])->getID(), "sunPos", sunPos);
-	shaders.setUniform((*shaders[1])->getID(), "time", time);
+
+	// Geometrie Pass Shader parameters
 	shaders.setUniform((*shaders[1])->getID(), "transform", camera);
-	shaders.setUniform((*shaders[1])->getID(), "sunPos", sunPos);
+
+	// Lighting Pass Shader Parameters
+	shaders.setUniform((*shaders[2])->getID(), "time", time);
+	shaders.setUniform((*shaders[2])->getID(), "camera", skyboxView);
+	shaders.setUniform((*shaders[2])->getID(), "sunPos", sunPos);
+	shaders.setUniform((*shaders[2])->getID(), "gPosition", 0);
+	shaders.setUniform((*shaders[2])->getID(), "gNormal", 1);
+	shaders.setUniform((*shaders[2])->getID(), "gColor", 2);
 }

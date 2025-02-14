@@ -1,8 +1,8 @@
 #pragma once
 /// Defines
 # define COLOR_HEADER_CXX
-# define HORIZONTALE_RENDER_DISTANCE 32
-# define VERTICALE_RENDER_DISTANCE 12
+# define HORIZONTALE_RENDER_DISTANCE 16
+# define VERTICALE_RENDER_DISTANCE 8
 # define CHUNK_SIZE 32
 # define DATA_TYPE uint32_t
 # define BUFFER_GROWTH_FACTOR 1.5f
@@ -64,23 +64,19 @@ class	VoxelSystem {
 	//   - Batch all chunks in a single draw call
 	private:
 		GLuint			VAO;
+		GLuint			quadVAO;
 		ChunkMap		chunks;
 
 		// Multithreading related data
 		std::thread		meshGenThread;
 		std::thread		chunkGenThread;
-
 		std::list<glm::ivec3>	requestedChunks;
 		std::mutex		requestedChunkMutex;
-		
-		ChunkMap	pendingChunks;
-		std::mutex	pendingChunkMutex;
-
+		ChunkMap		pendingChunks;
+		std::mutex		pendingChunkMutex;
 		std::atomic<bool>	updatingBuffers;
-
 		VDrawCommandData	cmdData;
 		std::mutex		VDrawCommandMutex;
-
 		bool			quitting;
 
 		// Deferred Rendering Buffers
@@ -117,6 +113,9 @@ class	VoxelSystem {
 		void	meshGenRoutine();
 
 		DrawCommandData	genMesh(const ChunkData &data);	
+		
+		void	_lightingPass();
+		void	_geometriePass();
 
 	public:
 		VoxelSystem(); // Random seed
@@ -125,5 +124,5 @@ class	VoxelSystem {
 
 		/// Public functions
 
-		void	draw();
+		void	draw(class ShaderHandler &shaders);
 };

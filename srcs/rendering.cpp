@@ -7,11 +7,12 @@ static void program_loop(GameData &gameData) {
 	VoxelSystem		&voxelSystem = gameData.voxelSystem;
 	SkyBox			&skybox      = gameData.skybox;
 
+	// Deferred voxel rending pipeline
+	voxelSystem.draw(shaders);
+
+	// Skybox drawcall
 	shaders.use(shaders[0]); // Use the Skybox shader
 	skybox.draw();
-
-	shaders.use(shaders[1]); // Use the Voxel shader
-	voxelSystem.draw();
 
 	handleEvents(gameData);
 	window.setTitle("ft_vox | FPS: " + std::to_string(window.getFPS()) + " | FrameTime: " + std::to_string(window.getFrameTime()) + "ms");
@@ -39,7 +40,8 @@ void	Rendering(Window &window)
 	SkyBox			skybox;
 	ShaderHandler	shaders; // Skybox -> Voxels -> UI
 	shaders.add_shader("shaders/Skybox_vert.glsl", "shaders/Skybox_frag.glsl"); // Used by default
-	shaders.add_shader("shaders/Voxel_vert.glsl", "shaders/Voxel_frag.glsl");
+	shaders.add_shader("shaders/VoxelGeometrie_vert.glsl", "shaders/VoxelGeometrie_frag.glsl");
+	shaders.add_shader("shaders/VoxelLighting_vert.glsl", "shaders/VoxelLighting_frag.glsl");
 
 	GameData gameData = {
 		window,

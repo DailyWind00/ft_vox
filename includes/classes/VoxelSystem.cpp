@@ -1,7 +1,8 @@
 # include <unistd.h>
 # include <chrono>
 
-#include "VoxelSystem.hpp"
+# include "VoxelSystem.hpp"
+# include "config.hpp"
 
 //// VoxelSystem class
 /// Constructors & Destructors
@@ -77,6 +78,69 @@ VoxelSystem::VoxelSystem(const uint64_t &seed) {
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 	glBindVertexArray(0);
+
+	unsigned int	screenQuadVBO = 0;
+	float	screenQuadVert[] = {
+		-1, -1, 0, 0, 0,
+		-1,  1, 0, 0, 1,
+		 1, -1, 0, 1, 0,
+		 1,  1, 0, 1, 1
+	};
+	glGenVertexArrays(1, &this->quadVAO);
+	glBindVertexArray(this->quadVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, screenQuadVBO);
+	glGenBuffers(1, &screenQuadVBO);
+	glBindBuffer(GL_ARRAY_BUFFER, screenQuadVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(screenQuadVert), screenQuadVert, GL_STATIC_DRAW);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), nullptr);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)(3 * sizeof(float)));
+	glEnableVertexAttribArray(1);
+	glBindVertexArray(0);
+
+
+	// Generating the GBuffer
+	glGenFramebuffers(1, &this->gBuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, this->gBuffer);
+
+	// Position color buffer
+	glGenTextures(1, &this->gPosition);
+	glBindTexture(GL_TEXTURE_2D, this->gPosition);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGBA, GL_FLOAT, nullptr);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, this->gPosition, 0);
+
+	// Normal color buffer
+	glGenTextures(1, &gNormal);
+	glBindTexture(GL_TEXTURE_2D, this->gNormal);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, this->gNormal, 0);
+  
+	// Albedo color Buffer
+	glGenTextures(1, &this->gColor);
+	glBindTexture(GL_TEXTURE_2D, this->gColor);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, this->gColor, 0);
+
+	// Tell OpenGL which color attachments we'll use (of this framebuffer) for rendering 
+	unsigned int attachments[3] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1,  GL_COLOR_ATTACHMENT2 };
+	glDrawBuffers(3, attachments);
+
+	unsigned int rboDepth;
+	glGenRenderbuffers(1, &rboDepth);
+	glBindRenderbuffer(GL_RENDERBUFFER, rboDepth);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, WINDOW_WIDTH, WINDOW_HEIGHT);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rboDepth);
+	// finally check if framebuffer is complete
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+		std::cout << "Framebuffer not complete!" << std::endl;
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	// VoxelSystem threads initialization
 	this->meshGenThread = std::thread(&VoxelSystem::meshGenRoutine, this);
@@ -506,21 +570,15 @@ void	VoxelSystem::meshGenRoutine()
 		this->updatingBuffers = true;
 	}
 }
-/// ---
 
-
-
-/// Public functions
-
-// Draw all chunks using batched rendering
-void	VoxelSystem::draw() {
-	if (this->updatingBuffers) {
-		this->updateDrawCommands();
-		this->updateIB();
-		this->updateSSBO();
-		this->updatingBuffers = false;
-	}
-
+// fill-up the gBuffer for the DrawCall
+void	VoxelSystem::_geometriePass()
+{
+	// Binding the gBuffer
+	glBindFramebuffer(GL_FRAMEBUFFER, this->gBuffer);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	
+	// World DrawCall
 	glBindVertexArray(VAO);
 	glBindBuffer(GL_DRAW_INDIRECT_BUFFER, IB);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, SSBO);
@@ -530,6 +588,63 @@ void	VoxelSystem::draw() {
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 	glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
 	glBindVertexArray(0);
+	
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+// final DrawCall with lighting calculation
+void	VoxelSystem::_lightingPass()
+{
+	//-glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, this->gPosition);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, this->gNormal);
+        glActiveTexture(GL_TEXTURE2);
+        glBindTexture(GL_TEXTURE_2D, this->gColor);
+
+	glDisable(GL_CULL_FACE);
+	glBindVertexArray(this->quadVAO);
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	glBindVertexArray(0);
+	glEnable(GL_CULL_FACE);
+}
+/// ---
+
+
+
+/// Public functions
+
+
+// Draw all chunks using batched rendering
+void	VoxelSystem::draw(class ShaderHandler &shaders) {
+	if (this->updatingBuffers) {
+		this->updateDrawCommands();
+		this->updateIB();
+		this->updateSSBO();
+		this->updatingBuffers = false;
+	}
+
+	// clear the Depth and color buffer
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);	
+
+	// Geometrie Pass where the gBuffer is filled
+	shaders.use(shaders[1]);
+	this->_geometriePass();
+	
+	// Lighting Pass where all the lighting calculation and post-processing effects are done
+	shaders.use(shaders[2]);
+	this->_lightingPass();
+
+	// Copying the final depth buffer to the default internal framebuffer
+	glBindFramebuffer(GL_READ_FRAMEBUFFER, gBuffer);
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0); // write to default framebuffer
+        // blit to default framebuffer. Note that this may or may not work as the internal formats of both the FBO and default framebuffer have to match.
+        // the internal formats are implementation defined. This works on all of my systems, but if it doesn't on yours you'll likely have to write to the 		
+        // depth buffer in another shader stage (or somehow see to match the default framebuffer's internal format with the FBO's internal format).
+	glBlitFramebuffer(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 /// ---
 //// ----

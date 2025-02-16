@@ -486,7 +486,7 @@ void	VoxelSystem::chunkGenRoutine()
 		if (this->requestedChunks.size()) {
 			this->requestedChunkMutex.lock();
 			for (glm::ivec3 rc : this->requestedChunks) {
-				if (chunkBatchLimit == 2048)
+				if (chunkBatchLimit == 1024)
 					break ;
 				localReqChunks.push_back(rc);
 				chunkBatchLimit++;

@@ -64,7 +64,7 @@ void	handleEvents(GameData &gameData) {
 
 	float		dayDuration = 360;
 	float		angle = (time / dayDuration) * M_PI;
-	glm::vec3	sunPos = glm::normalize(glm::vec3(cosf(angle), sinf(angle), 0.0f));
+	glm::vec3	sunPos = glm::normalize(glm::vec3(cosf(angle), sinf(angle), 0));
 
 	glm::mat4 skyboxView = camera.getProjectionMatrix() * glm::mat4(glm::mat3(camera.getViewMatrix())); // Get rid of the translation part
 	

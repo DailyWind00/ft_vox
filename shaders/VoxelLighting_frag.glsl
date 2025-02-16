@@ -82,7 +82,7 @@ void	main()
 {
 	vec4	fragPos = texture(gPosition, uv);
 	vec4	Normal = texture(gNormal, uv);
-	vec3	Color = texture(gColor, uv).rgb * getSkyGradient(vec3(1.0f), sunPos.y);
+	vec3	Color = texture(gColor, uv).rgb * getSkyGradient(vec3(1.0), sunPos.y);
     	vec3	direction = normalize(fragPos.rgb);
 
 	vec3	ambColor = Color.rgb * 0.3;
@@ -94,6 +94,6 @@ void	main()
 
 	//-ScreenColor= vec4((face * 1.8) * (0.2 * vec3(randFactor)) + ivec3(fragPos) * 0.01, 1.0);
 	//-ScreenColor = vec4(vec3(0.3 * (face + 1) * (fragPos.y + 100) * 0.005), 1.0f);
-	//-ScreenColor = vec4(Normal.rgb, 1.0f);
+	//-ScreenColor = vec4(Color, 1.0f);
 	ScreenColor = vec4(diffColor + ambColor, 1.0f);
 }

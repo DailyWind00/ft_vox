@@ -84,6 +84,9 @@ class	VoxelSystem {
 		GLuint	gPosition;
 		GLuint	gNormal;
 		GLuint	gColor;
+
+		// Voxels Texture Atlas
+		GLuint	textures;
 		
 		// Vertex Buffer Object
 		GLuint		VBO;

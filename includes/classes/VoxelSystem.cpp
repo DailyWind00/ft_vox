@@ -29,16 +29,18 @@ VoxelSystem::VoxelSystem(const uint64_t &seed) {
 
 	unsigned int	quadVBO = 0;
 	float	quadVert[] = {
-		0, 1, 0,
-		0, 1, 1,
-		1, 1, 0,
-		1, 1, 1
+		0, 1, 0, 0, 0,
+		0, 1, 1, 0, 1,
+		1, 1, 0, 1, 0,
+		1, 1, 1, 1, 1
 	};
 	glGenBuffers(1, &quadVBO);
 	glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(quadVert), quadVert, GL_STATIC_DRAW);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), nullptr);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), nullptr);
 	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)(3 * sizeof(float)));
+	glEnableVertexAttribArray(2);
 
 	// Create and allocate the VBO with persistent mapping
 	glGenBuffers(1, &VBO);
@@ -141,6 +143,26 @@ VoxelSystem::VoxelSystem(const uint64_t &seed) {
 		std::cout << "Framebuffer not complete!" << std::endl;
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	// Load the texture Atlas
+	int	w, h, nChannels;
+	unsigned char	*atlasData = stbi_load("./assets/atlas.png", &w, &h, &nChannels, 0);
+
+	// Generate the Texture Buffer Object
+	glGenTextures(1, &this->textures);
+	glBindTexture(GL_TEXTURE_2D, this->textures);
+	
+	// Sets up the texture parameters
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, atlasData);
+	glGenerateMipmap(GL_TEXTURE_2D);
+
+	glBindTexture(GL_TEXTURE_2D, 0);
+	stbi_image_free(atlasData);
 
 	// VoxelSystem threads initialization
 	this->meshGenThread = std::thread(&VoxelSystem::meshGenRoutine, this);
@@ -448,6 +470,8 @@ DrawCommandData	VoxelSystem::genMesh(const ChunkData &chunk)
 					data |= (x & 0x1F);     	// 5 bits for x
 					data |= (y & 0x1F) << 5;	// 5 bits for y
 					data |= (l.first & 0x1F) << 10;	// 5 bits for z
+					
+					data |= (1 & 0x7F) << 15;	// 7 bits for block ID
 			
 					// Encode face length
 					data |= (l.second & 0x1F) << 22; // 5 bits for length
@@ -582,6 +606,7 @@ void	VoxelSystem::_geometriePass()
 	glBindVertexArray(VAO);
 	glBindBuffer(GL_DRAW_INDIRECT_BUFFER, IB);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, SSBO);
+        glBindTexture(GL_TEXTURE_2D, this->textures);
 
 	glMultiDrawArraysIndirect(GL_TRIANGLE_STRIP, nullptr, commands.size(), sizeof(DrawCommand));
 

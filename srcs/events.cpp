@@ -75,6 +75,7 @@ void	handleEvents(GameData &gameData) {
 
 	// Geometrie Pass Shader parameters
 	shaders.setUniform((*shaders[1])->getID(), "transform", camera);
+	shaders.setUniform((*shaders[1])->getID(), "time", time);
 
 	// Lighting Pass Shader Parameters
 	shaders.setUniform((*shaders[2])->getID(), "time", time);

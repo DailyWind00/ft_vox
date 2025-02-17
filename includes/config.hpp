@@ -32,12 +32,24 @@
 using namespace std;
 using namespace glm;
 
+typedef struct GeoFrameBuffers {
+	GLuint	gBuffer;
+	GLuint	gPosition;
+	GLuint	gNormal;
+	GLuint	gColor;
+}	GeoFrameBuffers;
+
+typedef struct {
+	GLuint		renderQuadVAO;
+}	RenderData;
+
 typedef struct GameData {
-	Window			&window;
+	Window		&window;
 	ShaderHandler	&shaders;
-	VoxelSystem		&voxelSystem;
-	SkyBox			&skybox;
-	Camera			&camera;
+	VoxelSystem	&voxelSystem;
+	SkyBox		&skybox;
+	Camera		&camera;
+	RenderData	&renderDatas;
 } GameData;
 
 extern bool VERBOSE;

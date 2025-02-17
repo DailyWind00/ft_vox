@@ -18,7 +18,7 @@ float random(vec2 st) {
 // Function to compute the sun's brightness and color
 vec3 getSunColor(vec3 direction, vec3 sunPos) {
 	vec3	sunColor = vec3(1.0, 0.9, 0.6);
-	float	dist = length(direction - sunPos) * 0.15;
+	float	dist = length(direction - sunPos * 0.99) * 0.15;
 	float	glow = clamp(0.01 / dist, 0.0, 1.0);
 
 	return sunColor * glow;

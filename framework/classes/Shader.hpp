@@ -4,13 +4,17 @@
 # define COLOR_HEADER_CXX
 
 /// System includes
-# include <string>
+# include <iostream>
+# include <algorithm>
+# include <sstream>
+# include <fstream>
 # include <vector>
 
 /// Dependencies
 # include <glad/glad.h>
 # include <glm/gtc/type_ptr.hpp>
 # include <glm/glm.hpp>
+# include "color.h"
 
 /// Global variables
 extern bool VERBOSE;

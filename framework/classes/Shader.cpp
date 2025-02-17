@@ -1,11 +1,4 @@
-/// Class independant system includes
-# include <iostream>
-# include <algorithm>
-# include <sstream>
-# include <fstream>
-
 # include "Shader.hpp"
-# include "color.h"
 
 //// Shader class
 /// Constructors & Destructors

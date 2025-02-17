@@ -1,7 +1,6 @@
 # pragma once
 
 /// Defines
-# define COLOR_HEADER_CXX
 # define FAILURE -1
 
 /// System includes

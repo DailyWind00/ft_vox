@@ -1,7 +1,5 @@
 # pragma once
 
-/// Defines
-
 /// System includes
 # include <stdint.h>
 # include <chrono>
@@ -9,7 +7,7 @@
 # include <map>
 # include <float.h>
 
-/// Dependencies
+/// Global variables
 
 typedef struct timeLog {
 	timeLog() : max(0), av(0), min(FLT_MAX) {};

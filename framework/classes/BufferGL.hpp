@@ -38,8 +38,8 @@ class BufferGL {
 
 		/// Getters
 
-		const GLuint	&getID() const;
-		const GLenum	&getType() const;
-		const size_t	&getCapacity() const;
+		const GLuint &	getID() const;
+		const GLenum &	getType() const;
+		const size_t &	getCapacity() const;
 		bool			isValid() const;
 };

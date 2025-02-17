@@ -13,7 +13,6 @@ BufferGL::BufferGL(GLenum type, GLenum usage, size_t size, const void *data)
     glBufferData(_type, size, data, _usage);
 }
 
-
 BufferGL::~BufferGL() {
 	if (_id)
 		glDeleteBuffers(1, &_id);
@@ -42,9 +41,9 @@ void	BufferGL::unbind() {
 
 // Update the buffer with the given data at a given offset (in bytes)
 void	BufferGL::updateData(const void *data, size_t size, size_t offset) {
-    if (!isValid())
-        throw std::runtime_error("BufferGL: Cannot update data on an uninitialized buffer.");
-		
+	if (!isValid())
+		throw std::runtime_error("BufferGL: Cannot update data on an uninitialized buffer.");
+
 	if (size + offset > _capacity)
 		throw std::out_of_range("BufferGL: Data overflow - Offset: " + std::to_string(offset) + 
 								", Size: " + std::to_string(size) + 

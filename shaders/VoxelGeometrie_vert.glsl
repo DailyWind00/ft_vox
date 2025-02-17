@@ -18,7 +18,7 @@ out vec2	uv;
 out vec3	Normal;
 out vec3	fragPos;
 out float	l;
-out float	texOffset;
+flat out uint	texID;
 flat out uint	face;
 
 vec3	Normals[] = {
@@ -47,7 +47,7 @@ void main()
 	position.y = (blockData >> 5)  & 0x1F;
 	position.z = (blockData >> 10) & 0x1F;
 
-	texOffset = ((blockData >> 15) & 0x7F) - 1.0;
+	texID = ((blockData >> 15) & 0x7F) - 1;
 
 	len.x = (blockData >> 22) & 0x1F;
 	if (len.x == 31) len.x = 32;

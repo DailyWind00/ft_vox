@@ -63,20 +63,23 @@ class	VoxelSystem {
 	//   - Load/update/delete chunks efficiently
 	//   - Batch all chunks in a single draw call
 	private:
-		GLuint			VAO;
-		GLuint			quadVAO;
-		ChunkMap		chunks;
+		GLuint		VAO;
+		ChunkMap	chunks;
 
 		// Multithreading related data
 		std::thread		meshGenThread;
 		std::thread		chunkGenThread;
+
 		std::list<glm::ivec3>	requestedChunks;
 		std::mutex		requestedChunkMutex;
+
 		ChunkMap		pendingChunks;
 		std::mutex		pendingChunkMutex;
-		std::atomic<bool>	updatingBuffers;
+
 		VDrawCommandData	cmdData;
 		std::mutex		VDrawCommandMutex;
+
+		std::atomic<bool>	updatingBuffers;
 		bool			quitting;
 
 		// Deferred Rendering Buffers
@@ -105,7 +108,6 @@ class	VoxelSystem {
 		size_t		SSBOcapacity = 0;
 
 		/// Private functions
-
 		void	updateDrawCommands();
 		void	updateIB();
 		void	updateSSBO();
@@ -116,9 +118,6 @@ class	VoxelSystem {
 		void	meshGenRoutine();
 
 		DrawCommandData	genMesh(const ChunkData &data);	
-		
-		void	_lightingPass();
-		void	_geometriePass();
 
 	public:
 		VoxelSystem(); // Random seed
@@ -126,6 +125,5 @@ class	VoxelSystem {
 		~VoxelSystem();
 
 		/// Public functions
-
-		void	draw(class ShaderHandler &shaders);
+		struct GeoFrameBuffers	draw();
 };

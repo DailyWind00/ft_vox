@@ -8,7 +8,7 @@ in vec3	fragPos;
 in vec3	Normal;
 in vec2	uv;
 in float	l;
-in float	texOffset;
+flat in uint	texID;
 
 uniform float		time;
 uniform sampler2D	atlas;
@@ -17,6 +17,9 @@ void	main()
 {
 	gPosition = vec4(fragPos, 1.0f);
 	gNormal = vec4(Normal, 1.0f);
-	gColor = texture(atlas, vec2((fract(uv.x * l) + texOffset) / 16, uv.y / 16));
-	
+
+	uint	xOff = texID % 16;
+	uint	yOff = texID / 16;
+
+	gColor = texture(atlas, vec2((fract(uv.x * l) + xOff) / 16, (fract(uv.y) + yOff) / 16));
 }

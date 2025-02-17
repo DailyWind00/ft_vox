@@ -40,41 +40,31 @@ VoxelSystem::VoxelSystem(const uint64_t &seed) {
 	glEnableVertexAttribArray(0);
 
 	// Create and allocate the VBO with persistent mapping
-	glGenBuffers(1, &VBO);
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	size_t maxVerticesPerChunk = (glm::pow(CHUNK_SIZE, 3) / 2 + (CHUNK_SIZE % 2)) * 6; // Worst case scenario
-	VBOcapacity = VERTICALE_RENDER_DISTANCE * HORIZONTALE_RENDER_DISTANCE * HORIZONTALE_RENDER_DISTANCE * maxVerticesPerChunk * sizeof(DATA_TYPE);
-	
-	if (VERBOSE)
-		std::cout << "> Creating VBO with a capacity of " << VBOcapacity << " bytes" << std::endl;
+	size_t VBOcapacity = VERTICALE_RENDER_DISTANCE * glm::pow(HORIZONTALE_RENDER_DISTANCE, 2) * maxVerticesPerChunk * sizeof(DATA_TYPE);
 
-	glBufferStorage(GL_ARRAY_BUFFER, VBOcapacity, nullptr, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
-	VBOdata = glMapBufferRange(GL_ARRAY_BUFFER, 0, VBOcapacity, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
-	if (!VBOdata)
-		throw std::runtime_error("VoxelSystem : Failed to map the VBO");
+	if (VERBOSE)
+		std::cout << "> VBO  : ";
+	VBO = new PMapBufferGL(GL_ARRAY_BUFFER, VBOcapacity, PERSISTENT_BUFFER_USAGE);
 
 	glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, sizeof(DATA_TYPE), nullptr);
 	glVertexAttribDivisor(1, 1);	
-
 	glEnableVertexAttribArray(1);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-	// Create the IB
-	glGenBuffers(1, &IB);
-	glBindBuffer(GL_DRAW_INDIRECT_BUFFER, IB);
+	// Create IB
+	size_t IBcapacity = VERTICALE_RENDER_DISTANCE * glm::pow(HORIZONTALE_RENDER_DISTANCE, 2) * 6 * sizeof(DrawCommand);
 
-	IBcapacity = VERTICALE_RENDER_DISTANCE * HORIZONTALE_RENDER_DISTANCE * HORIZONTALE_RENDER_DISTANCE * 6 * sizeof(DrawCommand);
-	glBufferData(GL_DRAW_INDIRECT_BUFFER, IBcapacity, nullptr, GL_DYNAMIC_DRAW);
-	glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
+	if (VERBOSE)
+		std::cout << "> IB   : ";
+	IB = new BufferGL(GL_DRAW_INDIRECT_BUFFER, GL_DYNAMIC_DRAW, IBcapacity);
 
-	// Create the SSBO
-	glGenBuffers(1, &SSBO);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, SSBO);
+	// Create SSBO
+	size_t SSBOcapacity = VERTICALE_RENDER_DISTANCE * glm::pow(HORIZONTALE_RENDER_DISTANCE, 2) * 6 * sizeof(SSBOData);
 
-	SSBOcapacity = VERTICALE_RENDER_DISTANCE * HORIZONTALE_RENDER_DISTANCE * HORIZONTALE_RENDER_DISTANCE * 6 * sizeof(SSBOData);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, SSBOcapacity, nullptr, GL_DYNAMIC_DRAW);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, SSBO);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+	if (VERBOSE)
+		std::cout << "> SSBO : ";
+	SSBO = new BufferGL(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, SSBOcapacity);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, SSBO->getID());
 
 	glBindVertexArray(0);
 
@@ -95,12 +85,9 @@ VoxelSystem::VoxelSystem(const uint64_t &seed) {
 }
 
 VoxelSystem::~VoxelSystem() {
-	if (VBOdata)
-		glUnmapBuffer(GL_ARRAY_BUFFER);
-
-	glDeleteBuffers(1, &VBO);
-	glDeleteBuffers(1, &IB);
-	glDeleteBuffers(1, &SSBO);
+	delete VBO;
+	delete IB;
+	delete SSBO;
 	glDeleteVertexArrays(1, &VAO);
 
 	this->quitting = true;
@@ -132,7 +119,8 @@ void	VoxelSystem::updateDrawCommands()
 
 			if (!cmds.vertices[i].size())
 				continue ;
-			std::memcpy(reinterpret_cast<DATA_TYPE *>(VBOdata) + cmds.cmd[i].baseInstance, cmds.vertices[i].data(), dataSize);
+
+			VBO->write(cmds.vertices[i].data(), dataSize, cmds.cmd[i].baseInstance * sizeof(DATA_TYPE));
 
 			this->commands.push_back(cmds.cmd[i]);
 			chunksInfos.push_back({{cmds.wPos.x, cmds.wPos.y, cmds.wPos.z, i}});
@@ -144,82 +132,24 @@ void	VoxelSystem::updateDrawCommands()
 
 // Update the indirect buffer
 void	VoxelSystem::updateIB() {
-	glBindBuffer(GL_DRAW_INDIRECT_BUFFER, IB);
-	if (commands.size() * sizeof(DrawCommand) > IBcapacity) {
-		IBcapacity *= BUFFER_GROWTH_FACTOR;
-		glBufferData(GL_DRAW_INDIRECT_BUFFER, IBcapacity, nullptr, GL_DYNAMIC_DRAW);
+	IB->bind();
+	if (commands.size() * sizeof(DrawCommand) > IB->getCapacity()) {
+		size_t newSize = commands.size() * sizeof(DrawCommand) * BUFFER_GROWTH_FACTOR;
+		IB->resize(newSize, commands.data());
 	}
-	glBufferSubData(GL_DRAW_INDIRECT_BUFFER, 0, commands.size() * sizeof(DrawCommand), commands.data());
-	glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
+	else
+		IB->updateData(commands.data(), commands.size() * sizeof(DrawCommand), 0);
 }
 
 // Update the SSBO
 void	VoxelSystem::updateSSBO() {
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, SSBO);
-	if (chunksInfos.size() * sizeof(SSBOData) > SSBOcapacity) {
-		SSBOcapacity *= BUFFER_GROWTH_FACTOR;
-		glBufferData(GL_SHADER_STORAGE_BUFFER, SSBOcapacity, nullptr, GL_DYNAMIC_DRAW);
+	SSBO->bind();
+	if (chunksInfos.size() * sizeof(SSBOData) > SSBO->getCapacity()) {
+		size_t newSize = chunksInfos.size() * sizeof(SSBOData) * BUFFER_GROWTH_FACTOR;
+		SSBO->resize(newSize, chunksInfos.data());
 	}
-	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, chunksInfos.size() * sizeof(SSBOData), chunksInfos.data());
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-}
-
-// Reallocate the VBO with a new capacity, also recompact the data
-void	VoxelSystem::reallocateVBO(size_t newSize) 
-{
-	void *copy = nullptr;
-
-	size_t VBOstorage = 0;
-	for (DrawCommand command : commands)
-		VBOstorage += command.verticeCount * sizeof(DATA_TYPE);
-
-	if (newSize < VBOstorage)
-		throw std::runtime_error("VoxelSystem : New size is too small");
-
-	if (VBOdata) {
-		copy = new DATA_TYPE[VBOstorage / sizeof(DATA_TYPE)];
-		std::memcpy(copy, VBOdata, VBOstorage);
-		glUnmapBuffer(GL_ARRAY_BUFFER);
-	}
-
-	// Reallocate the buffer
-	if (newSize != VBOcapacity) {
-		if (VERBOSE)
-			std::cout << "VoxelSystem : Reallocating VBO from " << VBOcapacity / sizeof(DATA_TYPE) << " to " << newSize / sizeof(DATA_TYPE) << " blocks\n";
-		
-		glDeleteBuffers(1, &VBO);
-		glGenBuffers(1, &VBO);
-		glBindBuffer(GL_ARRAY_BUFFER, VBO);
-
-		VBOcapacity = newSize;
-		glBufferStorage(GL_ARRAY_BUFFER, VBOcapacity, nullptr, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
-		VBOdata = glMapBufferRange(GL_ARRAY_BUFFER, 0, VBOcapacity, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
-		if (!VBOdata)
-			throw std::runtime_error("VoxelSystem : Failed to map the VBO");
-
-		glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, sizeof(DATA_TYPE), nullptr);
-		glVertexAttribDivisor(1, 1);
-		glEnableVertexAttribArray(1);
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
-	}
-
-	// Update the draw commands and repopulate the buffer
-	size_t newVertexOffset = 0;
-	for (DrawCommand command : commands) {
-		size_t dataSize = command.verticeCount * sizeof(DATA_TYPE);
-
-		std::memcpy(
-			reinterpret_cast<DATA_TYPE *>(VBOdata) + newVertexOffset,
-			reinterpret_cast<DATA_TYPE *>(copy) + command.offset,
-			dataSize
-		);
-
-		command.offset = newVertexOffset;
-		newVertexOffset += command.verticeCount;
-	}
-	currentVertexOffset = newVertexOffset;
-
-	delete[] static_cast<uint8_t*>(copy);
+	else
+		SSBO->updateData(chunksInfos.data(), chunksInfos.size() * sizeof(SSBOData), 0);
 }
 
 // Check if the voxel at the given position is visible
@@ -522,8 +452,9 @@ void	VoxelSystem::draw() {
 	}
 
 	glBindVertexArray(VAO);
-	glBindBuffer(GL_DRAW_INDIRECT_BUFFER, IB);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, SSBO);
+	VBO->bind();
+	IB->bind();
+	SSBO->bind();
 
 	glMultiDrawArraysIndirect(GL_TRIANGLE_STRIP, nullptr, commands.size(), sizeof(DrawCommand));
 

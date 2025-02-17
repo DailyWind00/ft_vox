@@ -13,12 +13,18 @@ PMapBufferGL::PMapBufferGL(GLenum type, size_t capacity, GLenum usage)
     _data = glMapBufferRange(type, 0, capacity, _usage);
 
     if (!_data)
-        throw std::runtime_error("PMapBufferGL: Failed to map the buffer");
+		throw std::runtime_error("PMapBufferGL: Failed to map the buffer");
+
+	if (VERBOSE)
+		std::cout << "Created PMapBufferGL with a capacity of " << capacity << " bytes" << std::endl;
 }
 
 PMapBufferGL::~PMapBufferGL() {
     if (_data)
         glUnmapBuffer(_type);
+
+	if (VERBOSE)
+		std::cout << "Destroyed PMapBufferGL\n";
 }
 /// ---
 

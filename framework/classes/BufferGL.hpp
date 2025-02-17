@@ -24,7 +24,6 @@ class BufferGL {
 		size_t	_capacity;
 
 	public:
-		BufferGL();
 		BufferGL(GLenum type, GLenum usage, size_t size = 0, const void *data = nullptr);
 		~BufferGL();
 

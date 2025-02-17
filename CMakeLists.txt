@@ -18,7 +18,8 @@ add_executable(ft_vox
 	framework/classes/Profiler.cpp
 	framework/classes/Noise.cpp
 	framework/classes/SkyBox.cpp
-	framework/classes/PMapBuffer.cpp
+	framework/classes/PMapBufferGL.cpp
+	framework/classes/BufferGL.cpp
 
 	# Includes
 	includes/classes/VoxelSystem.cpp

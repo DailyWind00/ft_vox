@@ -24,7 +24,6 @@ class BufferGL {
 		size_t	_capacity;
 
 	public:
-		BufferGL();
 		BufferGL(GLenum type, GLenum usage, size_t size = 0, const void *data = nullptr);
 		~BufferGL();
 
@@ -38,8 +37,8 @@ class BufferGL {
 
 		/// Getters
 
-		const GLuint	&getID() const;
-		const GLenum	&getType() const;
-		const size_t	&getCapacity() const;
+		const GLuint &	getID() const;
+		const GLenum &	getType() const;
+		const size_t &	getCapacity() const;
 		bool			isValid() const;
 };

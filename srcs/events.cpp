@@ -62,7 +62,7 @@ void	handleEvents(GameData &gameData) {
 
 	cameraMovement(window, camera);
 
-	float		dayDuration = 360;
+	float		dayDuration = 200;
 	float		angle = (time / dayDuration) * M_PI;
 	glm::vec3	sunPos = glm::normalize(glm::vec3(cosf(angle), sinf(angle), 0));
 

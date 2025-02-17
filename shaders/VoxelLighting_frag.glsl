@@ -82,12 +82,16 @@ void	main()
 {
 	vec4	fragPos = texture(gPosition, uv);
 	vec4	Normal = texture(gNormal, uv);
-	vec3	Color = texture(gColor, uv).rgb * getSkyGradient(vec3(1.0), sunPos.y);
-    	vec3	direction = normalize(fragPos.rgb);
+
+	vec3	texCol = texture(gColor, uv).rgb;
+	vec3	skyCol = getSkyGradient(vec3(1.0), sunPos.y);
+
+	float	clampedSunHeight = clamp(sunPos.y, 0.15, 0.85);
+	vec3	Color = pow(clampedSunHeight, 0.7) * texCol + (1.0f - pow(clampedSunHeight, 0.7)) * skyCol;
 
 	vec3	ambColor = Color.rgb * 0.3;
 
-	float	diffuseSun = max(dot(Normal.rgb, sunPos), 0.0) * pow(sunPos.y, 1.5);
+	float	diffuseSun = max(dot(Normal.rgb, sunPos), 0.0) * pow(sunPos.y, 1.2);
 	float	diffuseMoon = max(dot(Normal.rgb, -sunPos), 0.0) * pow(-sunPos.y, 3);
 
 	vec3	diffColor = (diffuseMoon + diffuseSun) * Color.rgb;

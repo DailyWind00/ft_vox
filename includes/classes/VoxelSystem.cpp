@@ -1,18 +1,17 @@
 # include <unistd.h>
 # include <chrono>
 
-#include "VoxelSystem.hpp"
+# include "VoxelSystem.hpp"
+# include "config.hpp"
 
 //// VoxelSystem class
 /// Constructors & Destructors
 VoxelSystem::VoxelSystem() : VoxelSystem(0) {}
 
-VoxelSystem::VoxelSystem(const uint64_t &seed) {
+VoxelSystem::VoxelSystem(const uint64_t &seed) : updatingBuffers(false), quitting(false)
+{
 	if (VERBOSE)
 		std::cout << "Creating VoxelSystem\n";
-
-	this->quitting = false;
-	this->updatingBuffers = false;
 
 	if (!seed) {
 		srand(time(nullptr));
@@ -25,19 +24,23 @@ VoxelSystem::VoxelSystem(const uint64_t &seed) {
 	glGenVertexArrays(1, &VAO);
 	glBindVertexArray(VAO);
 
-
+	// Default QuadVBO
 	unsigned int	quadVBO = 0;
 	float	quadVert[] = {
-		0, 1, 0,
-		0, 1, 1,
-		1, 1, 0,
-		1, 1, 1
+		0, 1, 0, 0, 0,
+		0, 1, 1, 0, 1,
+		1, 1, 0, 1, 0,
+		1, 1, 1, 1, 1
 	};
+
 	glGenBuffers(1, &quadVBO);
 	glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(quadVert), quadVert, GL_STATIC_DRAW);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), nullptr);
+	
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), nullptr);
 	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)(3 * sizeof(float)));
+	glEnableVertexAttribArray(2);
 
 	// Create and allocate the VBO with persistent mapping
 	glGenBuffers(1, &VBO);
@@ -78,10 +81,74 @@ VoxelSystem::VoxelSystem(const uint64_t &seed) {
 
 	glBindVertexArray(0);
 
+	// Generating the GBuffer
+	glGenFramebuffers(1, &this->gBuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, this->gBuffer);
+
+	// Position color buffer
+	glGenTextures(1, &this->gPosition);
+	glBindTexture(GL_TEXTURE_2D, this->gPosition);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGBA, GL_FLOAT, nullptr);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, this->gPosition, 0);
+
+	// Normal color buffer
+	glGenTextures(1, &gNormal);
+	glBindTexture(GL_TEXTURE_2D, this->gNormal);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, this->gNormal, 0);
+  
+	// Albedo color Buffer
+	glGenTextures(1, &this->gColor);
+	glBindTexture(GL_TEXTURE_2D, this->gColor);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, this->gColor, 0);
+
+	// Tell OpenGL which color attachments we'll use (of this framebuffer) for rendering 
+	unsigned int attachments[3] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1,  GL_COLOR_ATTACHMENT2 };
+	glDrawBuffers(3, attachments);
+
+	unsigned int rboDepth;
+
+	glGenRenderbuffers(1, &rboDepth);
+	glBindRenderbuffer(GL_RENDERBUFFER, rboDepth);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, WINDOW_WIDTH, WINDOW_HEIGHT);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rboDepth);
+
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+		std::cout << "Framebuffer not complete!" << std::endl;
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	// Load the texture Atlas
+	int	w, h, nChannels;
+	unsigned char	*atlasData = stbi_load("./assets/atlas.png", &w, &h, &nChannels, 0);
+
+	// Generate the Texture Buffer Object
+	glGenTextures(1, &this->textures);
+	glBindTexture(GL_TEXTURE_2D, this->textures);
+	
+	// Sets up the texture parameters
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, atlasData);
+
+	glBindTexture(GL_TEXTURE_2D, 0);
+	stbi_image_free(atlasData);
+
 	// VoxelSystem threads initialization
 	this->meshGenThread = std::thread(&VoxelSystem::meshGenRoutine, this);
 	this->chunkGenThread = std::thread(&VoxelSystem::chunkGenRoutine, this);
 
+	// Chunk Generation requests (to be removed)
 	this->requestedChunkMutex.lock();
 	for (int i = -(HORIZONTALE_RENDER_DISTANCE / 2); i < (HORIZONTALE_RENDER_DISTANCE / 2); i++) {
 		for (int j = -(HORIZONTALE_RENDER_DISTANCE / 2); j < (HORIZONTALE_RENDER_DISTANCE / 2); j++)
@@ -384,6 +451,8 @@ DrawCommandData	VoxelSystem::genMesh(const ChunkData &chunk)
 					data |= (x & 0x1F);     	// 5 bits for x
 					data |= (y & 0x1F) << 5;	// 5 bits for y
 					data |= (l.first & 0x1F) << 10;	// 5 bits for z
+					
+					data |= (4 & 0x7F) << 15;	// 7 bits for block ID
 			
 					// Encode face length
 					data |= (l.second & 0x1F) << 22; // 5 bits for length
@@ -422,7 +491,7 @@ void	VoxelSystem::chunkGenRoutine()
 		if (this->requestedChunks.size()) {
 			this->requestedChunkMutex.lock();
 			for (glm::ivec3 rc : this->requestedChunks) {
-				if (chunkBatchLimit == 2048)
+				if (chunkBatchLimit == 1024)
 					break ;
 				localReqChunks.push_back(rc);
 				chunkBatchLimit++;
@@ -509,11 +578,10 @@ void	VoxelSystem::meshGenRoutine()
 /// ---
 
 
-
 /// Public functions
 
 // Draw all chunks using batched rendering
-void	VoxelSystem::draw() {
+GeoFrameBuffers	VoxelSystem::draw() {
 	if (this->updatingBuffers) {
 		this->updateDrawCommands();
 		this->updateIB();
@@ -521,15 +589,30 @@ void	VoxelSystem::draw() {
 		this->updatingBuffers = false;
 	}
 
+	// Binding the gBuffer
+	glBindFramebuffer(GL_FRAMEBUFFER, this->gBuffer);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	
+	// World DrawCall
 	glBindVertexArray(VAO);
 	glBindBuffer(GL_DRAW_INDIRECT_BUFFER, IB);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, SSBO);
+        glBindTexture(GL_TEXTURE_2D, this->textures);
 
 	glMultiDrawArraysIndirect(GL_TRIANGLE_STRIP, nullptr, commands.size(), sizeof(DrawCommand));
 
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 	glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
 	glBindVertexArray(0);
+	
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	return (GeoFrameBuffers) {
+		this->gBuffer,
+		this->gPosition,
+		this->gNormal,
+		this->gColor
+	};
 }
 /// ---
 //// ----

@@ -1,8 +1,8 @@
 #pragma once
 /// Defines
 # define COLOR_HEADER_CXX
-# define HORIZONTALE_RENDER_DISTANCE 32
-# define VERTICALE_RENDER_DISTANCE 12
+# define HORIZONTALE_RENDER_DISTANCE 16
+# define VERTICALE_RENDER_DISTANCE 8
 # define CHUNK_SIZE 32
 # define DATA_TYPE uint32_t
 # define BUFFER_GROWTH_FACTOR 1.5f
@@ -63,8 +63,8 @@ class	VoxelSystem {
 	//   - Load/update/delete chunks efficiently
 	//   - Batch all chunks in a single draw call
 	private:
-		GLuint			VAO;
-		ChunkMap		chunks;
+		GLuint		VAO;
+		ChunkMap	chunks;
 
 		// Multithreading related data
 		std::thread		meshGenThread;
@@ -72,15 +72,14 @@ class	VoxelSystem {
 
 		std::list<glm::ivec3>	requestedChunks;
 		std::mutex		requestedChunkMutex;
-		
-		ChunkMap	pendingChunks;
-		std::mutex	pendingChunkMutex;
 
-		std::atomic<bool>	updatingBuffers;
+		ChunkMap		pendingChunks;
+		std::mutex		pendingChunkMutex;
 
 		VDrawCommandData	cmdData;
 		std::mutex		VDrawCommandMutex;
 
+		std::atomic<bool>	updatingBuffers;
 		bool			quitting;
 
 		// Deferred Rendering Buffers
@@ -88,6 +87,9 @@ class	VoxelSystem {
 		GLuint	gPosition;
 		GLuint	gNormal;
 		GLuint	gColor;
+
+		// Voxels Texture Atlas
+		GLuint	textures;
 		
 		// Vertex Buffer Object
 		GLuint		VBO;
@@ -106,7 +108,6 @@ class	VoxelSystem {
 		size_t		SSBOcapacity = 0;
 
 		/// Private functions
-
 		void	updateDrawCommands();
 		void	updateIB();
 		void	updateSSBO();
@@ -124,6 +125,5 @@ class	VoxelSystem {
 		~VoxelSystem();
 
 		/// Public functions
-
-		void	draw();
+		struct GeoFrameBuffers	draw();
 };

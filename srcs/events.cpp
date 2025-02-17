@@ -19,7 +19,6 @@ static void	cameraMovement(Window &window, Camera &camera) {
 	if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) move += cameraInfo.up;
 	if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) move -= cameraInfo.up;
 
-	// Prevent diagonal movement from being too fast
 	if (length(move) > 1.0f)
 		move = normalize(move);
 
@@ -31,7 +30,7 @@ static void	cameraMovement(Window &window, Camera &camera) {
 	glfwGetCursorPos(window, &mouseX, &mouseY);
 
 	static vec2	angles = vec2(0, 0);
-	angles.x += (mouseX - ((float)WINDOW_WIDTH / 2)) * CAMERA_SENSITIVITY * window.getFrameTime();
+	angles.x += (mouseX - ((float)WINDOW_WIDTH  / 2)) * CAMERA_SENSITIVITY * window.getFrameTime();
 	angles.y -= (mouseY - ((float)WINDOW_HEIGHT / 2)) * CAMERA_SENSITIVITY * window.getFrameTime();
 	clamp(angles.y, -89.0f, 89.0f);
 

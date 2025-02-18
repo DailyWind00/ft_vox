@@ -10,6 +10,7 @@ add_executable(ft_vox
 	srcs/rendering.cpp
 	srcs/events.cpp
 	srcs/utils.cpp
+	srcs/flags.cpp
 
 	# Framework
 	framework/classes/Shader.cpp

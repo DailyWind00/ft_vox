@@ -8,7 +8,7 @@
 # define WINDOW_HEIGHT 1080
 # define CAMERA_SPEED  0.02f
 # define CAMERA_SPRINT_BOOST  0.05f
-# define CAMERA_SENSITIVITY  0.035f
+# define CAMERA_SENSITIVITY  0.015f
 
 /// System includes
 # include <iostream>
@@ -30,6 +30,7 @@
 
 /// Global variables
 using namespace std;
+using namespace glm;
 
 typedef struct GeoFrameBuffers {
 	GLuint	gBuffer;

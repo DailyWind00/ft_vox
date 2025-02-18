@@ -1,7 +1,7 @@
 #pragma once
 /// Defines
 # define COLOR_HEADER_CXX
-# define HORIZONTALE_RENDER_DISTANCE 60
+# define HORIZONTALE_RENDER_DISTANCE 30
 # define VERTICALE_RENDER_DISTANCE 8
 # define CHUNK_SIZE 32
 # define DATA_TYPE uint32_t
@@ -22,6 +22,8 @@
 # include <glad/glad.h>
 # include <glfw/glfw3.h>
 # include "glm/gtx/hash.hpp" // Required for glm::ivec3 hash
+# include "BufferGL.hpp"
+# include "PMapBufferGL.hpp"
 # include "Noise.hpp"
 # include "color.h"
 # include "chunk.h"
@@ -92,26 +94,21 @@ class	VoxelSystem {
 		GLuint	textures;
 		
 		// Vertex Buffer Object
-		GLuint		VBO;
-		void		*VBOdata = nullptr; // Persistent mapped VBO
-		size_t		VBOcapacity = 0;
-		size_t		currentVertexOffset = 0;
+		PMapBufferGL *	VBO;
+		size_t			currentVertexOffset = 0;
 
 		// Indirect Buffer
-		GLuint		IB;
-		VDrawCommand	commands; // Stores the draw commands for each chunk
-		size_t		IBcapacity = 0;
+		BufferGL *		IB;
+		VDrawCommand	commands;
 
 		// Shader Storage Buffer Object
-		GLuint		SSBO;
-		VSSBOs		chunksInfos; // Store additional informations for each chunk
-		size_t		SSBOcapacity = 0;
+		BufferGL *		SSBO;
+		VSSBOs			chunksInfos;
 
 		/// Private functions
 		void	updateDrawCommands();
 		void	updateIB();
 		void	updateSSBO();
-		void	reallocateVBO(size_t newSize);
 		uint8_t	isVoxelVisible(const size_t &x, const size_t &y, const size_t &z, const ChunkData &data, AChunk *neightboursChunks[6], const size_t &LOD);
 	
 		void	chunkGenRoutine();

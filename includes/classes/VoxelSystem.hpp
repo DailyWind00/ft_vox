@@ -2,7 +2,7 @@
 /// Defines
 # define COLOR_HEADER_CXX
 # define HORIZONTALE_RENDER_DISTANCE 30
-# define VERTICALE_RENDER_DISTANCE 8
+# define VERTICALE_RENDER_DISTANCE 12
 # define CHUNK_SIZE 32
 # define DATA_TYPE uint32_t
 # define BUFFER_GROWTH_FACTOR 1.5f
@@ -26,6 +26,7 @@
 # include "PMapBufferGL.hpp"
 # include "Noise.hpp"
 # include "color.h"
+# include "Camera.hpp"
 # include "chunk.h"
 
 /// Global variables
@@ -53,9 +54,16 @@ typedef std::vector<DrawCommand>	VDrawCommand;
 typedef struct {
 	std::vector<DATA_TYPE>	vertices[6];
 	DrawCommand		cmd[6];
-	glm::ivec3		wPos;
+	uint32_t		cmdIndex;
+	uint8_t			status;
 }	DrawCommandData;
-typedef std::list<DrawCommandData>	VDrawCommandData;
+typedef std::unordered_map<glm::ivec3, DrawCommandData>	DrawCommandDataMap;
+
+enum	drawCommandStates {
+	DCS_INRENDER = 0,
+	DCS_TOBEUPDATED,
+	DCS_NEW
+};
 
 // Core class for the voxel system
 // Create chunks and their meshes & manage their rendering
@@ -67,6 +75,7 @@ class	VoxelSystem {
 	private:
 		GLuint		VAO;
 		ChunkMap	chunks;
+		Camera *	camera;
 
 		// Multithreading related data
 		std::thread		meshGenThread;
@@ -78,7 +87,7 @@ class	VoxelSystem {
 		ChunkMap		pendingChunks;
 		std::mutex		pendingChunkMutex;
 
-		VDrawCommandData	cmdData;
+		DrawCommandDataMap	cmdData;
 		std::mutex		VDrawCommandMutex;
 
 		std::atomic<bool>	updatingBuffers;
@@ -109,12 +118,13 @@ class	VoxelSystem {
 		void	updateDrawCommands();
 		void	updateIB();
 		void	updateSSBO();
-		uint8_t	isVoxelVisible(const size_t &x, const size_t &y, const size_t &z, const ChunkData &data, AChunk *neightboursChunks[6], const size_t &LOD);
+		uint8_t	isVoxelVisible(const glm::ivec3 &wPos, const ChunkData &data, AChunk *neightboursChunks[6], const size_t &LOD);
+
 	
 		void	chunkGenRoutine();
 		void	meshGenRoutine();
 
-		DrawCommandData	genMesh(const ChunkData &data, const size_t &LOD);	
+		void	genMesh(const ChunkData &data, const size_t &LOD);	
 
 	public:
 		VoxelSystem(); // Random seed
@@ -122,9 +132,13 @@ class	VoxelSystem {
 		~VoxelSystem();
 
 		/// Public functions
+		void	setCamera(Camera *cam);
 
 		void	requestChunk(const glm::ivec3 &pos, const bool &batched);
 		void	requestChunk(const glm::ivec3 &start, const glm::ivec3 &end);
 
+		void	requestMeshUpdate(const glm::ivec3 &pos, const bool &batched);
+		void	requestMeshUpdate(const glm::ivec3 &start, const glm::ivec3 &end);
+		
 		struct GeoFrameBuffers	draw();
 };

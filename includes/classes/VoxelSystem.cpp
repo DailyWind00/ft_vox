@@ -8,7 +8,7 @@
 /// Constructors & Destructors
 VoxelSystem::VoxelSystem() : VoxelSystem(0) {}
 
-VoxelSystem::VoxelSystem(const uint64_t &seed) : updatingBuffers(false), quitting(false)
+VoxelSystem::VoxelSystem(const uint64_t &seed) : camera(nullptr), updatingBuffers(false), quitting(false)
 {
 	if (VERBOSE)
 		std::cout << "Creating VoxelSystem\n";
@@ -137,6 +137,8 @@ VoxelSystem::VoxelSystem(const uint64_t &seed) : updatingBuffers(false), quittin
 	// VoxelSystem threads initialization
 	this->meshGenThread = std::thread(&VoxelSystem::meshGenRoutine, this);
 	this->chunkGenThread = std::thread(&VoxelSystem::chunkGenRoutine, this);
+	
+	//-requestChunk({-10, -5, -10}, {10, 5, 10});
 
 	if (VERBOSE)
 		std::cout << "VoxelSystem initialized\n";
@@ -166,25 +168,42 @@ VoxelSystem::~VoxelSystem() {
 
 /// Private functions
 
+void	VoxelSystem::setCamera(Camera *cam)
+{
+	this->camera = cam;
+}
+
 void	VoxelSystem::updateDrawCommands()
 {
 	this->VDrawCommandMutex.lock();
 	
-	for (DrawCommandData cmds : cmdData) {
-		for (size_t i = 0; i < 6; i++) {
-			// TODO: update already generated chunks meshes next to the new one
-			size_t	dataSize = cmds.vertices[i].size() * sizeof(DATA_TYPE);	
+	for (std::pair<glm::ivec3, DrawCommandData> cmds : cmdData) {
+		if (cmds.second.status == DCS_INRENDER)
+			continue ;
 
-			if (!cmds.vertices[i].size())
+		for (size_t i = 0; i < 6; i++) {
+
+			// TODO: update already generated chunks meshes next to the new one
+			size_t	dataSize = cmds.second.vertices[i].size() * sizeof(DATA_TYPE);	
+
+			if (!cmds.second.vertices[i].size())
 				continue ;
 
-			VBO->write(cmds.vertices[i].data(), dataSize, cmds.cmd[i].baseInstance * sizeof(DATA_TYPE));
+			if (!VBO->write(cmds.second.vertices[i].data(), dataSize, cmds.second.cmd[i].baseInstance * sizeof(DATA_TYPE)))
+				std::cout << "no more space\n";
 
-			this->commands.push_back(cmds.cmd[i]);
-			chunksInfos.push_back({{cmds.wPos.x, cmds.wPos.y, cmds.wPos.z, i}});
+			if (cmds.second.status == DCS_TOBEUPDATED) {
+				this->commands[i] = cmds.second.cmd[i];
+				chunksInfos[cmds.second.cmdIndex + i] = {{cmds.first.x, cmds.first.y, cmds.first.z, i}};
+			}
+			else {
+				this->commands.push_back(cmds.second.cmd[i]);
+				chunksInfos.push_back({{cmds.first.x, cmds.first.y, cmds.first.z, i}});
+			}
 		}
+		this->cmdData[cmds.first].status = DCS_INRENDER;
 	}
-	cmdData.clear();
+	//-cmdData.clear();
 	this->VDrawCommandMutex.unlock();
 }
 
@@ -212,8 +231,11 @@ void	VoxelSystem::updateSSBO() {
 
 // Check if the voxel at the given position is visible
 // Return a bitmask of the visible faces (6 bits : ZzYyXx)
-uint8_t	VoxelSystem::isVoxelVisible(const size_t &x, const size_t &y, const size_t &z, const ChunkData &data, AChunk *neightboursChunks[6], const size_t &LOD)
+uint8_t	VoxelSystem::isVoxelVisible(const glm::ivec3 &wPos, const ChunkData &data, AChunk *neightboursChunks[6], const size_t &LOD)
 {
+	size_t	x = wPos.x;
+	size_t	y = wPos.y;
+	size_t	z = wPos.z;
 	// check if the voxel is solid
 	if (!BLOCK_AT(data.second, x, y, z))
 		return (0);
@@ -288,7 +310,7 @@ uint8_t	VoxelSystem::isVoxelVisible(const size_t &x, const size_t &y, const size
 }
 
 // Create/update the mesh of the given chunk and store it in the VBO
-DrawCommandData	VoxelSystem::genMesh(const ChunkData &chunk, const size_t &LOD)
+void	VoxelSystem::genMesh(const ChunkData &chunk, const size_t &LOD)
 {
 	// define neightbouring chunks positions
 	glm::ivec3	neightbours[6] = { 
@@ -325,7 +347,7 @@ DrawCommandData	VoxelSystem::genMesh(const ChunkData &chunk, const size_t &LOD)
 			uint32_t	rowBitMasks[6] = {0};
 			
 			for (size_t z = 0; z < CHUNK_SIZE; z += 1 * LOD) {
-				uint8_t visibleFaces = isVoxelVisible(x, y, z, chunk, neightboursChunks, LOD);
+				uint8_t visibleFaces = isVoxelVisible({x, y, z}, chunk, neightboursChunks, LOD);
 
 				for (int i = 0; i < 6; i++) {
 					if (visibleFaces & (1 << i))
@@ -388,14 +410,34 @@ DrawCommandData	VoxelSystem::genMesh(const ChunkData &chunk, const size_t &LOD)
 	// Create a draw command for each face with data inside
 	DrawCommandData	datas;
 	
+	//-this->currentVertexOffset = this->cmdData[chunk.first].cmd[0].baseInstance;
+	if (this->cmdData.count(chunk.first))
+		this->currentVertexOffset = this->cmdData[chunk.first].cmdIndex * (pow(CHUNK_SIZE, 3) * 6);
+	else
+		this->currentVertexOffset = this->cmdData.size() * (pow(CHUNK_SIZE, 3) * 6);
+
 	for (int i = 0; i < 6; i++)
 		datas.vertices[i] = vertices[i];
 	for (int i = 0; i < 6; i++) {
 		datas.cmd[i] = {4, (GLuint)vertices[i].size(), 0, (GLuint)currentVertexOffset};
 		currentVertexOffset += vertices[i].size();
 	}
-	datas.wPos = chunk.first;
-	return datas;
+
+	if (this->cmdData.count(chunk.first)) {
+		if (this->cmdData[chunk.first].status == DCS_NEW)
+			return ;
+		datas.cmdIndex = this->cmdData[chunk.first].cmdIndex;
+		this->cmdData[chunk.first] = datas;
+		this->cmdData[chunk.first].status = DCS_TOBEUPDATED;
+	}
+	else {
+		if (this->commands.size())
+			datas.cmdIndex = this->commands.size() - 1;
+		else 
+			datas.cmdIndex = 0;
+		this->cmdData[chunk.first] = datas;
+		this->cmdData[chunk.first].status = DCS_NEW;
+	}
 }
 
 void	VoxelSystem::chunkGenRoutine()
@@ -413,7 +455,7 @@ void	VoxelSystem::chunkGenRoutine()
 		if (this->requestedChunks.size()) {
 			this->requestedChunkMutex.lock();
 			for (glm::ivec3 rc : this->requestedChunks) {
-				if (chunkBatchLimit == 8192)
+				if (chunkBatchLimit == 1024)
 					break ;
 				localReqChunks.push_back(rc);
 				chunkBatchLimit++;
@@ -457,6 +499,7 @@ void	VoxelSystem::chunkGenRoutine()
 void	VoxelSystem::meshGenRoutine()
 {
 	ChunkMap	localPendingChunks;
+	static size_t	LOD = 4;
 	
 	while (42) {
 		if (this->quitting)
@@ -477,24 +520,18 @@ void	VoxelSystem::meshGenRoutine()
 
 		if (this->VDrawCommandMutex.try_lock()) {
 			for (std::pair<glm::ivec3, AChunk *> chunk : localPendingChunks) {
-				// store draw commands and meshData
-				DrawCommandData	datas;
+				glm::vec3	camPos = this->camera->getCameraInfo().position;
+				glm::ivec3	camCpos = {camPos.z / 32, camPos.y / 32, camPos.x / 32};
 				
-				if (abs(chunk.first.x) * 0.1 >= 32 || abs(chunk.first.z) * 0.1 >= 32)
-					datas = genMesh(chunk, 32);
-				else if (abs(chunk.first.x) * 0.2 >= 16 || abs(chunk.first.z) * 0.2 >= 16)
-					datas = genMesh(chunk, 16);
-				else if (abs(chunk.first.x) * 0.3 >= 8 || abs(chunk.first.z) * 0.3 >= 8)
-					datas = genMesh(chunk, 8);
-				else if (abs(chunk.first.x) * 0.4 >= 4 || abs(chunk.first.z) * 0.4 >= 4)
-					datas = genMesh(chunk, 4);
-				else if (abs(chunk.first.x) * 0.5 >= 2 || abs(chunk.first.z) * 0.5 >= 2)
-					datas = genMesh(chunk, 2);
-				else
-					datas = genMesh(chunk, 1);
+				glm::ivec3	dst = {abs(camCpos.x - chunk.first.x), abs(camCpos.y - chunk.first.y), abs(camCpos.z - chunk.first.z)};
 
-				this->cmdData.push_back(datas);
+				if (dst.x >= 2 && dst.y >= 2 && dst.z >= 2)
+					genMesh(chunk, LOD);
+				else
+					genMesh(chunk, 1);
+
 				count++;
+				//-std::cout << (int)this->cmdData[chunk.first].status << std::endl;
 			}
 			this->VDrawCommandMutex.unlock();
 		}
@@ -538,8 +575,35 @@ void	VoxelSystem::requestChunk(const glm::ivec3 &pos, const bool &batched)
 		this->requestedChunkMutex.unlock();
 		return ;
 	}
-	std::cout << "requesting " << pos.x << " " <<  pos.y << " " << pos.z << std::endl;
+	//-std::cout << "requesting " << pos.x << " " <<  pos.y << " " << pos.z << std::endl;
 	this->requestedChunks.push_back(pos);
+}
+
+void	VoxelSystem::requestMeshUpdate(const glm::ivec3 &start, const glm::ivec3 &end)
+{
+	if (!this->pendingChunkMutex.try_lock())
+		return ;
+	for (int i = start.x; i < end.x; i++)
+		for (int j = start.y; j < end.y; j++)
+			for (int k = start.z; k < end.z; k++)
+				requestMeshUpdate({i, j, k}, true);
+	this->pendingChunkMutex.unlock();
+}
+
+void	VoxelSystem::requestMeshUpdate(const glm::ivec3 &pos, const bool &batched)
+{
+	if (!this->cmdData.count(pos))
+		return ;
+
+	if (!batched) {
+		if (!this->pendingChunkMutex.try_lock())
+			return ;
+		this->pendingChunks[pos] = this->chunks[pos];
+		this->pendingChunkMutex.unlock();
+		return ;
+	}
+	std::cout << "mesh " << pos.x << " " <<  pos.y << " " << pos.z << std::endl;
+	this->pendingChunks[pos] = this->chunks[pos];
 }
 
 // Draw all chunks using batched rendering

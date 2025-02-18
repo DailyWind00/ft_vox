@@ -31,7 +31,8 @@ static void	lightingPass(const GeoFrameBuffers &gBuffer, GLuint &renderQuadVAO)
 }
 
 // Keep the window alive, exiting this function should mean closing the window
-static void program_loop(GameData &gameData) {
+static void program_loop(GameData &gameData)
+{
 	Window			&window      = gameData.window;
 	ShaderHandler	&shaders     = gameData.shaders;
 	VoxelSystem		&voxelSystem = gameData.voxelSystem;
@@ -40,8 +41,18 @@ static void program_loop(GameData &gameData) {
 
 	glm::vec3	camPos = gameData.camera.getCameraInfo().position;
 	
-	voxelSystem.requestChunk({camPos.z / 32 - 4, camPos.y / 32 - 4, camPos.x / 32 - 4},
-			{camPos.z / 32 + 4, camPos.y / 32 + 4, camPos.x / 32 + 4});
+	static glm::ivec3	lastCPos = {0, 0, 0};
+	static glm::ivec3	currCPos = {camPos.z / 32, camPos.y / 32, camPos.x / 32};
+	
+	lastCPos = currCPos;
+	currCPos = {camPos.z / 32, camPos.y / 32, camPos.x / 32};
+
+	if (currCPos != lastCPos) {
+		voxelSystem.requestChunk({currCPos.x - 6, currCPos.y - 6, currCPos.z - 6},
+			{currCPos.x + 6, currCPos.y + 6, currCPos.z + 6});
+		//-voxelSystem.requestMeshUpdate({currCPos.x - 3, currCPos.y - 3, currCPos.z - 3},
+			//-{currCPos.x + 3, currCPos.y + 3, currCPos.z + 3});
+	}
 
 	// clear the Depth and color buffer
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -85,6 +96,8 @@ void	Rendering(Window &window)
 		(ProjectionInfo){FOV, (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, 0.1f, 10000.0f}
 	);
 	VoxelSystem		voxelSystem(1234);
+	voxelSystem.requestChunk({0, 0, 0}, false);
+	voxelSystem.setCamera(&camera);
 	SkyBox			skybox;
 	ShaderHandler	shaders; // Skybox -> Voxels -> UI
 	shaders.add_shader("shaders/Skybox_vert.glsl", "shaders/Skybox_frag.glsl"); // Used by default

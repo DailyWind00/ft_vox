@@ -38,6 +38,11 @@ static void program_loop(GameData &gameData) {
 	SkyBox			&skybox      = gameData.skybox;
 	RenderData		&renderDatas = gameData.renderDatas;
 
+	glm::vec3	camPos = gameData.camera.getCameraInfo().position;
+	
+	voxelSystem.requestChunk({camPos.z / 32 - 4, camPos.y / 32 - 4, camPos.x / 32 - 4},
+			{camPos.z / 32 + 4, camPos.y / 32 + 4, camPos.x / 32 + 4});
+
 	// clear the Depth and color buffer
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);	

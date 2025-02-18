@@ -17,7 +17,7 @@ uniform float	time;
 out vec2	uv;
 out vec3	Normal;
 out vec3	fragPos;
-out float	l;
+out vec2	l;
 flat out uint	texID;
 flat out uint	face;
 
@@ -50,7 +50,9 @@ void main()
 	texID = ((blockData >> 15) & 0x7F) - 1;
 
 	len.x = (blockData >> 22) & 0x1F;
+	len.y = (blockData >> 27) & 0x1F;
 	if (len.x == 31) len.x = 32;
+	if (len.y == 31) len.y = 32;
 
 	// Color modifiers for the fragment shader
 	fragPos = vec3(ivec3(position) + worldOffset);
@@ -64,11 +66,18 @@ void main()
 	if (face == 1) {
 		fQuad = quad.yzx;
 		fQuad.z *= len.x;
+		fQuad.y *= len.y;
+
+		fQuad.y -= len.y - 1;
+		fQuad.x += len.y - 1;
 		uv = UVs;
 	}
 	else if (face == 0) {
 		fQuad = quad.yxz;
 		fQuad.z *= len.x;
+		fQuad.y *= len.y;
+
+		fQuad.y -= len.y - 1;
 		fQuad.x = 0;
 		uv = UVs.yx;
 	}
@@ -77,11 +86,13 @@ void main()
 	if (face == 3) {
 		fQuad = quad;
 		fQuad.z *= len.x;
+		fQuad.x *= len.y;
 		uv = UVs.yx;
 	}
 	else if (face == 2) {
 		fQuad = quad.zyx;
 		fQuad.z *= len.x;
+		fQuad.x *= len.y;
 		fQuad.y = 0;
 		uv = UVs;
 	}
@@ -89,17 +100,25 @@ void main()
 	// z axis
 	if (face == 5) {
 		fQuad = quad.zxy;
+		fQuad.x *= len.x;
+		fQuad.y *= len.y;
+		fQuad.y -= len.y - 1;
+		fQuad.z += len.y - 1;
 		uv = UVs.yx;
 	}
 	else if (face == 4) {
 		fQuad = quad.xzy;
+		fQuad.x *= len.x;
+		fQuad.y *= len.y;
+		fQuad.y -= len.y - 1;
+		fQuad.z += len.y - 1;
 		fQuad.z = 0;
 		uv = UVs;
 	}
 
 	Normal = Normals[meshData[gl_DrawID].data.w];
 
-	l = len.x;
+	l = len;
 
 	gl_Position = transform * vec4((fQuad + ivec3(position) + worldOffset), 1.0f);
 }

@@ -148,15 +148,6 @@ VoxelSystem::VoxelSystem(const uint64_t &seed) : updatingBuffers(false), quittin
 	this->meshGenThread = std::thread(&VoxelSystem::meshGenRoutine, this);
 	this->chunkGenThread = std::thread(&VoxelSystem::chunkGenRoutine, this);
 
-	// Chunk Generation requests (to be removed)
-	this->requestedChunkMutex.lock();
-	for (int i = -(HORIZONTALE_RENDER_DISTANCE / 2); i < (HORIZONTALE_RENDER_DISTANCE / 2); i++) {
-		for (int j = -(HORIZONTALE_RENDER_DISTANCE / 2); j < (HORIZONTALE_RENDER_DISTANCE / 2); j++)
-			for (int k = -(VERTICALE_RENDER_DISTANCE / 2); k < (VERTICALE_RENDER_DISTANCE / 2); k++)
-				this->requestedChunks.push_back({i, k, j});
-	}
-	this->requestedChunkMutex.unlock();
-
 	if (VERBOSE)
 		std::cout << "VoxelSystem initialized\n";
 }
@@ -291,7 +282,7 @@ void	VoxelSystem::reallocateVBO(size_t newSize)
 
 // Check if the voxel at the given position is visible
 // Return a bitmask of the visible faces (6 bits : ZzYyXx)
-uint8_t	VoxelSystem::isVoxelVisible(const size_t &x, const size_t &y, const size_t &z, const ChunkData &data, AChunk *neightboursChunks[6])
+uint8_t	VoxelSystem::isVoxelVisible(const size_t &x, const size_t &y, const size_t &z, const ChunkData &data, AChunk *neightboursChunks[6], const size_t &LOD)
 {
 	// check if the voxel is solid
 	if (!BLOCK_AT(data.second, x, y, z))
@@ -299,12 +290,12 @@ uint8_t	VoxelSystem::isVoxelVisible(const size_t &x, const size_t &y, const size
 
 	// define neightbouring blocks positions
 	glm::ivec3	neightbours[6] = {
-		{x - 1, y, z},
-		{x + 1, y, z},
-		{x, y - 1, z},
-		{x, y + 1, z},
-		{x, y, z - 1},
-		{x, y, z + 1}
+		{x - 1 * LOD, y, z},
+		{x + 1 * LOD, y, z},
+		{x, y - 1 * LOD, z},
+		{x, y + 1 * LOD, z},
+		{x, y, z - 1 * LOD},
+		{x, y, z + 1 * LOD}
 	};
 
 	// Check if the face is visible
@@ -315,7 +306,7 @@ uint8_t	VoxelSystem::isVoxelVisible(const size_t &x, const size_t &y, const size
 		/// X axis
 		// Border
 		if (pos.x < 0) {
-			if (!neightboursChunks[4] || !BLOCK_AT(neightboursChunks[4], CHUNK_SIZE - 1, pos.y, pos.z))
+			if (!neightboursChunks[4] || !BLOCK_AT(neightboursChunks[4], CHUNK_SIZE - LOD, pos.y, pos.z))
 				visibleFaces |= (1 << 0);
 		}
 		else if (pos.x >= CHUNK_SIZE) {
@@ -332,7 +323,7 @@ uint8_t	VoxelSystem::isVoxelVisible(const size_t &x, const size_t &y, const size
 		/// y axis
 		// Border
 		if (pos.y < 0) {
-			if (!neightboursChunks[2] || !BLOCK_AT(neightboursChunks[2], pos.x, CHUNK_SIZE - 1, pos.z))
+			if (!neightboursChunks[2] || !BLOCK_AT(neightboursChunks[2], pos.x, CHUNK_SIZE - LOD, pos.z))
 				visibleFaces |= (1 << 2);
 		}
 		else if (pos.y >= CHUNK_SIZE) {
@@ -349,7 +340,7 @@ uint8_t	VoxelSystem::isVoxelVisible(const size_t &x, const size_t &y, const size
 		/// z axis
 		// Border
 		if (pos.z < 0) {
-			if (!neightboursChunks[0] || !BLOCK_AT(neightboursChunks[0], pos.x, pos.y, CHUNK_SIZE - 1))
+			if (!neightboursChunks[0] || !BLOCK_AT(neightboursChunks[0], pos.x, pos.y, CHUNK_SIZE - LOD))
 				visibleFaces |= (1 << 4);
 		}
 		else if (pos.z >= CHUNK_SIZE) {
@@ -367,7 +358,7 @@ uint8_t	VoxelSystem::isVoxelVisible(const size_t &x, const size_t &y, const size
 }
 
 // Create/update the mesh of the given chunk and store it in the VBO
-DrawCommandData	VoxelSystem::genMesh(const ChunkData &chunk)
+DrawCommandData	VoxelSystem::genMesh(const ChunkData &chunk, const size_t &LOD)
 {
 	// define neightbouring chunks positions
 	glm::ivec3	neightbours[6] = { 
@@ -390,12 +381,12 @@ DrawCommandData	VoxelSystem::genMesh(const ChunkData &chunk)
 	// Generate vertices for visible faces
 	std::vector<DATA_TYPE>	vertices[6];
 
-	for (size_t x = 0; x < CHUNK_SIZE; ++x) {
+	for (size_t x = 0; x < CHUNK_SIZE; x += 1 * LOD) {
 		// Check if there is any mesh needed in the chunk and skip if not
 		if (IS_CHUNK_COMPRESSED(chunk.second) && !BLOCK_AT(chunk.second, 0, 0, 0))
 			break ;
 
-		for (size_t y = 0; y < CHUNK_SIZE; ++y) {
+		for (size_t y = 0; y < CHUNK_SIZE; y += 1 * LOD) {
 			// Check if there is any mesh needed in the layer and skip if not
 			if (IS_LAYER_COMPRESSED(chunk.second, y) && !BLOCK_AT(chunk.second, 0, y, 0))
 				continue ;
@@ -403,8 +394,8 @@ DrawCommandData	VoxelSystem::genMesh(const ChunkData &chunk)
 			// Creat a bit mask per face direction
 			uint32_t	rowBitMasks[6] = {0};
 			
-			for (size_t z = 0; z < CHUNK_SIZE; ++z) {
-				uint8_t visibleFaces = isVoxelVisible(x, y, z, chunk, neightboursChunks);
+			for (size_t z = 0; z < CHUNK_SIZE; z += 1 * LOD) {
+				uint8_t visibleFaces = isVoxelVisible(x, y, z, chunk, neightboursChunks, LOD);
 
 				for (int i = 0; i < 6; i++) {
 					if (visibleFaces & (1 << i))
@@ -452,10 +443,11 @@ DrawCommandData	VoxelSystem::genMesh(const ChunkData &chunk)
 					data |= (y & 0x1F) << 5;	// 5 bits for y
 					data |= (l.first & 0x1F) << 10;	// 5 bits for z
 					
-					data |= (4 & 0x7F) << 15;	// 7 bits for block ID
+					data |= (3 & 0x7F) << 15;	// 7 bits for block ID
 			
 					// Encode face length
-					data |= (l.second & 0x1F) << 22; // 5 bits for length
+					data |= (LOD * l.second & 0x1F) << 22; // 5 bits for length
+					data |= (LOD * 1 & 0x1F) << 27; // 5 bits for length
 
 					vertices[j].push_back(data);
 				}
@@ -491,7 +483,7 @@ void	VoxelSystem::chunkGenRoutine()
 		if (this->requestedChunks.size()) {
 			this->requestedChunkMutex.lock();
 			for (glm::ivec3 rc : this->requestedChunks) {
-				if (chunkBatchLimit == 1024)
+				if (chunkBatchLimit == 8192)
 					break ;
 				localReqChunks.push_back(rc);
 				chunkBatchLimit++;
@@ -556,7 +548,20 @@ void	VoxelSystem::meshGenRoutine()
 		if (this->VDrawCommandMutex.try_lock()) {
 			for (std::pair<glm::ivec3, AChunk *> chunk : localPendingChunks) {
 				// store draw commands and meshData
-				DrawCommandData	datas = genMesh(chunk);
+				DrawCommandData	datas;
+				
+				if (abs(chunk.first.x) * 0.1 >= 32 || abs(chunk.first.z) * 0.1 >= 32)
+					datas = genMesh(chunk, 32);
+				else if (abs(chunk.first.x) * 0.2 >= 16 || abs(chunk.first.z) * 0.2 >= 16)
+					datas = genMesh(chunk, 16);
+				else if (abs(chunk.first.x) * 0.3 >= 8 || abs(chunk.first.z) * 0.3 >= 8)
+					datas = genMesh(chunk, 8);
+				else if (abs(chunk.first.x) * 0.4 >= 4 || abs(chunk.first.z) * 0.4 >= 4)
+					datas = genMesh(chunk, 4);
+				else if (abs(chunk.first.x) * 0.5 >= 2 || abs(chunk.first.z) * 0.5 >= 2)
+					datas = genMesh(chunk, 2);
+				else
+					datas = genMesh(chunk, 1);
 
 				this->cmdData.push_back(datas);
 				count++;
@@ -579,6 +584,33 @@ void	VoxelSystem::meshGenRoutine()
 
 
 /// Public functions
+
+void	VoxelSystem::requestChunk(const glm::ivec3 &start, const glm::ivec3 &end)
+{
+	if (!this->requestedChunkMutex.try_lock())
+		return ;
+	for (int i = start.x; i < end.x; i++)
+		for (int j = start.y; j < end.y; j++)
+			for (int k = start.z; k < end.z; k++)
+				requestChunk({i, j, k}, true);
+	this->requestedChunkMutex.unlock();
+}
+
+void	VoxelSystem::requestChunk(const glm::ivec3 &pos, const bool &batched)
+{
+	if (this->chunks[pos] || std::find(this->requestedChunks.begin(), this->requestedChunks.end(), pos) != this->requestedChunks.end())
+		return ;
+
+	if (!batched) {
+		if (!this->requestedChunkMutex.try_lock())
+			return ;
+		this->requestedChunks.push_back(pos);
+		this->requestedChunkMutex.unlock();
+		return ;
+	}
+	std::cout << "requesting " << pos.x << " " <<  pos.y << " " << pos.z << std::endl;
+	this->requestedChunks.push_back(pos);
+}
 
 // Draw all chunks using batched rendering
 GeoFrameBuffers	VoxelSystem::draw() {

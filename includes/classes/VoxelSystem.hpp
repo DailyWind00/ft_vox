@@ -1,7 +1,7 @@
 #pragma once
 /// Defines
 # define COLOR_HEADER_CXX
-# define HORIZONTALE_RENDER_DISTANCE 16
+# define HORIZONTALE_RENDER_DISTANCE 60
 # define VERTICALE_RENDER_DISTANCE 8
 # define CHUNK_SIZE 32
 # define DATA_TYPE uint32_t
@@ -112,12 +112,12 @@ class	VoxelSystem {
 		void	updateIB();
 		void	updateSSBO();
 		void	reallocateVBO(size_t newSize);
-		uint8_t	isVoxelVisible(const size_t &x, const size_t &y, const size_t &z, const ChunkData &data, AChunk *neightboursChunks[6]);
+		uint8_t	isVoxelVisible(const size_t &x, const size_t &y, const size_t &z, const ChunkData &data, AChunk *neightboursChunks[6], const size_t &LOD);
 	
 		void	chunkGenRoutine();
 		void	meshGenRoutine();
 
-		DrawCommandData	genMesh(const ChunkData &data);	
+		DrawCommandData	genMesh(const ChunkData &data, const size_t &LOD);	
 
 	public:
 		VoxelSystem(); // Random seed
@@ -125,5 +125,9 @@ class	VoxelSystem {
 		~VoxelSystem();
 
 		/// Public functions
+
+		void	requestChunk(const glm::ivec3 &pos, const bool &batched);
+		void	requestChunk(const glm::ivec3 &start, const glm::ivec3 &end);
+
 		struct GeoFrameBuffers	draw();
 };

@@ -25,13 +25,13 @@ uint64_t	flagHandler(int argc, char **argv) {
 	for (int i = 1; i < argc; i++) {
 		string arg = argv[i];
 
-		if      (arg == "-h" || arg == "--help") 	printUsage();
+		if      (arg == "-h" || arg == "--help") 		printUsage();
 		else if (arg == "-v" || arg == "--verbose")		VERBOSE = true;
 		else if (arg == "-t" || arg == "--no-tooltip")	SHOW_TOOLTIP = false;
 
 		else {
 			if (i == argc - 1) {
-				try { seed = stoul(arg); continue; }
+				try { seed = stoull(arg); continue; }
 				catch(const exception& e) { /* Stay 0 if fail */ }
 			}
 			cerr << BYellow << "Unknown flag : " << arg << ResetColor << endl;

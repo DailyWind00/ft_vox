@@ -35,13 +35,6 @@ using namespace glm;
 extern bool VERBOSE;
 extern bool SHOW_TOOLTIP;
 
-typedef struct GeoFrameBuffers {
-	GLuint	gBuffer;
-	GLuint	gPosition;
-	GLuint	gNormal;
-	GLuint	gColor;
-} GeoFrameBuffers;
-
 typedef struct {
 	GLuint		renderQuadVAO;
 } RenderData;

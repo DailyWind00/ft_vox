@@ -41,8 +41,8 @@ static void program_loop(GameData &gameData)
 	currCPos = {camPos.z / 32, camPos.y / 32, camPos.x / 32};
 
 	if (currCPos != lastCPos) {
-		voxelSystem.requestChunk({currCPos.x - 6, currCPos.y - 6, currCPos.z - 6},
-			{currCPos.x + 6, currCPos.y + 6, currCPos.z + 6});
+		// voxelSystem.requestChunk({currCPos.x - 6, currCPos.y - 6, currCPos.z - 6},
+		// 	{currCPos.x + 6, currCPos.y + 6, currCPos.z + 6});
 		//-voxelSystem.requestMeshUpdate({currCPos.x - 3, currCPos.y - 3, currCPos.z - 3},
 			//-{currCPos.x + 3, currCPos.y + 3, currCPos.z + 3});
 	}
@@ -79,13 +79,11 @@ void	Rendering(Window &window, const uint64_t &seed) {
 	glEnable(GL_CULL_FACE);
 
 	// Systemes Initialization
-	Camera 			camera(
+	Camera	camera(
 		(CameraInfo){{0, 0, 0}, {0, 0, 1}, {0, 1, 0}},
 		(ProjectionInfo){FOV, (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, 0.1f, 10000.0f}
 	);
-	VoxelSystem		voxelSystem(seed);
-	voxelSystem.requestChunk({0, 0, 0}, false);
-	voxelSystem.setCamera(&camera);
+	VoxelSystem		voxelSystem(seed, camera);
 	SkyBox			skybox;
 	ShaderHandler	shaders; // Skybox -> Voxels Geometrie -> Voxels Lighting
 	shaders.add_shader("shaders/Skybox_vert.glsl", "shaders/Skybox_frag.glsl"); // Used by default

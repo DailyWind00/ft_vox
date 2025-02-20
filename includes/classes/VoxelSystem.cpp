@@ -72,32 +72,32 @@ VoxelSystem::VoxelSystem(const uint64_t &seed) : camera(nullptr), updatingBuffer
 	glBindVertexArray(0);
 
 	// Generating the GBuffer
-	glGenFramebuffers(1, &this->gBuffer);
-	glBindFramebuffer(GL_FRAMEBUFFER, this->gBuffer);
+	glGenFramebuffers(1, &gBuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, gBuffer);
 
 	// Position color buffer
-	glGenTextures(1, &this->gPosition);
-	glBindTexture(GL_TEXTURE_2D, this->gPosition);
+	glGenTextures(1, &gPosition);
+	glBindTexture(GL_TEXTURE_2D, gPosition);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGBA, GL_FLOAT, nullptr);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, this->gPosition, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, gPosition, 0);
 
 	// Normal color buffer
 	glGenTextures(1, &gNormal);
-	glBindTexture(GL_TEXTURE_2D, this->gNormal);
+	glBindTexture(GL_TEXTURE_2D, gNormal);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, this->gNormal, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, gNormal, 0);
   
 	// Albedo color Buffer
-	glGenTextures(1, &this->gColor);
-	glBindTexture(GL_TEXTURE_2D, this->gColor);
+	glGenTextures(1, &gColor);
+	glBindTexture(GL_TEXTURE_2D, gColor);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, this->gColor, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, gColor, 0);
 
 	// Tell OpenGL which color attachments we'll use (of this framebuffer) for rendering 
 	unsigned int attachments[3] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1,  GL_COLOR_ATTACHMENT2 };
@@ -120,8 +120,8 @@ VoxelSystem::VoxelSystem(const uint64_t &seed) : camera(nullptr), updatingBuffer
 	unsigned char	*atlasData = stbi_load("./assets/atlas.png", &w, &h, &nChannels, 0);
 
 	// Generate the Texture Buffer Object
-	glGenTextures(1, &this->textures);
-	glBindTexture(GL_TEXTURE_2D, this->textures);
+	glGenTextures(1, &textures);
+	glBindTexture(GL_TEXTURE_2D, textures);
 	
 	// Sets up the texture parameters
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	
@@ -135,8 +135,8 @@ VoxelSystem::VoxelSystem(const uint64_t &seed) : camera(nullptr), updatingBuffer
 	stbi_image_free(atlasData);
 
 	// VoxelSystem threads initialization
-	this->meshGenThread = std::thread(&VoxelSystem::meshGenRoutine, this);
-	this->chunkGenThread = std::thread(&VoxelSystem::chunkGenRoutine, this);
+	meshGenThread = std::thread(&VoxelSystem::meshGenRoutine, this);
+	chunkGenThread = std::thread(&VoxelSystem::chunkGenRoutine, this);
 	
 	//-requestChunk({-10, -5, -10}, {10, 5, 10});
 
@@ -150,11 +150,11 @@ VoxelSystem::~VoxelSystem() {
 	delete SSBO;
 	glDeleteVertexArrays(1, &VAO);
 
-	this->quitting = true;
+	quitting = true;
 
 	// waiting for threads to finish
-	this->meshGenThread.join();
-	this->chunkGenThread.join();
+	meshGenThread.join();
+	chunkGenThread.join();
 
 	for (std::pair<glm::ivec3, AChunk *> chunk : chunks)
 		delete chunk.second;
@@ -170,12 +170,12 @@ VoxelSystem::~VoxelSystem() {
 
 void	VoxelSystem::setCamera(Camera *cam)
 {
-	this->camera = cam;
+	camera = cam;
 }
 
 void	VoxelSystem::updateDrawCommands()
 {
-	this->VDrawCommandMutex.lock();
+	VDrawCommandMutex.lock();
 	
 	for (std::pair<glm::ivec3, DrawCommandData> cmds : cmdData) {
 		if (cmds.second.status == DCS_INRENDER)
@@ -193,18 +193,18 @@ void	VoxelSystem::updateDrawCommands()
 				std::cout << "no more space\n";
 
 			if (cmds.second.status == DCS_TOBEUPDATED) {
-				this->commands[i] = cmds.second.cmd[i];
+				commands[i] = cmds.second.cmd[i];
 				chunksInfos[cmds.second.cmdIndex + i] = {{cmds.first.x, cmds.first.y, cmds.first.z, i}};
 			}
 			else {
-				this->commands.push_back(cmds.second.cmd[i]);
+				commands.push_back(cmds.second.cmd[i]);
 				chunksInfos.push_back({{cmds.first.x, cmds.first.y, cmds.first.z, i}});
 			}
 		}
-		this->cmdData[cmds.first].status = DCS_INRENDER;
+		cmdData[cmds.first].status = DCS_INRENDER;
 	}
 	//-cmdData.clear();
-	this->VDrawCommandMutex.unlock();
+	VDrawCommandMutex.unlock();
 }
 
 // Update the indirect buffer
@@ -410,11 +410,11 @@ void	VoxelSystem::genMesh(const ChunkData &chunk, const size_t &LOD)
 	// Create a draw command for each face with data inside
 	DrawCommandData	datas;
 	
-	//-this->currentVertexOffset = this->cmdData[chunk.first].cmd[0].baseInstance;
-	if (this->cmdData.count(chunk.first))
-		this->currentVertexOffset = this->cmdData[chunk.first].cmdIndex * (pow(CHUNK_SIZE, 3) * 6);
+	//-currentVertexOffset = cmdData[chunk.first].cmd[0].baseInstance;
+	if (cmdData.count(chunk.first))
+		currentVertexOffset = cmdData[chunk.first].cmdIndex * (pow(CHUNK_SIZE, 3) * 6);
 	else
-		this->currentVertexOffset = this->cmdData.size() * (pow(CHUNK_SIZE, 3) * 6);
+		currentVertexOffset = cmdData.size() * (pow(CHUNK_SIZE, 3) * 6);
 
 	for (int i = 0; i < 6; i++)
 		datas.vertices[i] = vertices[i];
@@ -423,20 +423,20 @@ void	VoxelSystem::genMesh(const ChunkData &chunk, const size_t &LOD)
 		currentVertexOffset += vertices[i].size();
 	}
 
-	if (this->cmdData.count(chunk.first)) {
-		if (this->cmdData[chunk.first].status == DCS_NEW)
+	if (cmdData.count(chunk.first)) {
+		if (cmdData[chunk.first].status == DCS_NEW)
 			return ;
-		datas.cmdIndex = this->cmdData[chunk.first].cmdIndex;
-		this->cmdData[chunk.first] = datas;
-		this->cmdData[chunk.first].status = DCS_TOBEUPDATED;
+		datas.cmdIndex = cmdData[chunk.first].cmdIndex;
+		cmdData[chunk.first] = datas;
+		cmdData[chunk.first].status = DCS_TOBEUPDATED;
 	}
 	else {
-		if (this->commands.size())
-			datas.cmdIndex = this->commands.size() - 1;
+		if (commands.size())
+			datas.cmdIndex = commands.size() - 1;
 		else 
 			datas.cmdIndex = 0;
-		this->cmdData[chunk.first] = datas;
-		this->cmdData[chunk.first].status = DCS_NEW;
+		cmdData[chunk.first] = datas;
+		cmdData[chunk.first].status = DCS_NEW;
 	}
 }
 
@@ -446,25 +446,25 @@ void	VoxelSystem::chunkGenRoutine()
 	ChunkMap				localChunks;
 
 	while (42) {
-		if (this->quitting)
+		if (quitting)
 			break ;
 
 		size_t	chunkBatchLimit = 0;
 
 		// check for new chunks to be generated
-		if (this->requestedChunks.size()) {
-			this->requestedChunkMutex.lock();
-			for (glm::ivec3 rc : this->requestedChunks) {
+		if (requestedChunks.size()) {
+			requestedChunkMutex.lock();
+			for (glm::ivec3 rc : requestedChunks) {
 				if (chunkBatchLimit == 1024)
 					break ;
 				localReqChunks.push_back(rc);
 				chunkBatchLimit++;
 			}
-			for (auto k = this->requestedChunks.begin(); chunkBatchLimit && this->requestedChunks.size(); chunkBatchLimit--) {
-				this->requestedChunks.erase(k);
-				k = this->requestedChunks.begin();
+			for (auto k = requestedChunks.begin(); chunkBatchLimit && requestedChunks.size(); chunkBatchLimit--) {
+				requestedChunks.erase(k);
+				k = requestedChunks.begin();
 			}
-			this->requestedChunkMutex.unlock();
+			requestedChunkMutex.unlock();
 		}
 
 		size_t	count = 0;
@@ -486,12 +486,12 @@ void	VoxelSystem::chunkGenRoutine()
 		}
 
 		// Stores new chunks in the VoxelSystem and adds them to the pendingChunks for their meshes to be generated
-		this->pendingChunkMutex.lock();
+		pendingChunkMutex.lock();
 		for (ChunkData chunk : localChunks) {
-			this->chunks[chunk.first] = chunk.second;
-			this->pendingChunks[chunk.first] = chunk.second;
+			chunks[chunk.first] = chunk.second;
+			pendingChunks[chunk.first] = chunk.second;
 		}
-		this->pendingChunkMutex.unlock();
+		pendingChunkMutex.unlock();
 		localChunks.clear();
 	}
 }
@@ -502,25 +502,25 @@ void	VoxelSystem::meshGenRoutine()
 	static size_t	LOD = 4;
 	
 	while (42) {
-		if (this->quitting)
+		if (quitting)
 			break ;
 
 		// Check for chunks Mesh to be generated
-		if (this->pendingChunks.size()) {
-			this->pendingChunkMutex.lock();
-			for (std::pair<glm::ivec3, AChunk *> chunk : this->pendingChunks)
+		if (pendingChunks.size()) {
+			pendingChunkMutex.lock();
+			for (std::pair<glm::ivec3, AChunk *> chunk : pendingChunks)
 				localPendingChunks[chunk.first] = chunk.second;
 
-			this->pendingChunks.clear();
-			this->pendingChunkMutex.unlock();
+			pendingChunks.clear();
+			pendingChunkMutex.unlock();
 		}
 
 		// Generate chunks meshes and creates their DrawCommands
 		size_t	count = 0;
 
-		if (this->VDrawCommandMutex.try_lock()) {
+		if (VDrawCommandMutex.try_lock()) {
 			for (std::pair<glm::ivec3, AChunk *> chunk : localPendingChunks) {
-				glm::vec3	camPos = this->camera->getCameraInfo().position;
+				glm::vec3	camPos = camera->getCameraInfo().position;
 				glm::ivec3	camCpos = {camPos.z / 32, camPos.y / 32, camPos.x / 32};
 				
 				glm::ivec3	dst = {abs(camCpos.x - chunk.first.x), abs(camCpos.y - chunk.first.y), abs(camCpos.z - chunk.first.z)};
@@ -531,9 +531,9 @@ void	VoxelSystem::meshGenRoutine()
 					genMesh(chunk, 1);
 
 				count++;
-				//-std::cout << (int)this->cmdData[chunk.first].status << std::endl;
+				//-std::cout << (int)cmdData[chunk.first].status << std::endl;
 			}
-			this->VDrawCommandMutex.unlock();
+			VDrawCommandMutex.unlock();
 		}
 		localPendingChunks.clear();
 
@@ -544,7 +544,7 @@ void	VoxelSystem::meshGenRoutine()
 		}
 
 		// Signal the main thread that it can update openGL's buffers
-		this->updatingBuffers = true;
+		updatingBuffers = true;
 	}
 }
 /// ---
@@ -554,69 +554,69 @@ void	VoxelSystem::meshGenRoutine()
 
 void	VoxelSystem::requestChunk(const glm::ivec3 &start, const glm::ivec3 &end)
 {
-	if (!this->requestedChunkMutex.try_lock())
+	if (!requestedChunkMutex.try_lock())
 		return ;
 	for (int i = start.x; i < end.x; i++)
 		for (int j = start.y; j < end.y; j++)
 			for (int k = start.z; k < end.z; k++)
 				requestChunk({i, j, k}, true);
-	this->requestedChunkMutex.unlock();
+	requestedChunkMutex.unlock();
 }
 
 void	VoxelSystem::requestChunk(const glm::ivec3 &pos, const bool &batched)
 {
-	if (this->chunks[pos] || std::find(this->requestedChunks.begin(), this->requestedChunks.end(), pos) != this->requestedChunks.end())
+	if (chunks[pos] || std::find(requestedChunks.begin(), requestedChunks.end(), pos) != requestedChunks.end())
 		return ;
 
 	if (!batched) {
-		if (!this->requestedChunkMutex.try_lock())
+		if (!requestedChunkMutex.try_lock())
 			return ;
-		this->requestedChunks.push_back(pos);
-		this->requestedChunkMutex.unlock();
+		requestedChunks.push_back(pos);
+		requestedChunkMutex.unlock();
 		return ;
 	}
 	//-std::cout << "requesting " << pos.x << " " <<  pos.y << " " << pos.z << std::endl;
-	this->requestedChunks.push_back(pos);
+	requestedChunks.push_back(pos);
 }
 
 void	VoxelSystem::requestMeshUpdate(const glm::ivec3 &start, const glm::ivec3 &end)
 {
-	if (!this->pendingChunkMutex.try_lock())
+	if (!pendingChunkMutex.try_lock())
 		return ;
 	for (int i = start.x; i < end.x; i++)
 		for (int j = start.y; j < end.y; j++)
 			for (int k = start.z; k < end.z; k++)
 				requestMeshUpdate({i, j, k}, true);
-	this->pendingChunkMutex.unlock();
+	pendingChunkMutex.unlock();
 }
 
 void	VoxelSystem::requestMeshUpdate(const glm::ivec3 &pos, const bool &batched)
 {
-	if (!this->cmdData.count(pos))
+	if (!cmdData.count(pos))
 		return ;
 
 	if (!batched) {
-		if (!this->pendingChunkMutex.try_lock())
+		if (!pendingChunkMutex.try_lock())
 			return ;
-		this->pendingChunks[pos] = this->chunks[pos];
-		this->pendingChunkMutex.unlock();
+		pendingChunks[pos] = chunks[pos];
+		pendingChunkMutex.unlock();
 		return ;
 	}
 	std::cout << "mesh " << pos.x << " " <<  pos.y << " " << pos.z << std::endl;
-	this->pendingChunks[pos] = this->chunks[pos];
+	pendingChunks[pos] = chunks[pos];
 }
 
 // Draw all chunks using batched rendering
 GeoFrameBuffers	VoxelSystem::draw() {
-	if (this->updatingBuffers) {
-		this->updateDrawCommands();
-		this->updateIB();
-		this->updateSSBO();
-		this->updatingBuffers = false;
+	if (updatingBuffers) {
+		updateDrawCommands();
+		updateIB();
+		updateSSBO();
+		updatingBuffers = false;
 	}
 
 	// Binding the gBuffer
-	glBindFramebuffer(GL_FRAMEBUFFER, this->gBuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, gBuffer);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	
 	// World DrawCall
@@ -625,7 +625,7 @@ GeoFrameBuffers	VoxelSystem::draw() {
 	IB->bind();
 	SSBO->bind();
 
-	glBindTexture(GL_TEXTURE_2D, this->textures);
+	glBindTexture(GL_TEXTURE_2D, textures);
 
 	glMultiDrawArraysIndirect(GL_TRIANGLE_STRIP, nullptr, commands.size(), sizeof(DrawCommand));
 
@@ -636,10 +636,10 @@ GeoFrameBuffers	VoxelSystem::draw() {
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	return (GeoFrameBuffers) {
-		this->gBuffer,
-		this->gPosition,
-		this->gNormal,
-		this->gColor
+		gBuffer,
+		gPosition,
+		gNormal,
+		gColor
 	};
 }
 /// ---

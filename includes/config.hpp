@@ -43,6 +43,15 @@ typedef struct GeoFrameBuffers {
 } GeoFrameBuffers;
 
 typedef struct {
+	glm::vec3 *	sampleKernels;
+	GLuint		ssaoNoiseTexture;
+	GLuint		ssaoFrameBuffer;
+	GLuint		ssaoColorBuffer;
+	//-GLuint		ssaoBlurFrameBuffer;
+} SSAOData;
+
+typedef struct {
+	SSAOData	ssaoData;
 	GLuint		renderQuadVAO;
 } RenderData;
 

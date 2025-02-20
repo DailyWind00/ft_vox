@@ -64,7 +64,7 @@ void	handleEvents(GameData &gameData) {
 	cameraMovement(window, camera);
 
 	// Skybox Shader parameters
-	float		dayDuration = 200;
+	float		dayDuration = 20;
 	float		angle = (time / dayDuration) * M_PI;
 	vec3		sunPos = normalize(vec3(cos(angle), sin(angle), 0.0f));
 	mat4		skyboxView = camera.getProjectionMatrix() * mat4(mat3(camera.getViewMatrix())); // Get rid of the translation part
@@ -84,4 +84,11 @@ void	handleEvents(GameData &gameData) {
 	shaders.setUniform((*shaders[2])->getID(), "gPosition", 0);
 	shaders.setUniform((*shaders[2])->getID(), "gNormal", 1);
 	shaders.setUniform((*shaders[2])->getID(), "gColor", 2);
+	shaders.setUniform((*shaders[2])->getID(), "ssao", 3);
+
+	// SSAO Pass Shader Parameters
+	shaders.setUniform((*shaders[3])->getID(), "transform", camera);
+	shaders.setUniform((*shaders[3])->getID(), "gPosition", 0);
+	shaders.setUniform((*shaders[3])->getID(), "gNormal", 1);
+	shaders.setUniform((*shaders[3])->getID(), "Noise", 2);
 }

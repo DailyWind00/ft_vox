@@ -6,6 +6,7 @@ in vec2		uv;
 uniform sampler2D	gPosition;
 uniform sampler2D	gNormal;
 uniform sampler2D	gColor;
+uniform sampler2D	ssao;
 
 uniform vec3	sunPos;
 
@@ -78,26 +79,29 @@ vec3 getSkyGradient(vec3 direction, float sunHeight) {
 	return mix(horizonColor, mixedSkyColor, t);
 }
 
+float	rgbToLuma(vec3 col)
+{
+	return (0.2126 * col.r + 0.7152 * col.g + 0.0722 * col.b);
+}
 void	main()
 {
 	vec4	fragPos = texture(gPosition, uv);
 	vec4	Normal = texture(gNormal, uv);
+	vec3	Color = texture(gColor, uv).rgb;
+	float	AO = texture(ssao, uv).r;
 
-	vec3	texCol = texture(gColor, uv).rgb;
-	vec3	skyCol = getSkyGradient(vec3(1.0), sunPos.y);
+	float	skyBrightness = rgbToLuma(getSkyGradient(vec3(1.0), sunPos.y));
+	vec3	lDir = sunPos - (fragPos.xyz / 32.0f);
 
-	float	clampedSunHeight = clamp(sunPos.y, 0.15, 0.85);
-	vec3	Color = pow(clampedSunHeight, 0.7) * texCol + (1.0f - pow(clampedSunHeight, 0.7)) * skyCol;
+	float	diffuseSun = max(dot(Normal.rgb, lDir), 0.0) * pow(lDir.y, 2);
+	float	diffuseMoon = max(dot(Normal.rgb, -lDir), 0.0) * pow(-lDir.y, 1.5);
 
-	vec3	ambColor = Color.rgb * 0.3;
+	vec3	diffColor = vec3(diffuseSun + diffuseMoon) * Color * (-skyBrightness * skyBrightness + skyBrightness * 3);
+	vec3	ambColor = AO * Color * (-skyBrightness * skyBrightness + skyBrightness);
 
-	float	diffuseSun = max(dot(Normal.rgb, sunPos), 0.0) * pow(sunPos.y, 1.2);
-	float	diffuseMoon = max(dot(Normal.rgb, -sunPos), 0.0) * pow(-sunPos.y, 3);
-
-	vec3	diffColor = (diffuseMoon + diffuseSun) * Color.rgb;
-
-	//-ScreenColor= vec4((face * 1.8) * (0.2 * vec3(randFactor)) + ivec3(fragPos) * 0.01, 1.0);
-	//-ScreenColor = vec4(vec3(0.3 * (face + 1) * (fragPos.y + 100) * 0.005), 1.0f);
+	float	gamma = 2.2;
+	//-ScreenColor = vec4(pow(diffColor + ambColor, vec3(1.0f/gamma)), 1.0f);
 	//-ScreenColor = vec4(Color, 1.0f);
-	ScreenColor = vec4(diffColor + ambColor, 1.0f);
+	//-ScreenColor = fragPos;
+	ScreenColor = vec4(vec3(AO), 1.0f);
 }

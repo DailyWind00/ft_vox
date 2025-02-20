@@ -53,7 +53,6 @@ void main()
 	if (len.x == 31) len.x = 32;
 
 	// Color modifiers for the fragment shader
-	fragPos = vec3(ivec3(position) + worldOffset);
 
 	// Create the final face mesh
 	vec3	fQuad;
@@ -98,6 +97,7 @@ void main()
 	}
 
 	Normal = Normals[meshData[gl_DrawID].data.w];
+	fragPos = normalize(vec3(worldOffset));
 
 	l = len.x;
 

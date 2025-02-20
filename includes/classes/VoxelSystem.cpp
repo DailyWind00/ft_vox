@@ -129,7 +129,7 @@ VoxelSystem::VoxelSystem(const uint64_t &seed) : updatingBuffers(false), quittin
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, atlasData);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB_ALPHA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, atlasData);
 
 	glBindTexture(GL_TEXTURE_2D, 0);
 	stbi_image_free(atlasData);
@@ -382,7 +382,7 @@ DrawCommandData	VoxelSystem::genMesh(const ChunkData &chunk)
 					data |= (y & 0x1F) << 5;	// 5 bits for y
 					data |= (l.first & 0x1F) << 10;	// 5 bits for z
 					
-					data |= (4 & 0x7F) << 15;	// 7 bits for block ID
+					data |= (2 & 0x7F) << 15;	// 7 bits for block ID
 			
 					// Encode face length
 					data |= (l.second & 0x1F) << 22; // 5 bits for length
@@ -421,7 +421,7 @@ void	VoxelSystem::chunkGenRoutine()
 		if (this->requestedChunks.size()) {
 			this->requestedChunkMutex.lock();
 			for (glm::ivec3 rc : this->requestedChunks) {
-				if (chunkBatchLimit == 1024)
+				if (chunkBatchLimit == 512)
 					break ;
 				localReqChunks.push_back(rc);
 				chunkBatchLimit++;

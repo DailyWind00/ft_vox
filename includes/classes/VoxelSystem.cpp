@@ -48,7 +48,7 @@ VoxelSystem::VoxelSystem(const uint64_t &seed) : camera(nullptr), updatingBuffer
 
 	if (VERBOSE)
 		std::cout << "> VBO  : ";
-	VBO = new PMapBufferGL(GL_ARRAY_BUFFER, VBOcapacity, PERSISTENT_BUFFER_USAGE);
+	VBO = new PMapBufferGL(GL_ARRAY_BUFFER, VBOcapacity);
 
 	glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, sizeof(DATA_TYPE), nullptr);
 	glVertexAttribDivisor(1, 1);	

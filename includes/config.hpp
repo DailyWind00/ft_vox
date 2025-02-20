@@ -32,39 +32,41 @@
 using namespace std;
 using namespace glm;
 
+extern bool VERBOSE;
+extern bool SHOW_TOOLTIP;
+
 typedef struct GeoFrameBuffers {
 	GLuint	gBuffer;
 	GLuint	gPosition;
 	GLuint	gNormal;
 	GLuint	gColor;
-}	GeoFrameBuffers;
+} GeoFrameBuffers;
 
 typedef struct {
 	GLuint		renderQuadVAO;
-}	RenderData;
+} RenderData;
 
 typedef struct GameData {
-	Window		&window;
+	Window			&window;
 	ShaderHandler	&shaders;
-	VoxelSystem	&voxelSystem;
-	SkyBox		&skybox;
-	Camera		&camera;
-	RenderData	&renderDatas;
+	VoxelSystem		&voxelSystem;
+	SkyBox			&skybox;
+	Camera			&camera;
+	RenderData		&renderDatas;
 } GameData;
-
-extern bool VERBOSE;
 
 /// Functions
 
-// rendering.cpp
+// flags.cpp
+uint64_t	flagHandler(int argc, char **argv);
 
-void	Rendering(Window &window);
+// rendering.cpp
+void	Rendering(Window &window, const uint64_t &seed);
 
 // events.cpp
-
 void	handleEvents(GameData &gameData);
 
 // utils.cpp
-
+void	printControls();
 void	printVerbose(const string &message);
 

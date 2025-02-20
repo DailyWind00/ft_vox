@@ -1,17 +1,13 @@
 #include "config.hpp"
 
-static void	lightingPass(const GeoFrameBuffers &gBuffer, GLuint &renderQuadVAO)
-{
-	// Clear the FrameBuffer
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	
+static void	lightingPass(const GeoFrameBuffers &gBuffer, GLuint &renderQuadVAO) {
 	// Binding the gBuffer textures
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, gBuffer.gPosition);
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, gBuffer.gNormal);
-        glActiveTexture(GL_TEXTURE2);
-        glBindTexture(GL_TEXTURE_2D, gBuffer.gColor);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, gBuffer.gPosition);
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, gBuffer.gNormal);
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_2D, gBuffer.gColor);
 
 	// Rendering to the renderQuad
 	glDisable(GL_CULL_FACE);
@@ -23,9 +19,6 @@ static void	lightingPass(const GeoFrameBuffers &gBuffer, GLuint &renderQuadVAO)
 	// Copying the final depth buffer to the default internal framebuffer
 	glBindFramebuffer(GL_READ_FRAMEBUFFER, gBuffer.gBuffer);
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0); // write to default framebuffer
-        // blit to default framebuffer. Note that this may or may not work as the internal formats of both the FBO and default framebuffer have to match.
-        // the internal formats are implementation defined. This works on all of my systems, but if it doesn't on yours you'll likely have to write to the 		
-        // depth buffer in another shader stage (or somehow see to match the default framebuffer's internal format with the FBO's internal format).
 	glBlitFramebuffer(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
@@ -54,29 +47,24 @@ static void program_loop(GameData &gameData)
 			//-{currCPos.x + 3, currCPos.y + 3, currCPos.z + 3});
 	}
 
-	// clear the Depth and color buffer
-	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);	
-	
-	// Voxel Geometrie Pass
-	shaders.use(shaders[1]);	// Use the Voxel Geometrie Pass Shader
+	// Voxel Geometrie
+	shaders.use(shaders[1]);
 	GeoFrameBuffers	gBuffer = voxelSystem.draw();
 
-	// deferred rendering lighting Pass
-	shaders.use(shaders[2]);	// Use the Voxel Lighting Pass Shader
+	// Deferred rendering lighting
+	shaders.use(shaders[2]);
 	lightingPass(gBuffer, renderDatas.renderQuadVAO);
 
-	// Skybox drawcall
-	shaders.use(shaders[0]); // Use the Skybox shader
+	// Skybox 
+	shaders.use(shaders[0]);
 	skybox.draw();
 
 	handleEvents(gameData);
-	window.setTitle("ft_vox | FPS: " + std::to_string(window.getFPS()) + " | FrameTime: " + std::to_string(window.getFrameTime()) + "ms");
+	window.setTitle("ft_vox | FPS: " + to_string(window.getFPS()) + " | FrameTime: " + to_string(window.getFrameTime()) + "ms");
 }
 
 // Setup variables and call the program loop
-void	Rendering(Window &window)
-{
+void	Rendering(Window &window, const uint64_t &seed) {
 	// Mouse Parameters
 	if (glfwRawMouseMotionSupported())
 		glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
@@ -95,11 +83,11 @@ void	Rendering(Window &window)
 		(CameraInfo){{0, 0, 0}, {0, 0, 1}, {0, 1, 0}},
 		(ProjectionInfo){FOV, (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, 0.1f, 10000.0f}
 	);
-	VoxelSystem		voxelSystem(1234);
+	VoxelSystem		voxelSystem(seed);
 	voxelSystem.requestChunk({0, 0, 0}, false);
 	voxelSystem.setCamera(&camera);
 	SkyBox			skybox;
-	ShaderHandler	shaders; // Skybox -> Voxels -> UI
+	ShaderHandler	shaders; // Skybox -> Voxels Geometrie -> Voxels Lighting
 	shaders.add_shader("shaders/Skybox_vert.glsl", "shaders/Skybox_frag.glsl"); // Used by default
 	shaders.add_shader("shaders/VoxelGeometrie_vert.glsl", "shaders/VoxelGeometrie_frag.glsl");
 	shaders.add_shader("shaders/VoxelLighting_vert.glsl", "shaders/VoxelLighting_frag.glsl");

@@ -8,9 +8,8 @@ static void	cameraMovement(Window &window, Camera &camera) {
 	vec3	cameraFront = cameraInfo.lookAt - cameraInfo.position;
 	vec3	cameraRight = normalize(cross(cameraFront, cameraInfo.up));
 	cameraFront.y = 0; cameraRight.y = 0; // Remove the Y axis
-	
-	cameraFront = glm::normalize(cameraFront);
-	cameraRight = glm::normalize(cameraRight);
+	cameraFront = normalize(cameraFront);
+	cameraRight = normalize(cameraRight);
 
 	const float camSpeed = (CAMERA_SPEED + (CAMERA_SPRINT_BOOST * (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS))) * window.getFrameTime();
 
@@ -64,11 +63,12 @@ void	handleEvents(GameData &gameData) {
 
 	cameraMovement(window, camera);
 
+	// Skybox Shader parameters
 	float		dayDuration = 200;
 	float		angle = (time / dayDuration) * M_PI;
-	vec3	sunPos = normalize(vec3(cosf(angle), sinf(angle), 0.0f));
+	vec3		sunPos = normalize(vec3(cos(angle), sin(angle), 0.0f));
+	mat4		skyboxView = camera.getProjectionMatrix() * mat4(mat3(camera.getViewMatrix())); // Get rid of the translation part
 
-	mat4 skyboxView = camera.getProjectionMatrix() * mat4(mat3(camera.getViewMatrix())); // Get rid of the translation part
 	shaders.setUniform((*shaders[0])->getID(), "time", time);
 	shaders.setUniform((*shaders[0])->getID(), "camera", skyboxView);
 	shaders.setUniform((*shaders[0])->getID(), "sunPos", sunPos);

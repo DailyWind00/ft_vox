@@ -20,8 +20,8 @@ PMapBufferGL::PMapBufferGL(GLenum type, size_t capacity, GLenum usage)
 }
 
 PMapBufferGL::~PMapBufferGL() {
-    if (_data)
-        glUnmapBuffer(_type);
+	if (_data)
+		glUnmapBuffer(_type);
 
 	if (VERBOSE)
 		std::cout << "Destroyed PMapBufferGL\n";
@@ -107,7 +107,7 @@ const void * PMapBufferGL::getData() const {
 }
 
 // Return the buffer ID
-const GLuint & PMapBufferGL::getBufferID() const {
+const GLuint & PMapBufferGL::getID() const {
     return _id;
 }
 

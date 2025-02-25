@@ -35,12 +35,14 @@ VoxelSystem::VoxelSystem(const uint64_t &seed, Camera &camera) : _camera(camera)
 	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)(3 * sizeof(float)));
 	glEnableVertexAttribArray(2);
 
-	// Create and allocate the VBO with persistent mapping
+	// Create and allocate the OpenGL buffers with persistent mapping
+	GLenum buffersUsage = PERSISTENT_BUFFER_USAGE + GL_MAP_FLUSH_EXPLICIT_BIT;
+
 	size_t maxVerticesPerChunk = (pow(CHUNK_SIZE, 3) / 2 + (CHUNK_SIZE % 2)) * 6; // Worst case scenario
 	size_t VBOcapacity = VERTICALE_RENDER_DISTANCE * pow(HORIZONTALE_RENDER_DISTANCE, 2) * maxVerticesPerChunk * sizeof(DATA_TYPE);
 
 	if (VERBOSE) { cout << "> VBO  : "; }
-	_VBO = new PMapBufferGL(GL_ARRAY_BUFFER, VBOcapacity);
+	_VBO = new PMapBufferGL(GL_ARRAY_BUFFER, VBOcapacity, buffersUsage);
 
 	glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, sizeof(DATA_TYPE), nullptr);
 	glVertexAttribDivisor(1, 1);	
@@ -50,13 +52,13 @@ VoxelSystem::VoxelSystem(const uint64_t &seed, Camera &camera) : _camera(camera)
 	size_t IBcapacity = VERTICALE_RENDER_DISTANCE * pow(HORIZONTALE_RENDER_DISTANCE, 2) * 6 * sizeof(DrawCommand);
 
 	if (VERBOSE) { cout << "> IB   : "; }
-	_IB = new BufferGL(GL_ELEMENT_ARRAY_BUFFER, GL_DYNAMIC_DRAW, IBcapacity);
+	_IB = new PMapBufferGL(GL_DRAW_INDIRECT_BUFFER, IBcapacity, buffersUsage);
 
 	// Create SSBO
 	size_t SSBOcapacity = VERTICALE_RENDER_DISTANCE * pow(HORIZONTALE_RENDER_DISTANCE, 2) * 6 * sizeof(ivec4);
 
 	if (VERBOSE) { cout << "> SSBO : "; }
-	_SSBO = new BufferGL(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, SSBOcapacity);
+	_SSBO = new PMapBufferGL(GL_SHADER_STORAGE_BUFFER, SSBOcapacity, buffersUsage);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _SSBO->getID());
 
 	// Create the G-Buffer
@@ -88,11 +90,12 @@ VoxelSystem::VoxelSystem(const uint64_t &seed, Camera &camera) : _camera(camera)
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, _gBuffer.gColor, 0);
 
 	// Tell OpenGL which color attachments we'll use (of this framebuffer) for rendering
-	unsigned int attachments[3] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1,  GL_COLOR_ATTACHMENT2 };
+	GLuint attachments[3] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1,  GL_COLOR_ATTACHMENT2 };
 	glDrawBuffers(3, attachments);
 
 	// Depth buffer
-	unsigned int rboDepth;
+	GLuint rboDepth;
+
 	glGenRenderbuffers(1, &rboDepth);
 	glBindRenderbuffer(GL_RENDERBUFFER, rboDepth);
 	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, WINDOW_WIDTH, WINDOW_HEIGHT);
@@ -119,39 +122,12 @@ VoxelSystem::~VoxelSystem() {
 	// _meshGenerationThread.join();
 
 	// Delete all chunks
-	for (auto &chunkPair : _chunks)
-		delete chunkPair.second.chunk;
+	for (auto &chunk : _chunks)
+		delete chunk;
 	_chunks.clear();
 	
 	if (VERBOSE)
 		cout << "VoxelSystem destroyed\n";
-}
-/// ---
-
-
-
-/// Private functions
-
-// Update the indirect buffer and resize it if needed
-void	VoxelSystem::_updateIB() {
-	_IB->bind();
-	if (_commands.size() * sizeof(DrawCommand) > _IB->getCapacity()) {
-		size_t newSize = _commands.size() * sizeof(DrawCommand) * BUFFER_GROWTH_FACTOR;
-		_IB->resize(newSize, _commands.data());
-	}
-	else
-		_IB->updateData(_commands.data(), _commands.size() * sizeof(DrawCommand), 0);
-}
-
-// Update the Shader Storage Buffer Object and resize it if needed
-void	VoxelSystem::_updateSSBO() {
-	_SSBO->bind();
-	if (_chunksInfos.size() * sizeof(ivec4) > _SSBO->getCapacity()) {
-		size_t newSize = _chunksInfos.size() * sizeof(ivec4) * BUFFER_GROWTH_FACTOR;
-		_SSBO->resize(newSize, _chunksInfos.data());
-	}
-	else
-		_SSBO->updateData(_chunksInfos.data(), _chunksInfos.size() * sizeof(ivec4), 0);
 }
 /// ---
 

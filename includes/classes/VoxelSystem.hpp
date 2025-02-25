@@ -31,22 +31,14 @@ extern bool VERBOSE;
 using namespace std;
 using namespace glm;
 
-// Data structure of a draw command
+// Data structure of a OpenGL draw command
+// Used for indirect rendering
 typedef struct {
 	GLuint	verticeCount;
 	GLuint	instanceCount;
 	GLuint	offset;
  	GLuint	baseInstance;
 } DrawCommand;
-
-// Data structure for OpenGL buffers (VBO, IB, SSBO)
-typedef struct {
-	vector<AChunk*>			chunk;
-	vector<DATA_TYPE>		vertices; // VBO
-	vector<DrawCommand>		cmd;      // IB[6]
-	vector<ivec4>			worldPos; // SSBO (x, y, z, LOD)
-	vector<atomic<bool>>	isLocked;
-} ChunkData;
 
 // Data structure for the G-Buffer (Geometry pass)
 typedef struct {
@@ -57,23 +49,26 @@ typedef struct {
 } GeoFrameBuffers;
 
 // Class VoxelSystem
-// This class is responsible for managing the voxel system
+// This class is responsible for managing the voxel system 
 // It have 2 child threads: ChunkGeneration & MeshGeneration
 class VoxelSystem {
 	private:
-		ChunkData	_chunks;
-		Camera &	_camera;
+		vector<AChunk*>	_chunks; // ChunkGeneration output
+		Camera &		_camera;
 
-		// OpenGL Buffers
+		// OpenGL variables
 		GLuint			_VAO;
 		GLuint			_textureAtlas;
-
-		BufferGL *		_IB;
-		BufferGL *		_SSBO;
-		PMapBufferGL *	_VBO;
-		size_t			_VBOOffset = 0;
-
 		GeoFrameBuffers	_gBuffer;
+
+		// OpenGL Buffers (MeshGeneration output)
+		PMapBufferGL *	_VBO;
+		PMapBufferGL *	_IB;
+		PMapBufferGL *	_SSBO;
+
+		size_t			_VBO_Offset  = 0;
+		size_t			_IB_Offset   = 0;
+		size_t			_SSBO_Offset = 0;
 
 		// Multi-threading
 		thread	_chunkGenerationThread;
@@ -84,9 +79,6 @@ class VoxelSystem {
 
 		void	_chunkGenerationRoutine();
 		void	_meshGenerationRoutine();
-
-		void	_updateIB();
-		void	_updateSSBO();
 
 	public:
 		VoxelSystem(const uint64_t &seed, Camera &camera); // seed 0 = random seed

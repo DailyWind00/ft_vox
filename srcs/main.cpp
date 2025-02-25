@@ -1,7 +1,7 @@
 #include "config.hpp"
 
-int	main(int argc, char **argv)
-{
+int	main(int argc, char **argv) {
+
 	uint64_t	seed;
 	if (argc > 1)
 		seed = flagHandler(argc, argv);

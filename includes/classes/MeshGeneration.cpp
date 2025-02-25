@@ -4,12 +4,12 @@
 
 // Check if the voxel at the given position is visible
 // Return a bitmask of the visible faces (6 bits : ZzYyXx)
-static uint8_t	isVoxelVisible(const ChunkData &chunk, ChunkData *neightboursChunks[6]) {
+static uint8_t	isVoxelVisible(const ivec3 &Vpos, const ChunkData &chunk, const ChunkData *neightboursChunks[6]) {
 	AChunk *		data = chunk.chunk;
 	const size_t &	LOD = chunk.LOD;
-	const size_t &	x = chunk.Wpos.x;
-	const size_t &	y = chunk.Wpos.y;
-	const size_t &	z = chunk.Wpos.z;
+	const size_t &	x = Vpos.x;
+	const size_t &	y = Vpos.y;
+	const size_t &	z = Vpos.z;
 
 	// Check if the voxel is solid
 	if (!BLOCK_AT(data, x, y, z))
@@ -85,25 +85,59 @@ static uint8_t	isVoxelVisible(const ChunkData &chunk, ChunkData *neightboursChun
 }
 
 // Create/update the mesh of the given chunk and store it in OpenGL buffers
-static void	generateMesh(const ChunkData &chunk, ChunkData *neightboursChunks[6]) {
-	cout << "Generating mesh for chunk at " << chunk.Wpos.x << " " << chunk.Wpos.y << " " << chunk.Wpos.z << endl;
-	// TODO
+static void	generateMesh(const ChunkData &chunk, const ChunkData *neightboursChunks[6]) {
+	// Check if the chunk completely empty
+	if (IS_CHUNK_COMPRESSED(chunk.chunk) && !BLOCK_AT(chunk.chunk, 0, 0, 0))
+		return;
+
+	vector<DATA_TYPE>	vertices[6];
+
+	// Generate vertices for visible faces
+	for (size_t x = 0; x < CHUNK_SIZE; x += 1 * chunk.LOD) {
+		for (size_t y = 0; y < CHUNK_SIZE; y += 1 * chunk.LOD) {
+			if (IS_LAYER_COMPRESSED(chunk.chunk, y) && !BLOCK_AT(chunk.chunk, x, y, 0))
+				continue; // Void layer
+
+			for (size_t z = 0; z < CHUNK_SIZE; z += 1 * chunk.LOD) {
+
+				uint8_t visibleFaces = isVoxelVisible({x, y, z}, chunk, neightboursChunks);
+				if (!visibleFaces)
+					continue;
+
+				// TODO : greedy meshing
+				for (int i = 0; i < 6; i++) {
+					if (visibleFaces & (1 << i)) {\
+						DATA_TYPE data = 0;
+
+						// Encode data
+						data |= (x & 0x1F);     	// 5 bits for x
+						data |= (y & 0x1F) << 5;	// 5 bits for y
+						data |= (z & 0x1F) << 10;	// 5 bits for z
+					
+						data |= (BLOCK_AT(chunk.chunk, x, y, z) & 0x7F) << 15;	// 7 bits for block ID
+
+						vertices[i].push_back(data);
+					}
+				}
+			}
+		}
+	}
 }
 
 // Delete a chunk and its mesh
-static void	deleteChunk(const ChunkData &chunk, ChunkData *neightboursChunks[6]) {
+static void	deleteChunk(const ChunkData &chunk, const ChunkData *neightboursChunks[6]) {
 	cout << "Deleting chunk at " << chunk.Wpos.x << " " << chunk.Wpos.y << " " << chunk.Wpos.z << endl;
 	// TODO
 }
 
 // Load a chunk (add the drawcall to the batched rendering)
-static void	loadChunk(const ChunkData &chunk, ChunkData *neightboursChunks[6]) {
+static void	loadChunk(const ChunkData &chunk, const ChunkData *neightboursChunks[6]) {
 	cout << "Loading chunk at " << chunk.Wpos.x << " " << chunk.Wpos.y << " " << chunk.Wpos.z << endl;
 	// TODO
 }
 
 // Unload a chunk (remove the drawcall from the batched rendering)
-static void	unloadChunk(const ChunkData &chunk, ChunkData *neightboursChunks[6]) {
+static void	unloadChunk(const ChunkData &chunk, const ChunkData *neightboursChunks[6]) {
 	cout << "Unloading chunk at " << chunk.Wpos.x << " " << chunk.Wpos.y << " " << chunk.Wpos.z << endl;
 	// TODO
 }

@@ -83,8 +83,27 @@ static uint8_t	isVoxelVisible(const glm::ivec3 &wPos, AChunk *data, AChunk *neig
 }
 
 // Create/update the mesh of the given chunk and store it in OpenGL buffers
-static void	genMesh(const ChunkData &chunk) {
-	cout << "Generating mesh for chunk at " << chunk.Wpos.x << " " << chunk.Wpos.y << " " << chunk.Wpos.z << " with LOD " << chunk.LOD << endl;
+static void	generateMesh(const ChunkData &chunk) {
+	cout << "Generating mesh for chunk at " << chunk.Wpos.x << " " << chunk.Wpos.y << " " << chunk.Wpos.z << endl;
+	// TODO
+}
+
+// Delete a chunk and its mesh
+static void	deleteChunk(const ChunkData &chunk) {
+	cout << "Deleting chunk at " << chunk.Wpos.x << " " << chunk.Wpos.y << " " << chunk.Wpos.z << endl;
+	// TODO
+}
+
+// Load a chunk (add the drawcall to the batched rendering)
+static void	loadChunk(const ChunkData &chunk) {
+	cout << "Loading chunk at " << chunk.Wpos.x << " " << chunk.Wpos.y << " " << chunk.Wpos.z << endl;
+	// TODO
+}
+
+// Unload a chunk (remove the drawcall from the batched rendering)
+static void	unloadChunk(const ChunkData &chunk) {
+	cout << "Unloading chunk at " << chunk.Wpos.x << " " << chunk.Wpos.y << " " << chunk.Wpos.z << endl;
+	// TODO
 }
 /// ---
 
@@ -110,7 +129,8 @@ void	VoxelSystem::_meshGenerationRoutine() {
 		_chunksMutex.lock();
 
 		int batchCount = 0;
-		for (ivec3 Wpos : _requestedMeshes) {
+		for (MeshRequest request : _requestedMeshes) {
+			ivec3	Wpos = request.first;
 
 			// Calculate the LOD of the chunk
 			const vec3 &camPos = _camera.getCameraInfo().position;
@@ -120,8 +140,14 @@ void	VoxelSystem::_meshGenerationRoutine() {
 			_chunks[Wpos].LOD = LOD;
 			ChunkData data = _chunks[Wpos];
 
-			genMesh(data);
-
+			// Execute the requested action on the chunk mesh
+			switch (request.second) {
+				case ChunkAction::CREATE_UPDATE: generateMesh(data); break;
+				case ChunkAction::DELETE: deleteChunk(data); break;
+				case ChunkAction::LOAD:   loadChunk(data);   break;
+				case ChunkAction::UNLOAD: unloadChunk(data); break;
+			}
+			
 			batchCount++;
 			if (batchCount >= BATCH_LIMIT)
 				break;
@@ -145,7 +171,7 @@ void	VoxelSystem::_meshGenerationRoutine() {
 
 // Request the update of a chunk mesh
 // If a mesh is requested without a chunk, the chunk will be requested instead
-void	VoxelSystem::requestMeshUpdate(const vector<ivec3> &Wpositions) {
+void	VoxelSystem::requestMeshUpdate(const vector<ivec3> &Wpositions, const ChunkAction &action) {
 	if (!Wpositions.size())
 		return;
 
@@ -157,8 +183,8 @@ void	VoxelSystem::requestMeshUpdate(const vector<ivec3> &Wpositions) {
 		if (!_chunks.count(pos))
 			chunkRequests.push_back(pos);
 
-		else if (find(_requestedMeshes.begin(), _requestedMeshes.end(), pos) == _requestedMeshes.end())
-			_requestedMeshes.push_back(pos);
+		else if (find(_requestedMeshes.begin(), _requestedMeshes.end(), MeshRequest{pos, action}) == _requestedMeshes.end())
+			_requestedMeshes.push_back({pos, action});
 	}
 
 	_requestedMeshesMutex.unlock();

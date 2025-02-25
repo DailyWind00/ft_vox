@@ -24,7 +24,7 @@ void VoxelSystem::_chunkGenerationRoutine() {
 			if (_chunks.count(pos))
 				continue;
 
-			generatedChunks[pos] = {ChunkHandler::createChunk(pos), MIN_LOD, pos};
+			generatedChunks[pos] = {ChunkHandler::createChunk(pos), 0, pos};
 
 			batchCount++;
 			if (batchCount >= BATCH_LIMIT)
@@ -37,7 +37,7 @@ void VoxelSystem::_chunkGenerationRoutine() {
 
 		for (auto &chunk : generatedChunks) {
 			_chunks[chunk.first] = chunk.second;
-			_requestedMeshes.push_back(chunk.first);
+			_requestedMeshes.push_back({chunk.first, ChunkAction::CREATE_UPDATE});
 		}
 
 		_requestedMeshesMutex.unlock();
@@ -59,7 +59,7 @@ void VoxelSystem::_chunkGenerationRoutine() {
 /// Public functions
 
 // Request the generation of a chunk
-// A finished chunk will also request a mesh update
+// A finished chunk will also request a mesh creation
 void	VoxelSystem::requestChunk(const vector<ivec3> &Wpositions) {
 	if (!Wpositions.size())
 		return;

@@ -52,12 +52,22 @@ typedef struct {
 	GLuint	gColor;
 } GeoFrameBuffers;
 
+// Data structure for CPU-side chunk data management
 typedef struct {
 	AChunk *	chunk;
 	size_t		LOD;
 	ivec3		Wpos;
 } ChunkData;
-typedef unordered_map<ivec3, ChunkData> ChunkMap; // Wpos -> Chunk
+typedef unordered_map<ivec3, ChunkData> ChunkMap; // Wpos -> ChunkData
+
+// Interface for mesh modifications
+enum ChunkAction {
+	CREATE_UPDATE,
+	DELETE,
+	LOAD,
+	UNLOAD
+};
+typedef pair<ivec3, ChunkAction> MeshRequest; // Wpos, Action
 
 // Class VoxelSystem
 // This class is responsible for managing the voxel system 
@@ -86,8 +96,8 @@ class VoxelSystem {
 		thread	_meshGenerationThread;
 		bool	_quitting = false;
 
-		vector<ivec3>	_requestedChunks;
-		vector<ivec3>	_requestedMeshes;
+		vector<ivec3>		_requestedChunks; // Wpos
+		vector<MeshRequest>	_requestedMeshes; // Wpos, Action
 
 		mutex	_requestedChunksMutex;
 		mutex	_requestedMeshesMutex;
@@ -105,7 +115,7 @@ class VoxelSystem {
 		/// Public functions
 
 		void	requestChunk(const vector<ivec3> &Wpositions);
-		void	requestMeshUpdate(const vector<ivec3> &Wpositions);
+		void	requestMeshUpdate(const vector<ivec3> &Wpositions, const ChunkAction &action);
 
 		const GeoFrameBuffers &	draw();
 

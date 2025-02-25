@@ -18,27 +18,30 @@ void VoxelSystem::_chunkGenerationRoutine() {
 
 		// Generate chunks up to the batch limit
 		int batchCount = 0;
-		_chunksMutex.lock();
-
+		ChunkMap generatedChunks;
+		
 		for (ivec3 pos : _requestedChunks) {
 			if (_chunks.count(pos))
 				continue;
 
-			_chunks[pos] = ChunkHandler::createChunk(pos);
-
-			_requestedMeshes.push_back(pos);
+			generatedChunks[pos] = {ChunkHandler::createChunk(pos), MIN_LOD, pos};
 
 			batchCount++;
 			if (batchCount >= BATCH_LIMIT)
 				break;
 		}
 		
-		_chunksMutex.unlock();
-
-		// Add the generated chunks to the requested meshes list
+		// Add the generated chunks to the ChunkMap and request their meshes
+		_chunksMutex.lock();
 		_requestedMeshesMutex.lock();
-		_requestedMeshes.insert(_requestedMeshes.end(), _requestedChunks.begin(), _requestedChunks.begin() + batchCount);
+
+		for (auto &chunk : generatedChunks) {
+			_chunks[chunk.first] = chunk.second;
+			_requestedMeshes.push_back(chunk.first);
+		}
+
 		_requestedMeshesMutex.unlock();
+		_chunksMutex.unlock();
 
 		// Remove the generated chunks from the requested list
 		_requestedChunks.erase(_requestedChunks.begin(), _requestedChunks.begin() + batchCount);

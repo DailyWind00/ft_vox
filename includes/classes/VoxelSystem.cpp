@@ -6,6 +6,7 @@ VoxelSystem::VoxelSystem(const uint64_t &seed, Camera &camera) : _camera(camera)
 	if (VERBOSE)
 		cout << "Creating VoxelSystem\n";
 
+	// Set the seed of the noise generator
 	if (!seed) {
 		srand(time(nullptr));
 		Noise::setSeed(rand());
@@ -39,7 +40,7 @@ VoxelSystem::VoxelSystem(const uint64_t &seed, Camera &camera) : _camera(camera)
 	GLenum buffersUsage = PERSISTENT_BUFFER_USAGE + GL_MAP_FLUSH_EXPLICIT_BIT;
 
 	size_t maxVerticesPerChunk = (pow(CHUNK_SIZE, 3) / 2 + (CHUNK_SIZE % 2)) * 6; // Worst case scenario
-	size_t VBOcapacity = VERTICALE_RENDER_DISTANCE * pow(HORIZONTALE_RENDER_DISTANCE, 2) * maxVerticesPerChunk * sizeof(DATA_TYPE);
+	size_t VBOcapacity = VERTICAL_RENDER_DISTANCE * pow(HORIZONTAL_RENDER_DISTANCE, 2) * maxVerticesPerChunk * sizeof(DATA_TYPE);
 
 	if (VERBOSE) { cout << "> VBO  : "; }
 	_VBO = new PMapBufferGL(GL_ARRAY_BUFFER, VBOcapacity, buffersUsage);
@@ -49,13 +50,13 @@ VoxelSystem::VoxelSystem(const uint64_t &seed, Camera &camera) : _camera(camera)
 	glEnableVertexAttribArray(1);
 
 	// Create IB
-	size_t IBcapacity = VERTICALE_RENDER_DISTANCE * pow(HORIZONTALE_RENDER_DISTANCE, 2) * 6 * sizeof(DrawCommand);
+	size_t IBcapacity = VERTICAL_RENDER_DISTANCE * pow(HORIZONTAL_RENDER_DISTANCE, 2) * 6 * sizeof(DrawCommand);
 
 	if (VERBOSE) { cout << "> IB   : "; }
 	_IB = new PMapBufferGL(GL_DRAW_INDIRECT_BUFFER, IBcapacity, buffersUsage);
 
 	// Create SSBO
-	size_t SSBOcapacity = VERTICALE_RENDER_DISTANCE * pow(HORIZONTALE_RENDER_DISTANCE, 2) * 6 * sizeof(ivec4);
+	size_t SSBOcapacity = VERTICAL_RENDER_DISTANCE * pow(HORIZONTAL_RENDER_DISTANCE, 2) * 6 * sizeof(ivec4);
 
 	if (VERBOSE) { cout << "> SSBO : "; }
 	_SSBO = new PMapBufferGL(GL_SHADER_STORAGE_BUFFER, SSBOcapacity, buffersUsage);
@@ -107,11 +108,11 @@ VoxelSystem::VoxelSystem(const uint64_t &seed, Camera &camera) : _camera(camera)
 	_chunkGenerationThread = thread(&VoxelSystem::_chunkGenerationRoutine, this);
 	_meshGenerationThread = thread(&VoxelSystem::_meshGenerationRoutine, this);
 
-	// to remove
+	// Request the chunks around the camera
 	vector<ivec3>	positions;
-	for (int i = -10; i < 10; i++)
-		for (int j = -5; j < 5; j++)
-			for (int k = -10; k < 10; k++)
+	for (int i = -HORIZONTAL_RENDER_DISTANCE + 1; i <= HORIZONTAL_RENDER_DISTANCE - 1; i++)
+		for (int j = -VERTICAL_RENDER_DISTANCE + 1; j <= VERTICAL_RENDER_DISTANCE - 1; j++)
+			for (int k = -HORIZONTAL_RENDER_DISTANCE + 1; k <= HORIZONTAL_RENDER_DISTANCE - 1; k++)
 				positions.push_back(ivec3{i, j, k});
 
 	requestChunk(positions);
@@ -134,7 +135,7 @@ VoxelSystem::~VoxelSystem() {
 
 	// Delete all chunks
 	for (auto &chunk : _chunks)
-		delete chunk.second;
+		delete chunk.second.chunk;
 
 	_chunks.clear();
 	

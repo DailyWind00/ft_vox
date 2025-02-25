@@ -4,11 +4,13 @@
 # define GLM_ENABLE_EXPERIMENTAL
 # define DATA_TYPE uint32_t
 # define CHUNK_SIZE 32
-# define HORIZONTALE_RENDER_DISTANCE 30
-# define VERTICALE_RENDER_DISTANCE 12
+# define HORIZONTAL_RENDER_DISTANCE 2
+# define VERTICAL_RENDER_DISTANCE 1
 # define BUFFER_GROWTH_FACTOR 1.5f
-# define BATCH_LIMIT 5
-# define THREAD_SLEEP_DURATION 1000
+# define BATCH_LIMIT 100
+# define THREAD_SLEEP_DURATION 10 // in ms
+# define MIN_LOD (size_t)4
+# define MAX_LOD (size_t)1
 
 /// System includes
 # include <iostream>
@@ -50,7 +52,12 @@ typedef struct {
 	GLuint	gColor;
 } GeoFrameBuffers;
 
-typedef unordered_map<ivec3, AChunk *> ChunkMap; // Wpos -> Chunk
+typedef struct {
+	AChunk *	chunk;
+	size_t		LOD;
+	ivec3		Wpos;
+} ChunkData;
+typedef unordered_map<ivec3, ChunkData> ChunkMap; // Wpos -> Chunk
 
 // Class VoxelSystem
 // This class is responsible for managing the voxel system 

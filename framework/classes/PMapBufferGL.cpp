@@ -45,6 +45,12 @@ void PMapBufferGL::unbind() {
 // Flush the buffer (need GL_MAP_FLUSH_EXPLICIT_BIT flag)
 // If length is 0, the whole buffer is flushed from the offset
 void PMapBufferGL::flush(size_t offset, size_t length) const {
+	if (!(_usage & GL_MAP_FLUSH_EXPLICIT_BIT))
+		throw std::runtime_error("PMapBufferGL: Buffer not created with GL_MAP_FLUSH_EXPLICIT_BIT flag");
+
+	if (offset >= _capacity)
+		return;
+
 	if (!length || offset + length > _capacity)
 		length = _capacity - offset;
 

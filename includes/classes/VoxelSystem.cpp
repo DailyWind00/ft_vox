@@ -150,6 +150,8 @@ VoxelSystem::~VoxelSystem() {
 
 // Draw all chunks using batched rendering
 const GeoFrameBuffers	&VoxelSystem::draw() {
+	// Update OpenGL buffers
+	glMemoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT);
 
 	// Bind the gBuffer
 	glBindFramebuffer(GL_FRAMEBUFFER, _gBuffer.gBuffer);
@@ -173,7 +175,6 @@ const GeoFrameBuffers	&VoxelSystem::draw() {
 
 	return _gBuffer;
 }
-
 /// ---
 
 

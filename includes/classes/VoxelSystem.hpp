@@ -6,7 +6,7 @@
 # define CHUNK_SIZE 32
 # define HORIZONTAL_RENDER_DISTANCE 2
 # define VERTICAL_RENDER_DISTANCE 1
-# define BUFFER_GROWTH_FACTOR 1.5f
+# define BUFFER_GROWTH_FACTOR 2
 # define BATCH_LIMIT 100
 # define THREAD_SLEEP_DURATION 10 // in ms
 # define MIN_LOD (size_t)4
@@ -107,6 +107,11 @@ class VoxelSystem {
 
 		void	_chunkGenerationRoutine();
 		void	_meshGenerationRoutine();
+
+		void	_generateMesh(const ChunkData &chunk, ChunkData *neightboursChunks[6]);
+		void	_deleteChunk (const ChunkData &chunk, ChunkData *neightboursChunks[6]);
+		void	_loadMesh    (const ChunkData &chunk, ChunkData *neightboursChunks[6]);
+		void	_unloadMesh  (const ChunkData &chunk, ChunkData *neightboursChunks[6]);
 
 	public:
 		VoxelSystem(const uint64_t &seed, Camera &camera); // seed 0 = random seed

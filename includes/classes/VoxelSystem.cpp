@@ -39,7 +39,7 @@ VoxelSystem::VoxelSystem(const uint64_t &seed, Camera &camera) : _camera(camera)
 	// Create and allocate the OpenGL buffers with persistent mapping
 	GLenum buffersUsage = PERSISTENT_BUFFER_USAGE + GL_MAP_FLUSH_EXPLICIT_BIT;
 
-	size_t maxVerticesPerChunk = (pow(CHUNK_SIZE, 3) / 2 + (CHUNK_SIZE % 2)) * 6; // Worst case scenario
+	size_t maxVerticesPerChunk = pow(CHUNK_SIZE, 3) * 6; // Worst case scenario
 	size_t VBOcapacity = VERTICAL_RENDER_DISTANCE * pow(HORIZONTAL_RENDER_DISTANCE, 2) * maxVerticesPerChunk * sizeof(DATA_TYPE);
 
 	if (VERBOSE) { cout << "> VBO  : "; }
@@ -56,7 +56,7 @@ VoxelSystem::VoxelSystem(const uint64_t &seed, Camera &camera) : _camera(camera)
 	_IB = new PMapBufferGL(GL_DRAW_INDIRECT_BUFFER, IBcapacity, buffersUsage);
 
 	// Create SSBO
-	size_t SSBOcapacity = VERTICAL_RENDER_DISTANCE * pow(HORIZONTAL_RENDER_DISTANCE, 2) * 6 * sizeof(ivec4);
+	size_t SSBOcapacity = VERTICAL_RENDER_DISTANCE * pow(HORIZONTAL_RENDER_DISTANCE, 2) * sizeof(ivec4);
 
 	if (VERBOSE) { cout << "> SSBO : "; }
 	_SSBO = new PMapBufferGL(GL_SHADER_STORAGE_BUFFER, SSBOcapacity, buffersUsage);

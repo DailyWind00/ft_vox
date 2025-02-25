@@ -1,5 +1,5 @@
 #include "VoxelSystem.hpp"
-#include "config.hpp"
+#include "config.hpp" // Get the window size
 
 /// Constructors & Destructors
 VoxelSystem::VoxelSystem(const uint64_t &seed, Camera &camera) : _camera(camera) {
@@ -104,8 +104,18 @@ VoxelSystem::VoxelSystem(const uint64_t &seed, Camera &camera) : _camera(camera)
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	// Create the threads
-	// _chunkGenerationThread = thread(&VoxelSystem::_chunkGenerationRoutine, this);
-	// _meshGenerationThread = thread(&VoxelSystem::_meshGenerationRoutine, this);
+	_chunkGenerationThread = thread(&VoxelSystem::_chunkGenerationRoutine, this);
+	_meshGenerationThread = thread(&VoxelSystem::_meshGenerationRoutine, this);
+
+	// to remove
+	vector<ivec3>	positions;
+	for (int i = -10; i < 10; i++)
+		for (int j = -5; j < 5; j++)
+			for (int k = -10; k < 10; k++)
+				positions.push_back(ivec3{i, j, k});
+
+	requestChunk(positions);
+	// --
 
 	if (VERBOSE)
 		cout << "VoxelSystem initialized\n";
@@ -114,16 +124,18 @@ VoxelSystem::VoxelSystem(const uint64_t &seed, Camera &camera) : _camera(camera)
 VoxelSystem::~VoxelSystem() {
 	delete _VBO;
 	delete _IB;
+	delete _SSBO;
 	glDeleteVertexArrays(1, &_VAO);
 
 	// waiting for threads to finish
 	_quitting = true;
-	// _chunkGenerationThread.join();
-	// _meshGenerationThread.join();
+	_chunkGenerationThread.join();
+	_meshGenerationThread.join();
 
 	// Delete all chunks
 	for (auto &chunk : _chunks)
-		delete chunk;
+		delete chunk.second;
+
 	_chunks.clear();
 	
 	if (VERBOSE)
@@ -137,18 +149,12 @@ VoxelSystem::~VoxelSystem() {
 
 // Draw all chunks using batched rendering
 const GeoFrameBuffers	&VoxelSystem::draw() {
-	// if (updatingBuffers) {
-	// 	updateDrawCommands();
-	// 	updateIB();
-	// 	updateSSBO();
-	// 	updatingBuffers = false;
-	// }
 
-	// Binding the gBuffer
+	// Bind the gBuffer
 	glBindFramebuffer(GL_FRAMEBUFFER, _gBuffer.gBuffer);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	
-	// World DrawCall
+	// Setup OpenGL drawing
 	glBindVertexArray(_VAO);
 	_VBO->bind();
 	_IB->bind();
@@ -156,7 +162,7 @@ const GeoFrameBuffers	&VoxelSystem::draw() {
 
 	glBindTexture(GL_TEXTURE_2D, _textureAtlas);
 
-	glMultiDrawArraysIndirect(GL_TRIANGLE_STRIP, nullptr, _chunks.size() * 6, sizeof(DrawCommand));
+	glMultiDrawArraysIndirect(GL_TRIANGLE_STRIP, nullptr, _IB->getCapacity(), sizeof(DrawCommand));
 
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 	glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);

@@ -7,14 +7,16 @@
 # define HORIZONTALE_RENDER_DISTANCE 30
 # define VERTICALE_RENDER_DISTANCE 12
 # define BUFFER_GROWTH_FACTOR 1.5f
+# define BATCH_LIMIT 5
+# define THREAD_SLEEP_DURATION 1000
 
 /// System includes
 # include <iostream>
+# include <algorithm>
 # include <unordered_map>
 # include <vector>
 # include <thread>
 # include <mutex>
-# include <atomic>
 
 /// Dependencies
 # include <glad/glad.h>
@@ -48,13 +50,15 @@ typedef struct {
 	GLuint	gColor;
 } GeoFrameBuffers;
 
+typedef unordered_map<ivec3, AChunk *> ChunkMap; // Wpos -> Chunk
+
 // Class VoxelSystem
 // This class is responsible for managing the voxel system 
 // It have 2 child threads: ChunkGeneration & MeshGeneration
 class VoxelSystem {
 	private:
-		vector<AChunk*>	_chunks; // ChunkGeneration output
-		Camera &		_camera;
+		ChunkMap	_chunks; // ChunkGeneration output
+		Camera &	_camera;
 
 		// OpenGL variables
 		GLuint			_VAO;
@@ -66,14 +70,21 @@ class VoxelSystem {
 		PMapBufferGL *	_IB;
 		PMapBufferGL *	_SSBO;
 
-		size_t			_VBO_Offset  = 0;
-		size_t			_IB_Offset   = 0;
-		size_t			_SSBO_Offset = 0;
+		size_t	_VBO_Offset  = 0;
+		size_t	_IB_Offset   = 0;
+		size_t	_SSBO_Offset = 0;
 
 		// Multi-threading
 		thread	_chunkGenerationThread;
 		thread	_meshGenerationThread;
 		bool	_quitting = false;
+
+		vector<ivec3>	_requestedChunks;
+		vector<ivec3>	_requestedMeshes;
+
+		mutex	_requestedChunksMutex;
+		mutex	_requestedMeshesMutex;
+		mutex	_chunksMutex;
 
 		/// Private functions
 
@@ -85,6 +96,9 @@ class VoxelSystem {
 		~VoxelSystem();
 
 		/// Public functions
+
+		void	requestChunk(const vector<ivec3> &Wpositions);
+		void	requestMeshUpdate(const vector<ivec3> &Wpositions);
 
 		const GeoFrameBuffers &	draw();
 

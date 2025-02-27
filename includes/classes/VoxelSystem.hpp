@@ -4,8 +4,8 @@
 # define GLM_ENABLE_EXPERIMENTAL
 # define DATA_TYPE uint32_t
 # define CHUNK_SIZE 32
-# define HORIZONTAL_RENDER_DISTANCE 2
-# define VERTICAL_RENDER_DISTANCE 1
+# define HORIZONTAL_RENDER_DISTANCE 20
+# define VERTICAL_RENDER_DISTANCE 10
 # define BUFFER_GROWTH_FACTOR 2
 # define BATCH_LIMIT 100
 # define THREAD_SLEEP_DURATION 10 // in ms
@@ -19,6 +19,7 @@
 # include <vector>
 # include <thread>
 # include <mutex>
+# include <atomic>
 
 /// Dependencies
 # include <glad/glad.h>
@@ -61,7 +62,7 @@ typedef struct {
 typedef unordered_map<ivec3, ChunkData> ChunkMap; // Wpos -> ChunkData
 
 // Interface for mesh modifications
-enum ChunkAction {
+enum class ChunkAction {
 	CREATE_UPDATE,
 	DELETE,
 	LOAD,
@@ -69,7 +70,6 @@ enum ChunkAction {
 };
 typedef pair<ivec3, ChunkAction> MeshRequest; // Wpos, Action
 
-// Class VoxelSystem
 // This class is responsible for managing the voxel system 
 // It have 2 child threads: ChunkGeneration & MeshGeneration
 class VoxelSystem {
@@ -90,6 +90,8 @@ class VoxelSystem {
 		size_t	_VBO_Offset  = 0;
 		size_t	_IB_Offset   = 0;
 		size_t	_SSBO_Offset = 0;
+
+		atomic<size_t>	_drawCount;
 
 		// Multi-threading
 		thread	_chunkGenerationThread;

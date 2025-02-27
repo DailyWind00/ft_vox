@@ -183,6 +183,9 @@ void	VoxelSystem::_generateMesh(const ChunkData &chunk, ChunkData *neightboursCh
 					
 						data |= (BLOCK_AT(chunk.chunk, x, y, z) & 0x7F) << 15;	// 7 bits for block ID
 
+						data |= (1 & 0x1F) << 22;	// 5 bits for length
+						data |= (1 & 0x1F) << 27;	// 5 bits for length
+
 						vertices[i].push_back(data);
 					}
 				}
@@ -190,56 +193,65 @@ void	VoxelSystem::_generateMesh(const ChunkData &chunk, ChunkData *neightboursCh
 		}
 	}
 
+	size_t baseOffsets[3] = {_VBO_Offset, _IB_Offset, _SSBO_Offset};
+
 	// Write the mesh in OpenGL buffers (dark magic)
 	for (int i = 0; i < 6; i++) {
-		if (vertices[i].size()) {
+		if (!vertices[i].size())
+			continue;
 
-			// VBO
-			if (_VBO_Offset + vertices[i].size() * sizeof(DATA_TYPE) > _VBO->getCapacity())
-				_VBO->reallocate(_VBO->getCapacity() * BUFFER_GROWTH_FACTOR);
+		// VBO
+		if (_VBO_Offset + vertices[i].size() * sizeof(DATA_TYPE) > _VBO->getCapacity())
+			_VBO->reallocate(_VBO->getCapacity() * BUFFER_GROWTH_FACTOR);
 
-			_VBO->write(vertices[i].data(), vertices[i].size() * sizeof(DATA_TYPE), _VBO_Offset);
-			_VBO->flush(_VBO_Offset, vertices[i].size() * sizeof(DATA_TYPE));
+		_VBO->write(vertices[i].data(), vertices[i].size() * sizeof(DATA_TYPE), _VBO_Offset);
 
-			// IB
-			if (_IB_Offset + sizeof(DrawCommand) > _IB->getCapacity())
-				_IB->reallocate(_IB->getCapacity() * BUFFER_GROWTH_FACTOR);
+		// IB
+		if (_IB_Offset + sizeof(DrawCommand) > _IB->getCapacity())
+			_IB->reallocate(_IB->getCapacity() * BUFFER_GROWTH_FACTOR);
 
-			DrawCommand	cmd = {4, (GLuint)vertices[i].size(), 0, (GLuint)_VBO_Offset};
-			_IB->write(&cmd, sizeof(DrawCommand), _IB_Offset);
-			_IB->flush(_IB_Offset, sizeof(DrawCommand));
+		DrawCommand	cmd = {4, (GLuint)vertices[i].size(), 0, (GLuint)_VBO_Offset};
+		_IB->write(&cmd, sizeof(DrawCommand), _IB_Offset);
 
-			_VBO_Offset += vertices[i].size() * sizeof(DATA_TYPE);
-			_IB_Offset  += sizeof(DrawCommand);
-		}
+		// SSBO
+		if (_SSBO_Offset + sizeof(ivec4) > _SSBO->getCapacity())
+			_SSBO->reallocate(_SSBO->getCapacity() * BUFFER_GROWTH_FACTOR);
+
+		ivec4	WposLOD = {chunk.Wpos, chunk.LOD};
+		_SSBO->write(&WposLOD, sizeof(ivec4), _SSBO_Offset);
+
+		_VBO_Offset  += vertices[i].size() * sizeof(DATA_TYPE);
+		_IB_Offset   += sizeof(DrawCommand);
+		_SSBO_Offset += sizeof(ivec4);
+
+		_drawCount++;
 	}
-	// SSBO
-	if (_SSBO_Offset + sizeof(ivec4) > _SSBO->getCapacity())
-		_SSBO->reallocate(_SSBO->getCapacity() * BUFFER_GROWTH_FACTOR);
 
-	ivec4	WposLOD = {chunk.Wpos, chunk.LOD};
-	_SSBO->write(&WposLOD, sizeof(ivec4), _SSBO_Offset);
-	_SSBO->flush(_SSBO_Offset, sizeof(ivec4));
-
-	_SSBO_Offset += sizeof(ivec4);
+	// Flush all buffers
+	_VBO->flush(baseOffsets[0], _VBO_Offset - baseOffsets[0]);
+	_IB->flush(baseOffsets[1], _IB_Offset - baseOffsets[1]);
+	_SSBO->flush(baseOffsets[2], _SSBO_Offset - baseOffsets[2]);
 }
 
 // Delete a chunk and its mesh
 void	VoxelSystem::_deleteChunk(const ChunkData &chunk, ChunkData *neightboursChunks[6]) {
 	cout << "Deleting chunk at " << chunk.Wpos.x << " " << chunk.Wpos.y << " " << chunk.Wpos.z << endl;
 	// TODO
+	(void)neightboursChunks;
 }
 
 // Load a chunk (add the drawcall to the batched rendering)
 void	VoxelSystem::_loadMesh(const ChunkData &chunk, ChunkData *neightboursChunks[6]) {
 	cout << "Loading chunk at " << chunk.Wpos.x << " " << chunk.Wpos.y << " " << chunk.Wpos.z << endl;
 	// TODO
+	(void)neightboursChunks;
 }
 
 // Unload a chunk (remove the drawcall from the batched rendering)
 void	VoxelSystem::_unloadMesh(const ChunkData &chunk, ChunkData *neightboursChunks[6]) {
 	cout << "Unloading chunk at " << chunk.Wpos.x << " " << chunk.Wpos.y << " " << chunk.Wpos.z << endl;
 	// TODO
+	(void)neightboursChunks;
 }
 /// ---
 

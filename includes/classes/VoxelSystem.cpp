@@ -19,12 +19,13 @@ VoxelSystem::VoxelSystem(const uint64_t &seed, Camera &camera) : _camera(camera)
 	glBindVertexArray(_VAO);
 
 	// Default QuadVBO
-	unsigned int	quadVBO = 0;
-	float	quadVert[] = {
-		0, 1, 0, 0, 0,
-		0, 1, 1, 0, 1,
-		1, 1, 0, 1, 0,
-		1, 1, 1, 1, 1
+	GLuint	quadVBO = 0;
+	GLfloat	quadVert[] = {
+	//  positions   textures
+		0, 1, 0,    0, 0,
+		0, 1, 1,    0, 1,
+		1, 1, 0,    1, 0,
+		1, 1, 1,    1, 1
 	};
 
 	glGenBuffers(1, &quadVBO);
@@ -37,7 +38,7 @@ VoxelSystem::VoxelSystem(const uint64_t &seed, Camera &camera) : _camera(camera)
 	glEnableVertexAttribArray(2);
 
 	// Create and allocate the OpenGL buffers with persistent mapping
-	GLenum buffersUsage = PERSISTENT_BUFFER_USAGE + GL_MAP_FLUSH_EXPLICIT_BIT;
+	GLenum buffersUsage = PERSISTENT_BUFFER_USAGE | GL_MAP_FLUSH_EXPLICIT_BIT;
 
 	size_t maxVerticesPerChunk = pow(CHUNK_SIZE, 3) * 6; // Worst case scenario
 	size_t VBOcapacity = VERTICAL_RENDER_DISTANCE * pow(HORIZONTAL_RENDER_DISTANCE, 2) * maxVerticesPerChunk * sizeof(DATA_TYPE);
@@ -61,6 +62,8 @@ VoxelSystem::VoxelSystem(const uint64_t &seed, Camera &camera) : _camera(camera)
 	if (VERBOSE) { cout << "> SSBO : "; }
 	_SSBO = new PMapBufferGL(GL_SHADER_STORAGE_BUFFER, SSBOcapacity, buffersUsage);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _SSBO->getID());
+
+	_drawCount = 0;
 
 	// Create the G-Buffer
 	glGenFramebuffers(1, &_gBuffer.gBuffer);
@@ -151,27 +154,45 @@ VoxelSystem::~VoxelSystem() {
 // Draw all chunks using batched rendering
 const GeoFrameBuffers	&VoxelSystem::draw() {
 	// Update OpenGL buffers
-	glMemoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT);
+	_chunksMutex.lock();
+	glMemoryBarrier(GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT);
 
 	// Bind the gBuffer
 	glBindFramebuffer(GL_FRAMEBUFFER, _gBuffer.gBuffer);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	
+
 	// Setup OpenGL drawing
 	glBindVertexArray(_VAO);
 	_VBO->bind();
 	_IB->bind();
 	_SSBO->bind();
 
+	// to remove
+	// const DrawCommand * ibCommands = static_cast<const DrawCommand *>(_IB->getData());
+
+	// for (int i = 0; i < 3; i++) {
+	// 	cout << "IB[" << i << "] = { "
+	// 		 << "count="         << ibCommands[i].verticeCount  << ", "
+	// 		 << "instanceCount=" << ibCommands[i].instanceCount << ", "
+	// 		 << "firstIndex="    << ibCommands[i].offset        << ", "
+	// 		 << "baseVertex="    << ibCommands[i].baseInstance
+	// 		 << " }" << std::endl;
+	// }
+	// --
+
 	glBindTexture(GL_TEXTURE_2D, _textureAtlas);
 
-	glMultiDrawArraysIndirect(GL_TRIANGLE_STRIP, nullptr, _IB->getCapacity(), sizeof(DrawCommand));
+	cout << "Draw " << _drawCount << " chunks" << endl;
+
+	glMultiDrawArraysIndirect(GL_TRIANGLE_STRIP, nullptr, _drawCount, sizeof(DrawCommand));
 
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 	glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
 	glBindVertexArray(0);
 	
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	_chunksMutex.unlock();
 
 	return _gBuffer;
 }

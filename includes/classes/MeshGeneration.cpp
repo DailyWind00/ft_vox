@@ -180,7 +180,7 @@ void	VoxelSystem::_generateMesh(const ChunkData &chunk, ChunkData *neightboursCh
 						data |= (x & 0x1F);     	// 5 bits for x
 						data |= (y & 0x1F) << 5;	// 5 bits for y
 						data |= (z & 0x1F) << 10;	// 5 bits for z
-					
+
 						data |= (BLOCK_AT(chunk.chunk, x, y, z) & 0x7F) << 15;	// 7 bits for block ID
 
 						data |= (1 & 0x1F) << 22;	// 5 bits for length

@@ -107,6 +107,8 @@ class VoxelSystem {
 
 		/// Private functions
 
+		void	_loadTextureAtlas();
+
 		void	_chunkGenerationRoutine();
 		void	_meshGenerationRoutine();
 

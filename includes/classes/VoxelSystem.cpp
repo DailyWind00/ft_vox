@@ -14,6 +14,10 @@ VoxelSystem::VoxelSystem(const uint64_t &seed, Camera &camera) : _camera(camera)
 	else
 		Noise::setSeed(seed);
 
+	// Load the texture atlas
+	_textureAtlas = 0;
+	_loadTextureAtlas();
+
 	// Create the VAO
 	glGenVertexArrays(1, &_VAO);
 	glBindVertexArray(_VAO);
@@ -113,13 +117,14 @@ VoxelSystem::VoxelSystem(const uint64_t &seed, Camera &camera) : _camera(camera)
 
 	// Request the chunks around the camera
 	vector<ivec3>	positions;
+	positions.reserve(pow(HORIZONTAL_RENDER_DISTANCE * 2 - 1, 2) * (VERTICAL_RENDER_DISTANCE * 2 - 1));
+
 	for (int i = -HORIZONTAL_RENDER_DISTANCE + 1; i <= HORIZONTAL_RENDER_DISTANCE - 1; i++)
 		for (int j = -VERTICAL_RENDER_DISTANCE + 1; j <= VERTICAL_RENDER_DISTANCE - 1; j++)
 			for (int k = -HORIZONTAL_RENDER_DISTANCE + 1; k <= HORIZONTAL_RENDER_DISTANCE - 1; k++)
 				positions.push_back(ivec3{i, j, k});
 
 	requestChunk(positions);
-	// --
 
 	if (VERBOSE)
 		cout << "VoxelSystem initialized\n";
@@ -130,6 +135,14 @@ VoxelSystem::~VoxelSystem() {
 	delete _IB;
 	delete _SSBO;
 	glDeleteVertexArrays(1, &_VAO);
+
+	glDeleteTextures(1, &_gBuffer.gPosition);
+	glDeleteTextures(1, &_gBuffer.gNormal);
+	glDeleteTextures(1, &_gBuffer.gColor);
+	glDeleteFramebuffers(1, &_gBuffer.gBuffer);
+
+	if (_textureAtlas)
+		glDeleteTextures(1, &_textureAtlas);
 
 	// waiting for threads to finish
 	_quitting = true;
@@ -144,6 +157,54 @@ VoxelSystem::~VoxelSystem() {
 	
 	if (VERBOSE)
 		cout << "VoxelSystem destroyed\n";
+}
+/// ---
+
+
+
+/// Private functions
+
+// Load/reload the texture atlas
+void	VoxelSystem::_loadTextureAtlas() {
+	if (VERBOSE)
+		cout << "> Loading texture atlas -> ";
+
+	// Load the texture atlas
+	stbi_set_flip_vertically_on_load(true);
+	int width, height, nrChannels;
+	unsigned char *data = stbi_load("./assets/atlas.png", &width, &height, &nrChannels, 0);
+
+	if (!data || !(nrChannels >= 3 && nrChannels <= 4)) {
+		if (VERBOSE)
+			cout << BRed << "Failed" << ResetColor << endl;
+
+		return;
+	}
+
+	if (_textureAtlas)
+		glDeleteTextures(1, &_textureAtlas);
+
+	// Create the texture
+	glGenTextures(1, &_textureAtlas);
+	glBindTexture(GL_TEXTURE_2D, _textureAtlas);
+
+	if (nrChannels == 3)
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+	else if (nrChannels == 4)
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+
+	glGenerateMipmap(GL_TEXTURE_2D);
+
+	// Set the texture parameters
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	stbi_image_free(data);
+
+	if (VERBOSE)
+		cout << BGreen << "Done" << ResetColor << endl;
 }
 /// ---
 

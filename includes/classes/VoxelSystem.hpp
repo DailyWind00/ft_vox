@@ -39,10 +39,10 @@ using namespace glm;
 // Data structure of a OpenGL draw command
 // Used for indirect rendering
 typedef struct {
-	GLuint	verticeCount;
-	GLuint	instanceCount;
-	GLuint	offset;
- 	GLuint	baseInstance;
+	GLuint	verticeCount  = 0;
+	GLuint	instanceCount = 0;
+	GLuint	offset        = 0;
+ 	GLuint	baseInstance  = 0;
 } DrawCommand;
 
 // Data structure for the G-Buffer (Geometry pass)

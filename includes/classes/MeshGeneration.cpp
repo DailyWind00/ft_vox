@@ -26,7 +26,7 @@ void	VoxelSystem::_meshGenerationRoutine() {
 			// Calculate the LOD of the chunk
 			const vec3 &camPos = _camera.getCameraInfo().position;
 			size_t		dist   = glm::distance(camPos, (vec3)Wpos);
-			size_t		LOD    = glm::clamp(((dist >> 5) + MAX_LOD), MAX_LOD, MIN_LOD); // +1 LOD every 32 chunks
+			size_t		LOD    = glm::min(((dist >> 5) + MAX_LOD), MIN_LOD); // +1 LOD every 32 chunks
 
 			_chunks[Wpos].LOD = LOD;
 			ChunkData data = _chunks[Wpos];
@@ -268,6 +268,9 @@ void	VoxelSystem::requestMeshUpdate(const vector<ivec3> &Wpositions, const Chunk
 	_requestedMeshesMutex.lock();
 
 	vector<ivec3>	chunkRequests;
+
+	chunkRequests.reserve(Wpositions.size());
+	_requestedMeshes.reserve(Wpositions.size());
 
 	for (ivec3 pos : Wpositions) {
 		if (!_chunks.count(pos))

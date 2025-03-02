@@ -153,10 +153,6 @@ VoxelSystem::~VoxelSystem() {
 
 // Draw all chunks using batched rendering
 const GeoFrameBuffers	&VoxelSystem::draw() {
-	// Update OpenGL buffers
-	_chunksMutex.lock();
-	glMemoryBarrier(GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT);
-
 	// Bind the gBuffer
 	glBindFramebuffer(GL_FRAMEBUFFER, _gBuffer.gBuffer);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -167,22 +163,7 @@ const GeoFrameBuffers	&VoxelSystem::draw() {
 	_IB->bind();
 	_SSBO->bind();
 
-	// to remove
-	// const DrawCommand * ibCommands = static_cast<const DrawCommand *>(_IB->getData());
-
-	// for (int i = 0; i < 3; i++) {
-	// 	cout << "IB[" << i << "] = { "
-	// 		 << "count="         << ibCommands[i].verticeCount  << ", "
-	// 		 << "instanceCount=" << ibCommands[i].instanceCount << ", "
-	// 		 << "firstIndex="    << ibCommands[i].offset        << ", "
-	// 		 << "baseVertex="    << ibCommands[i].baseInstance
-	// 		 << " }" << std::endl;
-	// }
-	// --
-
 	glBindTexture(GL_TEXTURE_2D, _textureAtlas);
-
-	cout << "Draw " << _drawCount << " chunks" << endl;
 
 	glMultiDrawArraysIndirect(GL_TRIANGLE_STRIP, nullptr, _drawCount, sizeof(DrawCommand));
 
@@ -191,8 +172,6 @@ const GeoFrameBuffers	&VoxelSystem::draw() {
 	glBindVertexArray(0);
 	
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-	_chunksMutex.unlock();
 
 	return _gBuffer;
 }

@@ -66,6 +66,8 @@ void	VoxelSystem::requestChunk(const vector<ivec3> &Wpositions) {
 
 	_requestedChunksMutex.lock();
 
+	_requestedChunks.reserve(Wpositions.size());
+
 	for (ivec3 pos : Wpositions) {
 		if (_chunks.count(pos) || find(_requestedChunks.begin(), _requestedChunks.end(), pos) == _requestedChunks.end())
 			_requestedChunks.push_back(pos);

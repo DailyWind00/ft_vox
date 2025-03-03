@@ -63,6 +63,7 @@ typedef struct {
 	AChunk *	chunk;
 	size_t		LOD;
 	ivec3		Wpos;
+	size_t		drawIDs[2]; // start, end ; max 6
 } ChunkData;
 typedef unordered_map<ivec3, ChunkData> ChunkMap; // Wpos -> ChunkData
 

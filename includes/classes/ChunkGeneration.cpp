@@ -27,7 +27,7 @@ void VoxelSystem::_chunkGenerationRoutine() {
 			if (_chunks.count(pos))
 				continue;
 
-			generatedChunks[pos] = {ChunkHandler::createChunk(pos), 0, pos};
+			generatedChunks[pos] = {ChunkHandler::createChunk(pos), 0, pos, 0};
 
 			batchCount++;
 			if (batchCount >= BATCH_LIMIT)

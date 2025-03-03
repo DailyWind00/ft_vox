@@ -219,6 +219,9 @@ void	VoxelSystem::_generateMesh(const ChunkData &chunk, ChunkData *neightboursCh
 		_IB_data.push_back( DrawCommand{4, (GLuint)vertices[i].size(), 0, (GLuint)_VBO_data.size()} );
 		_SSBO_data.push_back( SSBOData{{chunk.Wpos, i}} );
 	}
+
+	// Set the draw IDs of the chunk (used for loading/unloading)
+	// todo
 }
 
 // Delete a chunk and its mesh

@@ -63,7 +63,7 @@ VoxelSystem::VoxelSystem(const uint64_t &seed, Camera &camera) : _camera(camera)
 	_IB = new PMapBufferGL(GL_DRAW_INDIRECT_BUFFER, IBcapacity, buffersUsage);
 
 	// Create SSBO
-	size_t SSBOcapacity = VERTICAL_RENDER_DISTANCE * pow(HORIZONTAL_RENDER_DISTANCE, 2) * sizeof(ivec4);
+	size_t SSBOcapacity = VERTICAL_RENDER_DISTANCE * pow(HORIZONTAL_RENDER_DISTANCE, 2) * sizeof(SSBOData);
 
 	if (VERBOSE) { cout << "> SSBO : "; }
 	_SSBO = new PMapBufferGL(GL_SHADER_STORAGE_BUFFER, SSBOcapacity, buffersUsage);
@@ -241,12 +241,12 @@ const GeoFrameBuffers	&VoxelSystem::draw() {
 		case ChunkAction::CREATE_UPDATE:
 			_writeInBuffer(_VBO, _VBO_data.data(), _VBO_data.size() * sizeof(DATA_TYPE), _VBO_size);
 			_writeInBuffer(_IB, _IB_data.data(), _IB_data.size() * sizeof(DrawCommand), _IB_size);
-			_writeInBuffer(_SSBO, _SSBO_data.data(), _SSBO_data.size() * sizeof(ivec4), _SSBO_size);
+			_writeInBuffer(_SSBO, _SSBO_data.data(), _SSBO_data.size() * sizeof(SSBOData), _SSBO_size);
 
 			// Update variables
 			_VBO_size  += _VBO_data.size()  * sizeof(DATA_TYPE);
 			_IB_size   += _IB_data.size()   * sizeof(DrawCommand);
-			_SSBO_size += _SSBO_data.size() * sizeof(ivec4);
+			_SSBO_size += _SSBO_data.size() * sizeof(SSBOData);
 
 			drawCount += _IB_data.size();
 			_buffersNeedUpdates = ChunkAction::NONE;

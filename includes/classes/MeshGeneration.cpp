@@ -18,10 +18,11 @@ void	VoxelSystem::_meshGenerationRoutine() {
 		vector<MeshRequest> localRequestedMeshes = _requestedMeshes;
 		_requestedMeshesMutex.unlock();
 
+
 		// Generate meshes up to the batch limit
+		size_t batchCount = 0;
 		_chunksMutex.lock();
 
-		size_t batchCount = 0;
 		for (MeshRequest request : localRequestedMeshes) {
 			if (request.second == ChunkAction::NONE)
 				continue;
@@ -29,15 +30,16 @@ void	VoxelSystem::_meshGenerationRoutine() {
 			ivec3	Wpos = request.first;
 
 			// Calculate the LOD of the chunk
-			// const vec3 &camPos = _camera.getCameraInfo().position;
-			// size_t		dist   = glm::distance(camPos, (vec3)Wpos);
-			// size_t		LOD    = glm::min(((dist >> 5) + MAX_LOD), MIN_LOD); // +1 LOD every 32 chunks
+			// const vec3 &	camPos = _camera.getCameraInfo().position;
+			// const size_t	dist   = glm::distance(camPos, (vec3)Wpos);
+			// const size_t	LOD    = glm::min(((dist >> 5) + MAX_LOD), MIN_LOD); // +1 LOD every 32 chunks
 
 			_chunks[Wpos].LOD = 1;
 			ChunkData data = _chunks[Wpos];
 
+
 			// Search for neightbouring chunks
-			ivec3	neightboursPos[6] = { 
+			const ivec3	neightboursPos[6] = { 
 				{Wpos.x - 1, Wpos.y, Wpos.z}, {Wpos.x + 1, Wpos.y, Wpos.z}, // x axis
 				{Wpos.x, Wpos.y - 1, Wpos.z}, {Wpos.x, Wpos.y + 1, Wpos.z}, // y axis
 				{Wpos.x, Wpos.y, Wpos.z - 1}, {Wpos.x, Wpos.y, Wpos.z + 1}  // z axis
@@ -50,6 +52,7 @@ void	VoxelSystem::_meshGenerationRoutine() {
 					neightboursChunks[i] = &_chunks[neightboursPos[i]];
 			}
 
+
 			// Execute the requested action on the chunk mesh
 			switch (request.second) {
 				case ChunkAction::CREATE_UPDATE: _generateMesh(data, neightboursChunks); break;
@@ -57,16 +60,18 @@ void	VoxelSystem::_meshGenerationRoutine() {
 				case ChunkAction::LOAD:   _loadMesh(data, neightboursChunks);    break;
 				case ChunkAction::UNLOAD: _unloadMesh(data, neightboursChunks);  break;
 
-				default: break; // Should never happen
+				default:
+					throw std::runtime_error("Invalid ChunkAction");
 			}
 			
 			batchCount++;
 			if (batchCount >= BATCH_LIMIT)
 				break;
 		}
-		_chunksMutex.unlock();
 
+		_chunksMutex.unlock();
 		_buffersNeedUpdates = ChunkAction::CREATE_UPDATE;
+
 
 		// Remove the generated meshes from the requested list
 		_requestedMeshesMutex.lock();
@@ -212,7 +217,7 @@ void	VoxelSystem::_generateMesh(const ChunkData &chunk, ChunkData *neightboursCh
 
 		_VBO_data.insert(_VBO_data.end(), vertices[i].begin(), vertices[i].end());
 		_IB_data.push_back( DrawCommand{4, (GLuint)vertices[i].size(), 0, (GLuint)_VBO_data.size()} );
-		_SSBO_data.push_back( ivec4{chunk.Wpos, chunk.LOD} );
+		_SSBO_data.push_back( SSBOData{{chunk.Wpos, i}} );
 	}
 }
 

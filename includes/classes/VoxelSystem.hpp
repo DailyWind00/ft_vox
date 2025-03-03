@@ -45,6 +45,11 @@ typedef struct {
  	GLuint	baseInstance;
 } DrawCommand;
 
+// Data structure for the SSBO (Shader Storage Buffer Object)
+typedef struct {
+	ivec4	worldPos; // Wpos x y z, face orientation
+} SSBOData;
+
 // Data structure for the G-Buffer (Geometry pass)
 typedef struct {
 	GLuint	gBuffer;
@@ -88,13 +93,13 @@ class VoxelSystem {
 		PMapBufferGL *	_IB;
 		PMapBufferGL *	_SSBO;
 
-		size_t			_VBO_size  = 0;
-		size_t			_IB_size   = 0;
-		size_t			_SSBO_size = 0;
+		size_t	_VBO_size  = 0;
+		size_t	_IB_size   = 0;
+		size_t	_SSBO_size = 0;
 
 		vector<DATA_TYPE>	_VBO_data;
 		vector<DrawCommand>	_IB_data;
-		vector<ivec4>		_SSBO_data;
+		vector<SSBOData>	_SSBO_data;
 
 		atomic<ChunkAction>	_buffersNeedUpdates;
 

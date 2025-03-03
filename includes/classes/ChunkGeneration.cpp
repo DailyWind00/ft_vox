@@ -18,6 +18,7 @@ void VoxelSystem::_chunkGenerationRoutine() {
 		vector<ivec3> localRequestedChunks = _requestedChunks;
 		_requestedChunksMutex.unlock();
 
+
 		// Generate chunks up to the batch limit
 		size_t batchCount = 0;
 		ChunkMap generatedChunks;
@@ -33,17 +34,26 @@ void VoxelSystem::_chunkGenerationRoutine() {
 				break;
 		}
 		
+
 		// Add the generated chunks to the ChunkMap and request their meshes
+		vector<MeshRequest> meshRequests;
+		meshRequests.reserve(batchCount);
+
 		_chunksMutex.lock();
-		_requestedMeshesMutex.lock();
 
 		for (auto &chunk : generatedChunks) {
 			_chunks[chunk.first] = chunk.second;
-			_requestedMeshes.push_back({chunk.first, ChunkAction::CREATE_UPDATE});
+			meshRequests.push_back({chunk.first, ChunkAction::CREATE_UPDATE});
 		}
 
-		_requestedMeshesMutex.unlock();
 		_chunksMutex.unlock();
+
+
+		// Request the mesh generation
+		_requestedMeshesMutex.lock();
+		_requestedMeshes.insert(_requestedMeshes.end(), meshRequests.begin(), meshRequests.end());
+		_requestedMeshesMutex.unlock();
+
 
 		// Remove the generated chunks from the requested list
 		_requestedChunksMutex.lock();

@@ -10,11 +10,11 @@ static void	lightingPass(const GeoFrameBuffers &gBuffer, GLuint &renderQuadVAO) 
 	glBindTexture(GL_TEXTURE_2D, gBuffer.gColor);
 
 	// Rendering to the renderQuad
-	glDisable(GL_CULL_FACE);
+	// glDisable(GL_CULL_FACE);
 	glBindVertexArray(renderQuadVAO);
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 	glBindVertexArray(0);
-	glEnable(GL_CULL_FACE);
+	// glEnable(GL_CULL_FACE);
 	
 	// Copying the final depth buffer to the default internal framebuffer
 	glBindFramebuffer(GL_READ_FRAMEBUFFER, gBuffer.gBuffer);
@@ -76,7 +76,7 @@ void	Rendering(Window &window, const uint64_t &seed) {
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	glEnable(GL_CULL_FACE);
+	// glEnable(GL_CULL_FACE);
 
 	// Systemes Initialization
 	Camera	camera(

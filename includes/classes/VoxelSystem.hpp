@@ -4,8 +4,8 @@
 # define GLM_ENABLE_EXPERIMENTAL
 # define DATA_TYPE uint32_t
 # define CHUNK_SIZE 32
-# define HORIZONTAL_RENDER_DISTANCE 20
-# define VERTICAL_RENDER_DISTANCE 10
+# define HORIZONTAL_RENDER_DISTANCE 5
+# define VERTICAL_RENDER_DISTANCE 5
 # define BUFFER_GROWTH_FACTOR 2
 # define BATCH_LIMIT 100
 # define THREAD_SLEEP_DURATION 10 // in ms
@@ -39,10 +39,10 @@ using namespace glm;
 // Data structure of a OpenGL draw command
 // Used for indirect rendering
 typedef struct {
-	GLuint	verticeCount  = 0;
-	GLuint	instanceCount = 0;
-	GLuint	offset        = 0;
- 	GLuint	baseInstance  = 0;
+	GLuint	verticeCount;
+	GLuint	instanceCount;
+	GLuint	offset;
+ 	GLuint	baseInstance;
 } DrawCommand;
 
 // Data structure for the G-Buffer (Geometry pass)
@@ -63,6 +63,7 @@ typedef unordered_map<ivec3, ChunkData> ChunkMap; // Wpos -> ChunkData
 
 // Interface for mesh modifications
 enum class ChunkAction {
+	NONE,
 	CREATE_UPDATE,
 	DELETE,
 	LOAD,
@@ -87,11 +88,15 @@ class VoxelSystem {
 		PMapBufferGL *	_IB;
 		PMapBufferGL *	_SSBO;
 
-		size_t	_VBO_Offset  = 0;
-		size_t	_IB_Offset   = 0;
-		size_t	_SSBO_Offset = 0;
+		size_t			_VBO_size  = 0;
+		size_t			_IB_size   = 0;
+		size_t			_SSBO_size = 0;
 
-		atomic<size_t>	_drawCount;
+		vector<DATA_TYPE>	_VBO_data;
+		vector<DrawCommand>	_IB_data;
+		vector<ivec4>		_SSBO_data;
+
+		atomic<ChunkAction>	_buffersNeedUpdates;
 
 		// Multi-threading
 		thread	_chunkGenerationThread;
@@ -116,6 +121,8 @@ class VoxelSystem {
 		void	_deleteChunk (const ChunkData &chunk, ChunkData *neightboursChunks[6]);
 		void	_loadMesh    (const ChunkData &chunk, ChunkData *neightboursChunks[6]);
 		void	_unloadMesh  (const ChunkData &chunk, ChunkData *neightboursChunks[6]);
+
+		void	_writeInBuffer(PMapBufferGL *buffer, const void *data, const size_t &size, const size_t &offset);
 
 	public:
 		VoxelSystem(const uint64_t &seed, Camera &camera); // seed 0 = random seed

@@ -63,7 +63,8 @@ void PMapBufferGL::sync(GLenum barrier) const {
 }
 
 // Reallocate the buffer with a new capacity (keeping the data)
-size_t PMapBufferGL::reallocate(size_t newCapacity) {
+// This function recreate a new buffer so don't forget to update your buffer attributes
+size_t PMapBufferGL::resize(size_t newCapacity) {
 	if (newCapacity < _capacity)
 		return _capacity;
 
@@ -115,6 +116,11 @@ const void * PMapBufferGL::getData() const {
 // Return the buffer ID
 const GLuint & PMapBufferGL::getID() const {
     return _id;
+}
+
+// Return the buffer type
+const GLenum & PMapBufferGL::getType() const {
+	return _type;
 }
 
 // Return the buffer capacity

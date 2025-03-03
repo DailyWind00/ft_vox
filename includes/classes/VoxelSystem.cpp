@@ -42,6 +42,8 @@ VoxelSystem::VoxelSystem(const uint64_t &seed, Camera &camera) : _camera(camera)
 	glEnableVertexAttribArray(2);
 
 	// Create and allocate the OpenGL buffers with persistent mapping
+	_buffersNeedUpdates = ChunkAction::NONE;
+
 	GLenum buffersUsage = PERSISTENT_BUFFER_USAGE | GL_MAP_FLUSH_EXPLICIT_BIT;
 
 	size_t maxVerticesPerChunk = pow(CHUNK_SIZE, 3) * 6; // Worst case scenario
@@ -66,8 +68,6 @@ VoxelSystem::VoxelSystem(const uint64_t &seed, Camera &camera) : _camera(camera)
 	if (VERBOSE) { cout << "> SSBO : "; }
 	_SSBO = new PMapBufferGL(GL_SHADER_STORAGE_BUFFER, SSBOcapacity, buffersUsage);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _SSBO->getID());
-
-	_drawCount = 0;
 
 	// Create the G-Buffer
 	glGenFramebuffers(1, &_gBuffer.gBuffer);
@@ -206,6 +206,31 @@ void	VoxelSystem::_loadTextureAtlas() {
 	if (VERBOSE)
 		cout << BGreen << "Done" << ResetColor << endl;
 }
+
+// Write data to the OpenGL buffers
+void	VoxelSystem::_writeInBuffer(PMapBufferGL *buffer, const void *data, const size_t &size, const size_t &offset) {
+	if (size + offset > buffer->getCapacity()) {
+		buffer->resize(buffer->getCapacity() * BUFFER_GROWTH_FACTOR);
+
+		// Update attributes
+		if (buffer == _VBO) {
+			glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, sizeof(DATA_TYPE), nullptr);
+			glVertexAttribDivisor(1, 1);	
+			glEnableVertexAttribArray(1);
+		}
+		else if (buffer == _SSBO)
+			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _SSBO->getID());
+
+	}
+
+	buffer->write(data, size, offset);
+	buffer->flush(offset, size);
+
+	// Update the offset
+	if (buffer == _VBO)       _VBO_size += size;
+	else if (buffer == _IB)   _IB_size += size;
+	else if (buffer == _SSBO) _SSBO_size += size;
+}
 /// ---
 
 
@@ -214,6 +239,28 @@ void	VoxelSystem::_loadTextureAtlas() {
 
 // Draw all chunks using batched rendering
 const GeoFrameBuffers	&VoxelSystem::draw() {
+	static size_t	drawCount = 0;
+
+	switch (_buffersNeedUpdates) {
+		case ChunkAction::NONE: break;
+
+		case ChunkAction::CREATE_UPDATE:
+			_writeInBuffer(_VBO, _VBO_data.data(), _VBO_data.size() * sizeof(DATA_TYPE), _VBO_size);
+			_writeInBuffer(_IB, _IB_data.data(), _IB_data.size() * sizeof(DrawCommand), _IB_size);
+			_writeInBuffer(_SSBO, _SSBO_data.data(), _SSBO_data.size() * sizeof(ivec4), _SSBO_size);
+
+			drawCount += _IB_data.size();
+			_buffersNeedUpdates = ChunkAction::NONE;
+			break;
+
+		case ChunkAction::DELETE:
+			// TODO
+			break;
+
+		default:
+			break;
+	}
+
 	// Bind the gBuffer
 	glBindFramebuffer(GL_FRAMEBUFFER, _gBuffer.gBuffer);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -226,7 +273,7 @@ const GeoFrameBuffers	&VoxelSystem::draw() {
 
 	glBindTexture(GL_TEXTURE_2D, _textureAtlas);
 
-	glMultiDrawArraysIndirect(GL_TRIANGLE_STRIP, nullptr, _drawCount, sizeof(DrawCommand));
+	glMultiDrawArraysIndirect(GL_TRIANGLE_STRIP, nullptr, drawCount, sizeof(DrawCommand));
 
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 	glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);

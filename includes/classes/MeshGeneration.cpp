@@ -21,6 +21,9 @@ void	VoxelSystem::_meshGenerationRoutine() {
 
 		int batchCount = 0;
 		for (MeshRequest request : _requestedMeshes) {
+			if (request.second == ChunkAction::NONE)
+				continue;
+
 			ivec3	Wpos = request.first;
 
 			// Calculate the LOD of the chunk
@@ -28,7 +31,7 @@ void	VoxelSystem::_meshGenerationRoutine() {
 			size_t		dist   = glm::distance(camPos, (vec3)Wpos);
 			size_t		LOD    = glm::min(((dist >> 5) + MAX_LOD), MIN_LOD); // +1 LOD every 32 chunks
 
-			_chunks[Wpos].LOD = LOD;
+			_chunks[Wpos].LOD = 1;
 			ChunkData data = _chunks[Wpos];
 
 			// Search for neightbouring chunks
@@ -51,6 +54,8 @@ void	VoxelSystem::_meshGenerationRoutine() {
 				case ChunkAction::DELETE: _deleteChunk(data, neightboursChunks); break;
 				case ChunkAction::LOAD:   _loadMesh(data, neightboursChunks);    break;
 				case ChunkAction::UNLOAD: _unloadMesh(data, neightboursChunks);  break;
+
+				default: break;
 			}
 			
 			batchCount++;
@@ -193,44 +198,26 @@ void	VoxelSystem::_generateMesh(const ChunkData &chunk, ChunkData *neightboursCh
 		}
 	}
 
-	size_t baseOffsets[3] = {_VBO_Offset, _IB_Offset, _SSBO_Offset};
+	// Wait for the buffers to be available
+	while (_buffersNeedUpdates != ChunkAction::NONE && !_quitting)
+		this_thread::sleep_for(chrono::milliseconds(THREAD_SLEEP_DURATION));
 
-	// Write the mesh in OpenGL buffers (dark magic)
+	// Clear the buffers
+	_VBO_data.clear();
+	_IB_data.clear();
+	_SSBO_data.clear();
+
+	// Write the mesh in OpenGL buffers
 	for (int i = 0; i < 6; i++) {
 		if (!vertices[i].size())
 			continue;
 
-		// VBO
-		if (_VBO_Offset + vertices[i].size() * sizeof(DATA_TYPE) > _VBO->getCapacity())
-			_VBO->reallocate(_VBO->getCapacity() * BUFFER_GROWTH_FACTOR);
-
-		_VBO->write(vertices[i].data(), vertices[i].size() * sizeof(DATA_TYPE), _VBO_Offset);
-
-		// IB
-		if (_IB_Offset + sizeof(DrawCommand) > _IB->getCapacity())
-			_IB->reallocate(_IB->getCapacity() * BUFFER_GROWTH_FACTOR);
-
-		DrawCommand	cmd = {4, (GLuint)vertices[i].size(), 0, (GLuint)_VBO_Offset};
-		_IB->write(&cmd, sizeof(DrawCommand), _IB_Offset);
-
-		// SSBO
-		if (_SSBO_Offset + sizeof(ivec4) > _SSBO->getCapacity())
-			_SSBO->reallocate(_SSBO->getCapacity() * BUFFER_GROWTH_FACTOR);
-
-		ivec4	WposLOD = {chunk.Wpos, chunk.LOD};
-		_SSBO->write(&WposLOD, sizeof(ivec4), _SSBO_Offset);
-
-		_VBO_Offset  += vertices[i].size() * sizeof(DATA_TYPE);
-		_IB_Offset   += sizeof(DrawCommand);
-		_SSBO_Offset += sizeof(ivec4);
-
-		_drawCount++;
+		_VBO_data.insert(_VBO_data.end(), vertices[i].begin(), vertices[i].end());
+		_IB_data.push_back( DrawCommand{4, (GLuint)vertices[i].size(), 0, (GLuint)_VBO_data.size()} );
+		_SSBO_data.push_back( ivec4{chunk.Wpos, chunk.LOD} );
 	}
 
-	// Flush all buffers
-	_VBO->flush(baseOffsets[0], _VBO_Offset - baseOffsets[0]);
-	_IB->flush(baseOffsets[1], _IB_Offset - baseOffsets[1]);
-	_SSBO->flush(baseOffsets[2], _SSBO_Offset - baseOffsets[2]);
+	_buffersNeedUpdates = ChunkAction::CREATE_UPDATE;
 }
 
 // Delete a chunk and its mesh

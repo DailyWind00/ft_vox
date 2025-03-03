@@ -220,16 +220,10 @@ void	VoxelSystem::_writeInBuffer(PMapBufferGL *buffer, const void *data, const s
 		}
 		else if (buffer == _SSBO)
 			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _SSBO->getID());
-
 	}
 
 	buffer->write(data, size, offset);
 	buffer->flush(offset, size);
-
-	// Update the offset
-	if (buffer == _VBO)       _VBO_size += size;
-	else if (buffer == _IB)   _IB_size += size;
-	else if (buffer == _SSBO) _SSBO_size += size;
 }
 /// ---
 
@@ -249,8 +243,19 @@ const GeoFrameBuffers	&VoxelSystem::draw() {
 			_writeInBuffer(_IB, _IB_data.data(), _IB_data.size() * sizeof(DrawCommand), _IB_size);
 			_writeInBuffer(_SSBO, _SSBO_data.data(), _SSBO_data.size() * sizeof(ivec4), _SSBO_size);
 
+			// Update variables
+			_VBO_size  += _VBO_data.size()  * sizeof(DATA_TYPE);
+			_IB_size   += _IB_data.size()   * sizeof(DrawCommand);
+			_SSBO_size += _SSBO_data.size() * sizeof(ivec4);
+
 			drawCount += _IB_data.size();
 			_buffersNeedUpdates = ChunkAction::NONE;
+
+			// Clear the data
+			_VBO_data.clear();
+			_IB_data.clear();
+			_SSBO_data.clear();
+
 			break;
 
 		case ChunkAction::DELETE:

@@ -5,7 +5,7 @@
 // Chunk Generation thread routine
 void VoxelSystem::_chunkGenerationRoutine() {
 	if (VERBOSE)
-		cout << "Chunk Generation thread started" << endl;
+		cout << "> Chunk Generation thread started" << endl;
 
 	while (!_quitting) {
 
@@ -16,11 +16,14 @@ void VoxelSystem::_chunkGenerationRoutine() {
 			continue;
 		}
 
+		vector<ivec3> localRequestedChunks = _requestedChunks;
+		_requestedChunksMutex.unlock();
+
 		// Generate chunks up to the batch limit
 		int batchCount = 0;
 		ChunkMap generatedChunks;
 		
-		for (ivec3 pos : _requestedChunks) {
+		for (ivec3 pos : localRequestedChunks) {
 			if (_chunks.count(pos))
 				continue;
 
@@ -44,8 +47,8 @@ void VoxelSystem::_chunkGenerationRoutine() {
 		_chunksMutex.unlock();
 
 		// Remove the generated chunks from the requested list
+		_requestedChunksMutex.lock();
 		_requestedChunks.erase(_requestedChunks.begin(), _requestedChunks.begin() + batchCount);
-		
 		_requestedChunksMutex.unlock();
 	}
 

@@ -5,7 +5,7 @@
 // Mesh Generation thread routine
 void	VoxelSystem::_meshGenerationRoutine() {
 	if (VERBOSE)
-		cout << "Mesh Generation thread started" << endl;
+		cout << "> Mesh Generation thread started" << endl;
 
 	while (!_quitting) {
 
@@ -16,20 +16,23 @@ void	VoxelSystem::_meshGenerationRoutine() {
 			continue;
 		}
 
+		vector<MeshRequest> localRequestedMeshes = _requestedMeshes;
+		_requestedMeshesMutex.unlock();
+
 		// Generate meshes up to the batch limit
 		_chunksMutex.lock();
 
 		int batchCount = 0;
-		for (MeshRequest request : _requestedMeshes) {
+		for (MeshRequest request : localRequestedMeshes) {
 			if (request.second == ChunkAction::NONE)
 				continue;
 
 			ivec3	Wpos = request.first;
 
 			// Calculate the LOD of the chunk
-			const vec3 &camPos = _camera.getCameraInfo().position;
-			size_t		dist   = glm::distance(camPos, (vec3)Wpos);
-			size_t		LOD    = glm::min(((dist >> 5) + MAX_LOD), MIN_LOD); // +1 LOD every 32 chunks
+			// const vec3 &camPos = _camera.getCameraInfo().position;
+			// size_t		dist   = glm::distance(camPos, (vec3)Wpos);
+			// size_t		LOD    = glm::min(((dist >> 5) + MAX_LOD), MIN_LOD); // +1 LOD every 32 chunks
 
 			_chunks[Wpos].LOD = 1;
 			ChunkData data = _chunks[Wpos];
@@ -64,9 +67,11 @@ void	VoxelSystem::_meshGenerationRoutine() {
 		}
 		_chunksMutex.unlock();
 
-		// Remove the generated meshes from the requested list
-		_requestedMeshes.erase(_requestedMeshes.begin(), _requestedMeshes.begin() + batchCount);
+		_buffersNeedUpdates = ChunkAction::CREATE_UPDATE;
 
+		// Remove the generated meshes from the requested list
+		_requestedMeshesMutex.lock();
+		_requestedMeshes.erase(_requestedMeshes.begin(), _requestedMeshes.begin() + batchCount);
 		_requestedMeshesMutex.unlock();
 	}
 
@@ -97,8 +102,6 @@ static uint8_t	isVoxelVisible(const ivec3 &Vpos, const ChunkData &chunk, ChunkDa
 		{x, y, z + 1 * LOD}
 	};
 
-	// Check if the face is visible
-	// Also check if the neightbours are in the same chunk or in another one
 	uint8_t	visibleFaces = 0;
 
 	for (const ivec3 &pos : neightbours) {
@@ -176,9 +179,8 @@ void	VoxelSystem::_generateMesh(const ChunkData &chunk, ChunkData *neightboursCh
 				if (!visibleFaces)
 					continue;
 
-				// TODO : greedy meshing
 				for (int i = 0; i < 6; i++) {
-					if (visibleFaces & (1 << i)) {\
+					if (visibleFaces & (1 << i)) {
 						DATA_TYPE data = 0;
 
 						// Encode data
@@ -198,14 +200,11 @@ void	VoxelSystem::_generateMesh(const ChunkData &chunk, ChunkData *neightboursCh
 		}
 	}
 
+	// TODO : greedy meshing here
+
 	// Wait for the buffers to be available
 	while (_buffersNeedUpdates != ChunkAction::NONE && !_quitting)
 		this_thread::sleep_for(chrono::milliseconds(THREAD_SLEEP_DURATION));
-
-	// Clear the buffers
-	_VBO_data.clear();
-	_IB_data.clear();
-	_SSBO_data.clear();
 
 	// Write the mesh in OpenGL buffers
 	for (int i = 0; i < 6; i++) {
@@ -216,8 +215,6 @@ void	VoxelSystem::_generateMesh(const ChunkData &chunk, ChunkData *neightboursCh
 		_IB_data.push_back( DrawCommand{4, (GLuint)vertices[i].size(), 0, (GLuint)_VBO_data.size()} );
 		_SSBO_data.push_back( ivec4{chunk.Wpos, chunk.LOD} );
 	}
-
-	_buffersNeedUpdates = ChunkAction::CREATE_UPDATE;
 }
 
 // Delete a chunk and its mesh

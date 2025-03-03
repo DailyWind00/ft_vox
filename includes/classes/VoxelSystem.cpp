@@ -236,7 +236,8 @@ const GeoFrameBuffers	&VoxelSystem::draw() {
 	static size_t	drawCount = 0;
 
 	switch (_buffersNeedUpdates) {
-		case ChunkAction::NONE: break;
+		case ChunkAction::NONE:
+			break;
 
 		case ChunkAction::CREATE_UPDATE:
 			_writeInBuffer(_VBO, _VBO_data.data(), _VBO_data.size() * sizeof(DATA_TYPE), _VBO_size);
@@ -260,9 +261,6 @@ const GeoFrameBuffers	&VoxelSystem::draw() {
 
 		case ChunkAction::DELETE:
 			// TODO
-			break;
-
-		default:
 			break;
 	}
 

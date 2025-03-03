@@ -55,10 +55,13 @@ void	VoxelSystem::_meshGenerationRoutine() {
 
 			// Execute the requested action on the chunk mesh
 			switch (request.second) {
-				case ChunkAction::CREATE_UPDATE: _generateMesh(data, neightboursChunks); break;
-				case ChunkAction::DELETE: _deleteChunk(data, neightboursChunks); break;
-				case ChunkAction::LOAD:   _loadMesh(data, neightboursChunks);    break;
-				case ChunkAction::UNLOAD: _unloadMesh(data, neightboursChunks);  break;
+				case ChunkAction::CREATE_UPDATE:
+					_generateMesh(data, neightboursChunks);
+					break;
+
+				case ChunkAction::DELETE:
+					_deleteChunk(data, neightboursChunks);
+					break;
 
 				default:
 					throw std::runtime_error("Invalid ChunkAction");
@@ -164,7 +167,7 @@ static uint8_t	isVoxelVisible(const ivec3 &Vpos, const ChunkData &chunk, ChunkDa
 }
 
 // Create/update the mesh of the given chunk and store it in OpenGL buffers
-void	VoxelSystem::_generateMesh(const ChunkData &chunk, ChunkData *neightboursChunks[6]) {
+void	VoxelSystem::_generateMesh(ChunkData &chunk, ChunkData *neightboursChunks[6]) {
 	// Check if the chunk completely empty
 	if (IS_CHUNK_COMPRESSED(chunk.chunk) && !BLOCK_AT(chunk.chunk, 0, 0, 0))
 		return;
@@ -215,32 +218,22 @@ void	VoxelSystem::_generateMesh(const ChunkData &chunk, ChunkData *neightboursCh
 		if (!vertices[i].size())
 			continue;
 
+		// VBO
 		_VBO_data.insert(_VBO_data.end(), vertices[i].begin(), vertices[i].end());
-		_IB_data.push_back( DrawCommand{4, (GLuint)vertices[i].size(), 0, (GLuint)_VBO_data.size()} );
-		_SSBO_data.push_back( SSBOData{{chunk.Wpos, i}} );
-	}
 
-	// Set the draw IDs of the chunk (used for loading/unloading)
-	// todo
+		// IB
+		DrawCommand	cmd = {4, (GLuint)vertices[i].size(), 0, (GLuint)_VBO_data.size()};
+		_IB_data.push_back(cmd);
+
+		// SSBO
+		SSBOData data = {ivec4{chunk.Wpos, i}};
+		_SSBO_data.push_back(data);
+	}
 }
 
 // Delete a chunk and its mesh
-void	VoxelSystem::_deleteChunk(const ChunkData &chunk, ChunkData *neightboursChunks[6]) {
+void	VoxelSystem::_deleteChunk(ChunkData &chunk, ChunkData *neightboursChunks[6]) {
 	cout << "Deleting chunk at " << chunk.Wpos.x << " " << chunk.Wpos.y << " " << chunk.Wpos.z << endl;
-	// TODO
-	(void)neightboursChunks;
-}
-
-// Load a chunk (add the drawcall to the batched rendering)
-void	VoxelSystem::_loadMesh(const ChunkData &chunk, ChunkData *neightboursChunks[6]) {
-	cout << "Loading chunk at " << chunk.Wpos.x << " " << chunk.Wpos.y << " " << chunk.Wpos.z << endl;
-	// TODO
-	(void)neightboursChunks;
-}
-
-// Unload a chunk (remove the drawcall from the batched rendering)
-void	VoxelSystem::_unloadMesh(const ChunkData &chunk, ChunkData *neightboursChunks[6]) {
-	cout << "Unloading chunk at " << chunk.Wpos.x << " " << chunk.Wpos.y << " " << chunk.Wpos.z << endl;
 	// TODO
 	(void)neightboursChunks;
 }

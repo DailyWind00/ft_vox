@@ -63,7 +63,6 @@ typedef struct {
 	AChunk *	chunk;
 	size_t		LOD;
 	ivec3		Wpos;
-	size_t		drawIDs[2]; // start, end ; max 6
 } ChunkData;
 typedef unordered_map<ivec3, ChunkData> ChunkMap; // Wpos -> ChunkData
 
@@ -71,9 +70,7 @@ typedef unordered_map<ivec3, ChunkData> ChunkMap; // Wpos -> ChunkData
 enum class ChunkAction {
 	NONE,
 	CREATE_UPDATE,
-	DELETE,
-	LOAD,
-	UNLOAD
+	DELETE
 };
 typedef pair<ivec3, ChunkAction> MeshRequest; // Wpos, Action
 
@@ -123,10 +120,8 @@ class VoxelSystem {
 		void	_chunkGenerationRoutine();
 		void	_meshGenerationRoutine();
 
-		void	_generateMesh(const ChunkData &chunk, ChunkData *neightboursChunks[6]);
-		void	_deleteChunk (const ChunkData &chunk, ChunkData *neightboursChunks[6]);
-		void	_loadMesh    (const ChunkData &chunk, ChunkData *neightboursChunks[6]);
-		void	_unloadMesh  (const ChunkData &chunk, ChunkData *neightboursChunks[6]);
+		void	_generateMesh(ChunkData &chunk, ChunkData *neightboursChunks[6]);
+		void	_deleteChunk (ChunkData &chunk, ChunkData *neightboursChunks[6]);
 
 		void	_writeInBuffer(PMapBufferGL *buffer, const void *data, const size_t &size, const size_t &offset);
 

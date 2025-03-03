@@ -7,7 +7,7 @@
 # define HORIZONTAL_RENDER_DISTANCE 5
 # define VERTICAL_RENDER_DISTANCE 5
 # define BUFFER_GROWTH_FACTOR 2
-# define BATCH_LIMIT 100
+# define BATCH_LIMIT (size_t)100
 # define THREAD_SLEEP_DURATION 10 // in ms
 # define MIN_LOD (size_t)4
 # define MAX_LOD (size_t)1

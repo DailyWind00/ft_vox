@@ -10,8 +10,7 @@ void VoxelSystem::_chunkGenerationRoutine() {
 	while (!_quitting) {
 
 		// Check if there are chunks to generate, sleep if not
-		if (!_requestedChunksMutex.try_lock() || !_requestedChunks.size()) {
-			_requestedChunksMutex.unlock();
+		if (!_requestedChunks.size() || !_requestedChunksMutex.try_lock()) {
 			this_thread::sleep_for(chrono::milliseconds(THREAD_SLEEP_DURATION));
 			continue;
 		}
@@ -20,7 +19,7 @@ void VoxelSystem::_chunkGenerationRoutine() {
 		_requestedChunksMutex.unlock();
 
 		// Generate chunks up to the batch limit
-		int batchCount = 0;
+		size_t batchCount = 0;
 		ChunkMap generatedChunks;
 		
 		for (ivec3 pos : localRequestedChunks) {
@@ -48,7 +47,7 @@ void VoxelSystem::_chunkGenerationRoutine() {
 
 		// Remove the generated chunks from the requested list
 		_requestedChunksMutex.lock();
-		_requestedChunks.erase(_requestedChunks.begin(), _requestedChunks.begin() + batchCount);
+		_requestedChunks.erase(_requestedChunks.begin(), _requestedChunks.begin() + std::min(batchCount, _requestedChunks.size()));
 		_requestedChunksMutex.unlock();
 	}
 

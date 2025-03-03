@@ -10,8 +10,7 @@ void	VoxelSystem::_meshGenerationRoutine() {
 	while (!_quitting) {
 
 		// Check if there are meshes to generate, sleep if not
-		if (!_requestedMeshesMutex.try_lock() || !_requestedMeshes.size()) {
-			_requestedMeshesMutex.unlock();
+		if (!_requestedMeshes.size() || !_requestedMeshesMutex.try_lock()) {
 			this_thread::sleep_for(chrono::milliseconds(THREAD_SLEEP_DURATION));
 			continue;
 		}
@@ -22,7 +21,7 @@ void	VoxelSystem::_meshGenerationRoutine() {
 		// Generate meshes up to the batch limit
 		_chunksMutex.lock();
 
-		int batchCount = 0;
+		size_t batchCount = 0;
 		for (MeshRequest request : localRequestedMeshes) {
 			if (request.second == ChunkAction::NONE)
 				continue;
@@ -58,7 +57,7 @@ void	VoxelSystem::_meshGenerationRoutine() {
 				case ChunkAction::LOAD:   _loadMesh(data, neightboursChunks);    break;
 				case ChunkAction::UNLOAD: _unloadMesh(data, neightboursChunks);  break;
 
-				default: break;
+				default: break; // Should never happen
 			}
 			
 			batchCount++;
@@ -71,7 +70,7 @@ void	VoxelSystem::_meshGenerationRoutine() {
 
 		// Remove the generated meshes from the requested list
 		_requestedMeshesMutex.lock();
-		_requestedMeshes.erase(_requestedMeshes.begin(), _requestedMeshes.begin() + batchCount);
+		_requestedMeshes.erase(_requestedMeshes.begin(), _requestedMeshes.begin() + std::min(batchCount, _requestedMeshes.size()));
 		_requestedMeshesMutex.unlock();
 	}
 

@@ -15,7 +15,7 @@ void	VoxelSystem::_meshGenerationRoutine() {
 			continue;
 		}
 
-		vector<MeshRequest> localRequestedMeshes = _requestedMeshes;
+		deque<MeshRequest> localRequestedMeshes = _requestedMeshes;
 		_requestedMeshesMutex.unlock();
 
 		// Generate meshes up to the batch limit
@@ -24,17 +24,22 @@ void	VoxelSystem::_meshGenerationRoutine() {
 		_buffersMutex.lock();
 
 		for (MeshRequest request : localRequestedMeshes) {
+			if (batchCount >= BATCH_LIMIT)
+				break;
+
+			batchCount++;
+			
 			if (request.second == ChunkAction::NONE)
 				continue;
 
 			ivec3	Wpos = request.first;
 
-			// Calculate the LOD of the chunk
+			// Calculate the LOD of the chunk (cause crashes for now)
 			// const vec3 &	camPos = _camera.getCameraInfo().position;
 			// const size_t	dist   = glm::distance(camPos, (vec3)Wpos);
 			// const size_t	LOD    = glm::min(((dist >> 5) + MAX_LOD), MIN_LOD); // +1 LOD every 32 chunks
 
-			_chunks[Wpos].LOD = 1;
+			// _chunks[Wpos].LOD = LOD;
 			ChunkData data = _chunks[Wpos];
 
 
@@ -66,10 +71,6 @@ void	VoxelSystem::_meshGenerationRoutine() {
 				default:
 					throw std::runtime_error("Invalid ChunkAction");
 			}
-			
-			batchCount++;
-			if (batchCount >= BATCH_LIMIT)
-				break;
 		}
 
 		_buffersNeedUpdates = true;
@@ -79,7 +80,8 @@ void	VoxelSystem::_meshGenerationRoutine() {
 
 		// Remove the generated meshes from the requested list
 		_requestedMeshesMutex.lock();
-		_requestedMeshes.erase(_requestedMeshes.begin(), _requestedMeshes.begin() + batchCount);
+		while (batchCount--)
+			_requestedMeshes.pop_front();
 		_requestedMeshesMutex.unlock();
 	}
 
@@ -275,7 +277,6 @@ void	VoxelSystem::requestMeshUpdate(const vector<ivec3> &Wpositions, const Chunk
 	vector<ivec3>	chunkRequests;
 
 	chunkRequests.reserve(Wpositions.size());
-	_requestedMeshes.reserve(Wpositions.size());
 
 	for (ivec3 pos : Wpositions) {
 		if (!_chunks.count(pos) && action != ChunkAction::DELETE)

@@ -15,7 +15,7 @@ void VoxelSystem::_chunkGenerationRoutine() {
 			continue;
 		}
 
-		vector<ivec3> localRequestedChunks = _requestedChunks;
+		deque<ivec3> localRequestedChunks = _requestedChunks;
 		_requestedChunksMutex.unlock();
 
 
@@ -23,17 +23,18 @@ void VoxelSystem::_chunkGenerationRoutine() {
 		size_t batchCount = 0;
 		ChunkMap generatedChunks;
 		
-		for (ivec3 pos : localRequestedChunks) {
-			if (_chunks.count(pos))
-				continue;
-
-			generatedChunks[pos] = {ChunkHandler::createChunk(pos), 0, pos};
-
-			batchCount++;
+		for (const ivec3 &pos : localRequestedChunks) {
 			if (batchCount >= BATCH_LIMIT)
 				break;
+
+			batchCount++;
+
+			if (_chunks.count(pos)) // Check if the chunk already exists
+				continue;
+
+			generatedChunks[pos] = {ChunkHandler::createChunk(pos), 1, pos};
 		}
-		
+
 
 		// Add the generated chunks to the ChunkMap and request their meshes
 		vector<MeshRequest> meshRequests;
@@ -41,7 +42,7 @@ void VoxelSystem::_chunkGenerationRoutine() {
 
 		_chunksMutex.lock();
 
-		for (auto &chunk : generatedChunks) {
+		for (const auto &chunk : generatedChunks) {
 			_chunks[chunk.first] = chunk.second;
 			meshRequests.push_back({chunk.first, ChunkAction::CREATE_UPDATE});
 		}
@@ -49,15 +50,17 @@ void VoxelSystem::_chunkGenerationRoutine() {
 		_chunksMutex.unlock();
 
 
+		// Remove the generated chunks from the requested list
+		_requestedChunksMutex.lock();
+		while (batchCount--)
+			_requestedChunks.pop_front();
+		_requestedChunksMutex.unlock();
+
+
 		// Request the mesh generation
 		_requestedMeshesMutex.lock();
 		_requestedMeshes.insert(_requestedMeshes.end(), meshRequests.begin(), meshRequests.end());
 		_requestedMeshesMutex.unlock();	
-
-		// Remove the generated chunks from the requested list
-		_requestedChunksMutex.lock();
-		_requestedChunks.erase(_requestedChunks.begin(), _requestedChunks.begin() + batchCount);
-		_requestedChunksMutex.unlock();
 	}
 
 	if (VERBOSE)
@@ -76,8 +79,6 @@ void	VoxelSystem::requestChunk(const vector<ivec3> &Wpositions) {
 		return;
 
 	_requestedChunksMutex.lock();
-
-	_requestedChunks.reserve(Wpositions.size());
 
 	for (ivec3 pos : Wpositions) {
 		if (_chunks.count(pos) || find(_requestedChunks.begin(), _requestedChunks.end(), pos) == _requestedChunks.end())

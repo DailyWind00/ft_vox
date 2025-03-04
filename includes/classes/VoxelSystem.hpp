@@ -17,6 +17,7 @@
 # include <algorithm>
 # include <unordered_map>
 # include <vector>
+# include <deque>
 # include <thread>
 # include <mutex>
 # include <atomic>
@@ -116,8 +117,8 @@ class VoxelSystem {
 		thread	_meshGenerationThread;
 		bool	_quitting = false;
 
-		vector<ivec3>		_requestedChunks; // Wpos
-		vector<MeshRequest>	_requestedMeshes; // Wpos, Action
+		deque<ivec3>		_requestedChunks; // Wpos
+		deque<MeshRequest>	_requestedMeshes; // Wpos, Action
 
 		mutex	_requestedChunksMutex;
 		mutex	_requestedMeshesMutex;

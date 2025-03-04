@@ -382,7 +382,7 @@ DrawCommandData	VoxelSystem::genMesh(const ChunkData &chunk)
 					data |= (y & 0x1F) << 5;	// 5 bits for y
 					data |= (l.first & 0x1F) << 10;	// 5 bits for z
 					
-					data |= (4 & 0x7F) << 15;	// 7 bits for block ID
+					data |= (BLOCK_AT(chunk.second, x, y, l.first) & 0x7F) << 15;	// 7 bits for block ID
 			
 					// Encode face length
 					data |= (l.second & 0x1F) << 22; // 5 bits for length
@@ -421,7 +421,7 @@ void	VoxelSystem::chunkGenRoutine()
 		if (this->requestedChunks.size()) {
 			this->requestedChunkMutex.lock();
 			for (glm::ivec3 rc : this->requestedChunks) {
-				if (chunkBatchLimit == 1024)
+				if (chunkBatchLimit == 4096)
 					break ;
 				localReqChunks.push_back(rc);
 				chunkBatchLimit++;

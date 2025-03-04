@@ -60,8 +60,11 @@ class	LayeredChunk : public AChunk {
 	private:
 		AChunkLayer	**_layer;
 
-		ChunkLayer		* _blockToLayer(AChunkLayer *layer);
-		SingleBlockChunkLayer	* _layerToBlock(AChunkLayer *layer);
+		float *		_computeHeatMap(const glm::ivec3 &pos);
+		float *		_computeHeightMap(const glm::ivec3 &pos);
+		
+		ChunkLayer *		_blockToLayer(AChunkLayer *layer);
+		SingleBlockChunkLayer *	_layerToBlock(AChunkLayer *layer);
 	public:
 		LayeredChunk(const uint8_t &id);
 		~LayeredChunk();

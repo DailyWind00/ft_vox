@@ -30,45 +30,83 @@ AChunkLayer *	& LayeredChunk::operator[](const size_t &i)
 }
 /// ---
 
-/// Public methods
-void	LayeredChunk::generate(const glm::ivec3 &pos)
+/// Private Methods
+
+float *	LayeredChunk::_computeHeatMap(const glm::ivec3 &pos)
+{
+	float		*factors = new float[CHUNK_WIDTH * CHUNK_WIDTH];
+	uint32_t	maxPos = MAX_WORLD_SIZE * CHUNK_WIDTH;
+	
+	for (int i = 0; i < CHUNK_WIDTH * CHUNK_WIDTH; i++) {
+		float	factor = 0;
+		float	amp = 512;
+		
+		factor += Noise::perlin2D(glm::vec2{(pos.x + maxPos + (i % CHUNK_WIDTH)) / (amp * 3),
+				(pos.z + maxPos + ((float)i / CHUNK_WIDTH)) / (amp * 3)}) * (amp / 2);
+		factors[i] = factor;
+	}
+	return (factors);
+}
+
+float *	LayeredChunk::_computeHeightMap(const glm::ivec3 &pos)
 {
 	// Pre-compute the perlin noise factors
-	float	*factors = new float[CHUNK_WIDTH * CHUNK_WIDTH];
-	unsigned int	maxPos = MAX_WORLD_SIZE * CHUNK_WIDTH;
+	float		*factors = new float[CHUNK_WIDTH * CHUNK_WIDTH];
+	uint32_t	maxPos = MAX_WORLD_SIZE * CHUNK_WIDTH;
 
 	for (int i = 0; i < CHUNK_WIDTH * CHUNK_WIDTH; i++) {
 		float	factor = 0;
-		float	amp = 256;
+		float	amp = 128;
 		
 		for (int j = 0; j < 16; j++) {
 			factor += Noise::perlin2D(glm::vec2{(pos.x + maxPos + (i % CHUNK_WIDTH)) / (amp * 3),
 					(pos.z + maxPos + ((float)i / CHUNK_WIDTH)) / (amp * 3)}) * (amp / 2);
-			amp -= 16;
+			amp -= 8;
 		}
-		factors[i] = factor;
+		if (factor > 0)
+			factors[i] = pow(factor, 1.1);
+		else
+			factors[i] = factor * 0.2;
 	}
+	return (factors);
+}
 
-	// Populate the chunk according to the pre-computed perlin noise factors
+/// ---
+
+/// Public methods
+void	LayeredChunk::generate(const glm::ivec3 &pos)
+{
+	float	*heightFactors = _computeHeightMap(pos);
+	float	*heatFactors = _computeHeatMap(pos);
+
+	uint8_t	surfacePallets[2][2] {
+		{1, 3},
+		{2, 3}
+	};
+	
+	// Store the first block of each layer to handle decompression
 	uint8_t	fstBlkPerLayer[CHUNK_HEIGHT] = {0};
 
 	for (int i = pos.y; i < CHUNK_HEIGHT + pos.y; i++)
-		fstBlkPerLayer[i - pos.y] = (i < factors[0]);
+		fstBlkPerLayer[i - pos.y] = (i < heightFactors[0]);
 	
+	// Populate the chunk according to the pre-computed perlin noise factors
 	for (int i = pos.x; i < CHUNK_WIDTH + pos.x; i++) {
 		for (int j = pos.z; j < CHUNK_WIDTH + pos.z; j++) {
 			int	idx = (i - pos.x) * CHUNK_WIDTH + (j - pos.z);
 
 			for (int k = pos.y; k < CHUNK_HEIGHT + pos.y; k++) {
-				uint8_t	id = (k < factors[idx]);
+				uint8_t	id = (k < heightFactors[idx]);
+				uint8_t	palID = (heatFactors[idx] > 10);
 
 				if (id != fstBlkPerLayer[k - pos.y] && dynamic_cast<SingleBlockChunkLayer *>(this->_layer[k - pos.y]))
 					this->_layer[k - pos.y] = _blockToLayer(this->_layer[k - pos.y]);
-				(*this->_layer[k - pos.y])[idx] = id;
+				(*this->_layer[k - pos.y])[idx] = surfacePallets[palID][(k > 30)] * id;
 			}
 		}
 	}
-	delete [] factors;
+	delete [] heightFactors;
+	delete [] heatFactors;
 }
 
 void	LayeredChunk::print()

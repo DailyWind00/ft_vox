@@ -42,8 +42,6 @@ VoxelSystem::VoxelSystem(const uint64_t &seed, Camera &camera) : _camera(camera)
 	glEnableVertexAttribArray(2);
 
 	// Create and allocate the OpenGL buffers with persistent mapping
-	_buffersNeedUpdates = ChunkAction::NONE;
-
 	GLenum buffersUsage = PERSISTENT_BUFFER_USAGE | GL_MAP_FLUSH_EXPLICIT_BIT;
 
 	size_t maxVerticesPerChunk = pow(CHUNK_SIZE, 3) * 6; // Worst case scenario
@@ -235,34 +233,40 @@ void	VoxelSystem::_writeInBuffer(PMapBufferGL *buffer, const void *data, const s
 const GeoFrameBuffers	&VoxelSystem::draw() {
 	static size_t	drawCount = 0;
 
-	switch (_buffersNeedUpdates) {
-		case ChunkAction::NONE:
-			break;
+	if (_buffersNeedUpdates) {
+		drawCount += _IB_data.size();
 
-		case ChunkAction::CREATE_UPDATE:
+		if (_VBO_data.size()) {
 			_writeInBuffer(_VBO, _VBO_data.data(), _VBO_data.size() * sizeof(DATA_TYPE), _VBO_size);
-			_writeInBuffer(_IB, _IB_data.data(), _IB_data.size() * sizeof(DrawCommand), _IB_size);
-			_writeInBuffer(_SSBO, _SSBO_data.data(), _SSBO_data.size() * sizeof(SSBOData), _SSBO_size);
-
-			// Update variables
-			_VBO_size  += _VBO_data.size()  * sizeof(DATA_TYPE);
-			_IB_size   += _IB_data.size()   * sizeof(DrawCommand);
-			_SSBO_size += _SSBO_data.size() * sizeof(SSBOData);
-
-			drawCount += _IB_data.size();
-			_buffersNeedUpdates = ChunkAction::NONE;
-
-			// Clear the data
+			_VBO_size += _VBO_data.size() * sizeof(DATA_TYPE);
 			_VBO_data.clear();
+		}
+
+		if (_IB_data.size()) {
+			_writeInBuffer(_IB, _IB_data.data(), _IB_data.size() * sizeof(DrawCommand), _IB_size);
+			_IB_size += _IB_data.size() * sizeof(DrawCommand);
 			_IB_data.clear();
+		}
+
+		if (_SSBO_data.size()) {
+			_writeInBuffer(_SSBO, _SSBO_data.data(), _SSBO_data.size() * sizeof(SSBOData), _SSBO_size);
+			_SSBO_size += _SSBO_data.size() * sizeof(SSBOData);
 			_SSBO_data.clear();
+		}
 
-			break;
+		if (_chunksToDelete.size()) {
+			for (ChunkData &chunk : _chunksToDelete) {
+				_writeInBuffer(_VBO, nullptr, chunk.VBO_area[0], chunk.VBO_area[1]);
+				_writeInBuffer(_IB, nullptr, chunk.IB_area[0], chunk.IB_area[1]);
+				_writeInBuffer(_SSBO, nullptr, chunk.SSBO_area[0], chunk.SSBO_area[1]);
+			}
+			_chunksToDelete.clear();
+			// cout << "Chunks deleted\n";
+		}
 
-		case ChunkAction::DELETE:
-			// TODO
-			break;
+		_buffersNeedUpdates = false;
 	}
+
 
 	// Bind the gBuffer
 	glBindFramebuffer(GL_FRAMEBUFFER, _gBuffer.gBuffer);

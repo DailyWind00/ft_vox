@@ -73,7 +73,7 @@ void	VoxelSystem::_meshGenerationRoutine() {
 		}
 
 		_chunksMutex.unlock();
-		_buffersNeedUpdates = ChunkAction::CREATE_UPDATE;
+		_buffersNeedUpdates = true;
 
 
 		// Remove the generated meshes from the requested list
@@ -210,7 +210,7 @@ void	VoxelSystem::_generateMesh(ChunkData &chunk, ChunkData *neightboursChunks[6
 	// TODO : greedy meshing here
 
 	// Wait for the buffers to be available
-	while (_buffersNeedUpdates != ChunkAction::NONE && !_quitting)
+	while (_buffersNeedUpdates && !_quitting)
 		this_thread::sleep_for(chrono::milliseconds(THREAD_SLEEP_DURATION));
 
 	// Write the mesh in OpenGL buffers
@@ -229,13 +229,37 @@ void	VoxelSystem::_generateMesh(ChunkData &chunk, ChunkData *neightboursChunks[6
 		SSBOData data = {ivec4{chunk.Wpos, i}};
 		_SSBO_data.push_back(data);
 	}
+
+	// Update the chunk data
+	chunk.VBO_area[0] = _VBO_size * sizeof(DATA_TYPE);
+	chunk.VBO_area[1] = _VBO_data.size() * sizeof(DATA_TYPE);
+
+	chunk.IB_area[0] = _IB_size * sizeof(DrawCommand);
+	chunk.IB_area[1] = _IB_data.size() * sizeof(DrawCommand);
+
+	chunk.SSBO_area[0] = _SSBO_size * sizeof(SSBOData);
+	chunk.SSBO_area[1] = _SSBO_data.size() * sizeof(SSBOData);
 }
 
 // Delete a chunk and its mesh
 void	VoxelSystem::_deleteChunk(ChunkData &chunk, ChunkData *neightboursChunks[6]) {
-	cout << "Deleting chunk at " << chunk.Wpos.x << " " << chunk.Wpos.y << " " << chunk.Wpos.z << endl;
-	// TODO
-	(void)neightboursChunks;
+	if (!_chunks.count(chunk.Wpos))
+		return;
+
+	_chunksToDelete.push_back(chunk);
+
+	delete chunk.chunk;
+	_chunks.erase(chunk.Wpos);
+
+	// Request the update of neighbouring chunks
+	vector<ivec3>	neightboursPos;
+
+	for (size_t i = 0; i < 6; i++) {
+		if (neightboursChunks[i])
+			neightboursPos.push_back(neightboursChunks[i]->Wpos);
+	}
+
+	requestMeshUpdate(neightboursPos, ChunkAction::CREATE_UPDATE);
 }
 /// ---
 
@@ -257,7 +281,7 @@ void	VoxelSystem::requestMeshUpdate(const vector<ivec3> &Wpositions, const Chunk
 	_requestedMeshes.reserve(Wpositions.size());
 
 	for (ivec3 pos : Wpositions) {
-		if (!_chunks.count(pos))
+		if (!_chunks.count(pos) && action != ChunkAction::DELETE)
 			chunkRequests.push_back(pos);
 
 		else if (find(_requestedMeshes.begin(), _requestedMeshes.end(), MeshRequest{pos, action}) == _requestedMeshes.end())

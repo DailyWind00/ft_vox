@@ -38,20 +38,20 @@ using namespace glm;
 
 // Data structure of a OpenGL draw command
 // Used for indirect rendering
-typedef struct {
-	GLuint	verticeCount;
-	GLuint	instanceCount;
-	GLuint	offset;
- 	GLuint	baseInstance;
+typedef struct DrawCommand {
+	GLuint	verticeCount  = 0;
+	GLuint	instanceCount = 0;
+	GLuint	offset        = 0;
+ 	GLuint	baseInstance  = 0;
 } DrawCommand;
 
 // Data structure for the SSBO (Shader Storage Buffer Object)
-typedef struct {
+typedef struct SSBOData {
 	ivec4	worldPos; // Wpos x y z, face orientation
 } SSBOData;
 
 // Data structure for the G-Buffer (Geometry pass)
-typedef struct {
+typedef struct GeoFrameBuffers {
 	GLuint	gBuffer;
 	GLuint	gPosition;
 	GLuint	gNormal;
@@ -59,10 +59,17 @@ typedef struct {
 } GeoFrameBuffers;
 
 // Data structure for CPU-side chunk data management
-typedef struct {
+typedef struct ChunkData {
+	// For creation
 	AChunk *	chunk;
-	size_t		LOD;
+	size_t		LOD = 0;
 	ivec3		Wpos;
+
+	// For deletion
+	size_t		VBO_area[2]  = {0, 0};   // offset, size
+	size_t		IB_area[2]   = {0, 0};   // offset, size
+	size_t		SSBO_area[2] = {0, 0};   // offset, size
+
 } ChunkData;
 typedef unordered_map<ivec3, ChunkData> ChunkMap; // Wpos -> ChunkData
 
@@ -98,8 +105,9 @@ class VoxelSystem {
 		vector<DATA_TYPE>	_VBO_data;
 		vector<DrawCommand>	_IB_data;
 		vector<SSBOData>	_SSBO_data;
+		vector<ChunkData>	_chunksToDelete;
 
-		atomic<ChunkAction>	_buffersNeedUpdates;
+		atomic<bool>	_buffersNeedUpdates;
 
 		// Multi-threading
 		thread	_chunkGenerationThread;

@@ -24,32 +24,26 @@ static void	lightingPass(const GeoFrameBuffers &gBuffer, GLuint &renderQuadVAO) 
 }
 
 // Keep the window alive, exiting this function should mean closing the window
-static void program_loop(GameData &gameData)
-{
+static void program_loop(GameData &gameData) {
 	Window			&window      = gameData.window;
 	ShaderHandler	&shaders     = gameData.shaders;
 	VoxelSystem		&voxelSystem = gameData.voxelSystem;
 	SkyBox			&skybox      = gameData.skybox;
 	RenderData		&renderDatas = gameData.renderDatas;
 
-	glm::vec3	camPos = gameData.camera.getCameraInfo().position;
-	
-	static glm::ivec3	lastCPos = {0, 0, 0};
-	static glm::ivec3	currCPos = {camPos.z / 32, camPos.y / 32, camPos.x / 32};
-	
-	lastCPos = currCPos;
-	currCPos = {camPos.z / 32, camPos.y / 32, camPos.x / 32};
-
-	if (currCPos != lastCPos) {
-		// voxelSystem.requestChunk({currCPos.x - 6, currCPos.y - 6, currCPos.z - 6},
-		// 	{currCPos.x + 6, currCPos.y + 6, currCPos.z + 6});
-		//-voxelSystem.requestMeshUpdate({currCPos.x - 3, currCPos.y - 3, currCPos.z - 3},
-			//-{currCPos.x + 3, currCPos.y + 3, currCPos.z + 3});
-	}
-
 	// Voxel Geometrie
 	shaders.use(shaders[1]);
 	GeoFrameBuffers	gBuffer = voxelSystem.draw();
+
+	// To remove
+	// vector<ivec3>	positions;
+	// for (int i = -3; i < 3; i++)
+	// 	for (int j = -3; j < 3; j++)
+	// 		for (int k = -3; k < 3; k++)
+	// 			positions.push_back({i, j, k});
+
+	// voxelSystem.requestMeshUpdate(positions, ChunkAction::DELETE);
+	// --
 
 	// Deferred rendering lighting
 	shaders.use(shaders[2]);

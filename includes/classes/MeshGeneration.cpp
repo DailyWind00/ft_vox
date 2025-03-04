@@ -18,10 +18,10 @@ void	VoxelSystem::_meshGenerationRoutine() {
 		vector<MeshRequest> localRequestedMeshes = _requestedMeshes;
 		_requestedMeshesMutex.unlock();
 
-
 		// Generate meshes up to the batch limit
 		size_t batchCount = 0;
 		_chunksMutex.lock();
+		_buffersMutex.lock();
 
 		for (MeshRequest request : localRequestedMeshes) {
 			if (request.second == ChunkAction::NONE)
@@ -72,13 +72,14 @@ void	VoxelSystem::_meshGenerationRoutine() {
 				break;
 		}
 
-		_chunksMutex.unlock();
 		_buffersNeedUpdates = true;
+		_chunksMutex.unlock();
+		_buffersMutex.unlock();
 
 
 		// Remove the generated meshes from the requested list
 		_requestedMeshesMutex.lock();
-		_requestedMeshes.erase(_requestedMeshes.begin(), _requestedMeshes.begin() + std::min(batchCount, _requestedMeshes.size()));
+		_requestedMeshes.erase(_requestedMeshes.begin(), _requestedMeshes.begin() + batchCount);
 		_requestedMeshesMutex.unlock();
 	}
 
@@ -175,12 +176,12 @@ void	VoxelSystem::_generateMesh(ChunkData &chunk, ChunkData *neightboursChunks[6
 	vector<DATA_TYPE>	vertices[6];
 
 	// Generate vertices for visible faces
-	for (size_t x = 0; x < CHUNK_SIZE; x += 1 * chunk.LOD) {
-		for (size_t y = 0; y < CHUNK_SIZE; y += 1 * chunk.LOD) {
+	for (size_t x = 0; x < CHUNK_SIZE; x += chunk.LOD) {
+		for (size_t y = 0; y < CHUNK_SIZE; y += chunk.LOD) {
 			if (IS_LAYER_COMPRESSED(chunk.chunk, y) && !BLOCK_AT(chunk.chunk, x, y, 0))
 				continue; // Void layer
 
-			for (size_t z = 0; z < CHUNK_SIZE; z += 1 * chunk.LOD) {
+			for (size_t z = 0; z < CHUNK_SIZE; z += chunk.LOD) {
 
 				uint8_t visibleFaces = isVoxelVisible({x, y, z}, chunk, neightboursChunks);
 				if (!visibleFaces)
@@ -197,8 +198,8 @@ void	VoxelSystem::_generateMesh(ChunkData &chunk, ChunkData *neightboursChunks[6
 
 						data |= (BLOCK_AT(chunk.chunk, x, y, z) & 0x7F) << 15;	// 7 bits for block ID
 
-						data |= (1 & 0x1F) << 22;	// 5 bits for length
-						data |= (1 & 0x1F) << 27;	// 5 bits for length
+						data |= (1 - 1 & 0x1F) << 22;	// 5 bits for length (1 by default)
+						data |= (1 - 1 & 0x1F) << 27;	// 5 bits for length (1 by default)
 
 						vertices[i].push_back(data);
 					}
@@ -209,21 +210,17 @@ void	VoxelSystem::_generateMesh(ChunkData &chunk, ChunkData *neightboursChunks[6
 
 	// TODO : greedy meshing here
 
-	// Wait for the buffers to be available
-	while (_buffersNeedUpdates && !_quitting)
-		this_thread::sleep_for(chrono::milliseconds(THREAD_SLEEP_DURATION));
-
 	// Write the mesh in OpenGL buffers
 	for (int i = 0; i < 6; i++) {
 		if (!vertices[i].size())
 			continue;
 
+		// IB first as it need the VBO size before being written
+		DrawCommand	cmd = {4, GLuint(vertices[i].size()), 0, GLuint((_VBO_size / sizeof(DrawCommand)) + _VBO_data.size())};
+		_IB_data.push_back(cmd);
+
 		// VBO
 		_VBO_data.insert(_VBO_data.end(), vertices[i].begin(), vertices[i].end());
-
-		// IB
-		DrawCommand	cmd = {4, (GLuint)vertices[i].size(), 0, (GLuint)_VBO_data.size()};
-		_IB_data.push_back(cmd);
 
 		// SSBO
 		SSBOData data = {ivec4{chunk.Wpos, i}};

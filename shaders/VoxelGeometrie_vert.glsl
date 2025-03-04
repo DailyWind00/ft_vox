@@ -21,41 +21,37 @@ out vec2	l;
 flat out uint	texID;
 flat out uint	face;
 
-vec3	Normals[] = {
+const vec3	Normals[] = {
 	vec3(-1, 0, 0),
 	vec3( 1, 0, 0),
-	vec3(0, -1, 0),
-	vec3(0,  1, 0),
-	vec3(0, 0, -1),
-	vec3(0, 0,  1)
+	vec3( 0,-1, 0),
+	vec3( 0, 1, 0),
+	vec3( 0, 0,-1),
+	vec3( 0, 0, 1)
 };
 
-float rand(vec2 co)
-{
+float rand(vec2 co) {
 	return (fract(sin(dot(co, vec2(12.9898, 78.233))) * 43758.5453));
 }
 
-void main()
-{
+void main() {
 	ivec3 worldOffset = meshData[gl_DrawID].data.zyx * 32;
 
 	// Decode blockData bitmask :
-	uvec3	position = uvec3(0);
+	uvec3	pos = uvec3(0);
 	uvec2	len = uvec2(0);
 
-	position.x = (blockData)       & 0x1F;
-	position.y = (blockData >> 5)  & 0x1F;
-	position.z = (blockData >> 10) & 0x1F;
+	pos.x = (blockData)       & 0x1F;
+	pos.y = (blockData >> 5)  & 0x1F;
+	pos.z = (blockData >> 10) & 0x1F;
 
-	texID = ((blockData >> 15) & 0x7F) - 1;
+	texID = ((blockData >> 15) & 0x7F);
 
-	len.x = (blockData >> 22) & 0x1F;
-	len.y = (blockData >> 27) & 0x1F;
-	if (len.x == 31) len.x = 32;
-	if (len.y == 31) len.y = 32;
+	len.x = ((blockData >> 22) & 0x1F) + 1;
+	len.y = ((blockData >> 27) & 0x1F) + 1;
 
 	// Color modifiers for the fragment shader
-	fragPos = vec3(ivec3(position) + worldOffset);
+	fragPos = vec3(ivec3(pos) + worldOffset);
 
 	// Create the final face mesh
 	vec3	fQuad;
@@ -120,5 +116,5 @@ void main()
 
 	l = len;
 
-	gl_Position = transform * vec4((fQuad + ivec3(position) + worldOffset), 1.0f);
+	gl_Position = transform * vec4((fQuad + ivec3(pos) + worldOffset), 1.0f);
 }

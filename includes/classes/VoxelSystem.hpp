@@ -4,10 +4,10 @@
 # define GLM_ENABLE_EXPERIMENTAL
 # define DATA_TYPE uint32_t
 # define CHUNK_SIZE 32
-# define HORIZONTAL_RENDER_DISTANCE 5
-# define VERTICAL_RENDER_DISTANCE 5
+# define HORIZONTAL_RENDER_DISTANCE 3
+# define VERTICAL_RENDER_DISTANCE 3
 # define BUFFER_GROWTH_FACTOR 2
-# define BATCH_LIMIT (size_t)100
+# define BATCH_LIMIT (size_t)10
 # define THREAD_SLEEP_DURATION 10 // in ms
 # define MIN_LOD (size_t)4
 # define MAX_LOD (size_t)1
@@ -92,6 +92,7 @@ class VoxelSystem {
 		GLuint			_VAO;
 		GLuint			_textureAtlas;
 		GeoFrameBuffers	_gBuffer;
+		GLuint			_drawCount = 0;
 
 		// OpenGL Buffers (MeshGeneration output)
 		PMapBufferGL *	_VBO;
@@ -107,7 +108,8 @@ class VoxelSystem {
 		vector<SSBOData>	_SSBO_data;
 		vector<ChunkData>	_chunksToDelete;
 
-		atomic<bool>	_buffersNeedUpdates;
+		bool	_buffersNeedUpdates;
+		mutex	_buffersMutex;
 
 		// Multi-threading
 		thread	_chunkGenerationThread;
@@ -131,6 +133,7 @@ class VoxelSystem {
 		void	_generateMesh(ChunkData &chunk, ChunkData *neightboursChunks[6]);
 		void	_deleteChunk (ChunkData &chunk, ChunkData *neightboursChunks[6]);
 
+		void	_updateBuffers();
 		void	_writeInBuffer(PMapBufferGL *buffer, const void *data, const size_t &size, const size_t &offset);
 
 	public:

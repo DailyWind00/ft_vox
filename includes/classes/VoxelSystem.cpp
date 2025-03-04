@@ -208,7 +208,8 @@ void	VoxelSystem::_loadTextureAtlas() {
 // Write data to the OpenGL buffers
 void	VoxelSystem::_writeInBuffer(PMapBufferGL *buffer, const void *data, const size_t &size, const size_t &offset) {
 	if (size + offset > buffer->getCapacity()) {
-		buffer->resize(buffer->getCapacity() * BUFFER_GROWTH_FACTOR);
+		if (!buffer->resize(buffer->getCapacity() * BUFFER_GROWTH_FACTOR))
+			throw	runtime_error("Failed to resize PMapBufferGL");
 
 		// Update attributes
 		if (buffer == _VBO) {
@@ -223,39 +224,37 @@ void	VoxelSystem::_writeInBuffer(PMapBufferGL *buffer, const void *data, const s
 	buffer->write(data, size, offset);
 	buffer->flush(offset, size);
 }
-/// ---
 
-
-
-/// Public functions
-
-// Draw all chunks using batched rendering
-const GeoFrameBuffers	&VoxelSystem::draw() {
-	static size_t	drawCount = 0;
+// Update buffers if possible
+void	VoxelSystem::_updateBuffers() {
+	if (!_buffersMutex.try_lock())
+		return;
 
 	if (_buffersNeedUpdates) {
-		drawCount += _IB_data.size();
+		_drawCount = _IB_data.size();
+
+		// cout << "drawCount: " << _drawCount << endl;
 
 		if (_VBO_data.size()) {
 			_writeInBuffer(_VBO, _VBO_data.data(), _VBO_data.size() * sizeof(DATA_TYPE), _VBO_size);
-			_VBO_size += _VBO_data.size() * sizeof(DATA_TYPE);
-			_VBO_data.clear();
+			// _VBO_size += _VBO_data.size() * sizeof(DATA_TYPE);
+			// _VBO_data.clear();
 		}
 
 		if (_IB_data.size()) {
 			_writeInBuffer(_IB, _IB_data.data(), _IB_data.size() * sizeof(DrawCommand), _IB_size);
-			_IB_size += _IB_data.size() * sizeof(DrawCommand);
-			_IB_data.clear();
+			// _IB_size += _IB_data.size() * sizeof(DrawCommand);
+			// _IB_data.clear();
 		}
 
 		if (_SSBO_data.size()) {
 			_writeInBuffer(_SSBO, _SSBO_data.data(), _SSBO_data.size() * sizeof(SSBOData), _SSBO_size);
-			_SSBO_size += _SSBO_data.size() * sizeof(SSBOData);
-			_SSBO_data.clear();
+			// _SSBO_size += _SSBO_data.size() * sizeof(SSBOData);
+			// _SSBO_data.clear();
 		}
 
 		if (_chunksToDelete.size()) {
-			for (ChunkData &chunk : _chunksToDelete) {
+			for (const ChunkData &chunk : _chunksToDelete) {
 				_writeInBuffer(_VBO, nullptr, chunk.VBO_area[0], chunk.VBO_area[1]);
 				_writeInBuffer(_IB, nullptr, chunk.IB_area[0], chunk.IB_area[1]);
 				_writeInBuffer(_SSBO, nullptr, chunk.SSBO_area[0], chunk.SSBO_area[1]);
@@ -267,6 +266,17 @@ const GeoFrameBuffers	&VoxelSystem::draw() {
 		_buffersNeedUpdates = false;
 	}
 
+	_buffersMutex.unlock();
+}
+/// ---
+
+
+
+/// Public functions
+
+// Draw all chunks using batched rendering
+const GeoFrameBuffers	&VoxelSystem::draw() {
+	_updateBuffers();
 
 	// Bind the gBuffer
 	glBindFramebuffer(GL_FRAMEBUFFER, _gBuffer.gBuffer);
@@ -280,7 +290,7 @@ const GeoFrameBuffers	&VoxelSystem::draw() {
 
 	glBindTexture(GL_TEXTURE_2D, _textureAtlas);
 
-	glMultiDrawArraysIndirect(GL_TRIANGLE_STRIP, nullptr, drawCount, sizeof(DrawCommand));
+	glMultiDrawArraysIndirect(GL_TRIANGLE_STRIP, nullptr, _drawCount, sizeof(DrawCommand));
 
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 	glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);

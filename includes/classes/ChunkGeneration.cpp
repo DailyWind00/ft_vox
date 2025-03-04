@@ -52,12 +52,11 @@ void VoxelSystem::_chunkGenerationRoutine() {
 		// Request the mesh generation
 		_requestedMeshesMutex.lock();
 		_requestedMeshes.insert(_requestedMeshes.end(), meshRequests.begin(), meshRequests.end());
-		_requestedMeshesMutex.unlock();
-
+		_requestedMeshesMutex.unlock();	
 
 		// Remove the generated chunks from the requested list
 		_requestedChunksMutex.lock();
-		_requestedChunks.erase(_requestedChunks.begin(), _requestedChunks.begin() + std::min(batchCount, _requestedChunks.size()));
+		_requestedChunks.erase(_requestedChunks.begin(), _requestedChunks.begin() + batchCount);
 		_requestedChunksMutex.unlock();
 	}
 

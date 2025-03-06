@@ -32,7 +32,7 @@ void VoxelSystem::_chunkGenerationRoutine() {
 			if (_chunks.count(pos)) // Check if the chunk already exists
 				continue;
 
-			generatedChunks[pos] = {ChunkHandler::createChunk(pos), 1, pos};
+			generatedChunks[pos] = {ChunkHandler::createChunk(pos), MAX_LOD, pos};
 		}
 
 

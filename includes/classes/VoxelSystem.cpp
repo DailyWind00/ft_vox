@@ -231,26 +231,24 @@ void	VoxelSystem::_updateBuffers() {
 		return;
 
 	if (_buffersNeedUpdates) {
-		_drawCount = _IB_data.size();
-
-		// cout << "drawCount: " << _drawCount << endl;
+		_drawCount += _IB_data.size();
 
 		if (_VBO_data.size()) {
 			_writeInBuffer(_VBO, _VBO_data.data(), _VBO_data.size() * sizeof(DATA_TYPE), _VBO_size);
-			// _VBO_size += _VBO_data.size() * sizeof(DATA_TYPE);
-			// _VBO_data.clear();
+			_VBO_size += _VBO_data.size() * sizeof(DATA_TYPE);
+			_VBO_data.clear();
 		}
 
 		if (_IB_data.size()) {
 			_writeInBuffer(_IB, _IB_data.data(), _IB_data.size() * sizeof(DrawCommand), _IB_size);
-			// _IB_size += _IB_data.size() * sizeof(DrawCommand);
-			// _IB_data.clear();
+			_IB_size += _IB_data.size() * sizeof(DrawCommand);
+			_IB_data.clear();
 		}
 
 		if (_SSBO_data.size()) {
 			_writeInBuffer(_SSBO, _SSBO_data.data(), _SSBO_data.size() * sizeof(SSBOData), _SSBO_size);
-			// _SSBO_size += _SSBO_data.size() * sizeof(SSBOData);
-			// _SSBO_data.clear();
+			_SSBO_size += _SSBO_data.size() * sizeof(SSBOData);
+			_SSBO_data.clear();
 		}
 
 		if (_chunksToDelete.size()) {

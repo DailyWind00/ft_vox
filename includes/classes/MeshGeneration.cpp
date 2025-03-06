@@ -218,7 +218,7 @@ void	VoxelSystem::_generateMesh(ChunkData &chunk, ChunkData *neightboursChunks[6
 			continue;
 
 		// IB first as it need the VBO size before being written
-		DrawCommand	cmd = {4, GLuint(vertices[i].size()), 0, GLuint((_VBO_size / sizeof(DrawCommand)) + _VBO_data.size())};
+		DrawCommand	cmd = {4, GLuint(vertices[i].size()), 0, GLuint((_VBO_size / sizeof(DATA_TYPE)) + _VBO_data.size())};
 		_IB_data.push_back(cmd);
 
 		// VBO
@@ -230,13 +230,13 @@ void	VoxelSystem::_generateMesh(ChunkData &chunk, ChunkData *neightboursChunks[6
 	}
 
 	// Update the chunk data
-	chunk.VBO_area[0] = _VBO_size * sizeof(DATA_TYPE);
+	chunk.VBO_area[0] = _VBO_size;
 	chunk.VBO_area[1] = _VBO_data.size() * sizeof(DATA_TYPE);
 
-	chunk.IB_area[0] = _IB_size * sizeof(DrawCommand);
+	chunk.IB_area[0] = _IB_size;
 	chunk.IB_area[1] = _IB_data.size() * sizeof(DrawCommand);
 
-	chunk.SSBO_area[0] = _SSBO_size * sizeof(SSBOData);
+	chunk.SSBO_area[0] = _SSBO_size;
 	chunk.SSBO_area[1] = _SSBO_data.size() * sizeof(SSBOData);
 }
 

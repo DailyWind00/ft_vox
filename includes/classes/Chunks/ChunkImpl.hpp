@@ -11,6 +11,22 @@
 
 /// Global variables
 
+enum	EnvParams {
+	DRY = 0,
+	MOIST,
+	DRENCHED,
+	COLD,
+	TEMPERATE,
+	HOT
+};
+
+enum	BiomeID {
+	PLAIN = 0,
+	DESERT,
+	FOREST,
+	NONE
+};
+
 // Chunk layer interface.
 class	AChunkLayer {
 	public:
@@ -58,10 +74,13 @@ class	ChunkLayer : public AChunkLayer {
 // Contain a abstract type that stores a layer of block.
 class	LayeredChunk : public AChunk {
 	private:
-		AChunkLayer	**_layer;
+		AChunkLayer **	_layer;
 
-		float *		_computeHeatMap(const glm::ivec3 &pos);
-		float *		_computeHeightMap(const glm::ivec3 &pos);
+		float *	_computeHeatMap(const glm::ivec3 &pos);
+		float *	_computeHeightMap(const glm::ivec3 &pos);
+		float *	_computeHumidityMap(const glm::ivec3 &pos);
+		uint8_t	_getBiomeID(const int &idx, const float *heatFactors, const float *wetFactors);
+		uint8_t	_getBlockFromBiome(const uint8_t &y, const uint8_t &biomeID);
 		
 		ChunkLayer *		_blockToLayer(AChunkLayer *layer);
 		SingleBlockChunkLayer *	_layerToBlock(AChunkLayer *layer);

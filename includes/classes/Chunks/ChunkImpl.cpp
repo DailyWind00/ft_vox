@@ -34,15 +34,35 @@ AChunkLayer *	& LayeredChunk::operator[](const size_t &i)
 
 float *	LayeredChunk::_computeHeatMap(const glm::ivec3 &pos)
 {
-	float		*factors = new float[CHUNK_WIDTH * CHUNK_WIDTH];
-	uint32_t	maxPos = MAX_WORLD_SIZE * CHUNK_WIDTH;
+	float *	factors = new float[CHUNK_WIDTH * CHUNK_WIDTH];
 	
 	for (int i = 0; i < CHUNK_WIDTH * CHUNK_WIDTH; i++) {
 		float	factor = 0;
-		float	amp = 512;
-		
-		factor += Noise::perlin2D(glm::vec2{(pos.x + maxPos + (i % CHUNK_WIDTH)) / (amp * 3),
-				(pos.z + maxPos + ((float)i / CHUNK_WIDTH)) / (amp * 3)}) * (amp / 2);
+		float	amp = 64.0f;
+	
+		for (int j = 0; j < 8; j++) {	
+			factor += Noise::perlin2D(glm::vec2{(2048.0f + pos.x + (i % CHUNK_WIDTH)) / (amp * 32.0f),
+					(2048.0f + pos.z+ ((float)i / CHUNK_WIDTH)) / (amp * 32.0f)}) * amp;
+			amp -= amp / 2.0f;
+		}
+		factors[i] = factor;
+	}
+	return (factors);
+}
+
+float *	LayeredChunk::_computeHumidityMap(const glm::ivec3 &pos)
+{
+	float *	factors = new float[CHUNK_WIDTH * CHUNK_WIDTH];
+
+	for (int i = 0; i < pow(CHUNK_WIDTH, 2); i++) {
+		float	factor = 0;
+		float	amp = 64.0f;
+	
+		for (int j = 0; j < 8; j++) {	
+			factor += Noise::perlin2D(glm::vec2{(1024.0f + pos.x + (i % CHUNK_WIDTH)) / (amp * 32.0f),
+					(1024.0f + pos.z+ ((float)i / CHUNK_WIDTH)) / (amp * 32.0f)}) * amp;
+			amp -= amp / 2.0f;
+		}
 		factors[i] = factor;
 	}
 	return (factors);
@@ -82,19 +102,64 @@ float *	LayeredChunk::_computeHeightMap(const glm::ivec3 &pos)
 	return (factors);
 }
 
+uint8_t	LayeredChunk::_getBiomeID(const int &idx, const float *heatFactors, const float *wetFactors)
+{
+	int	heatLvl = TEMPERATE;
+	int	wetLvl = MOIST;
+
+	if (heatFactors[idx] < -9.0f)
+		heatLvl = COLD;
+	else if (heatFactors[idx] >= -9.0f && heatFactors[idx] <= 9.0f)
+		heatLvl = TEMPERATE;
+	else if (heatFactors[idx] > 9.0f)
+		heatLvl = HOT;
+
+	if (wetFactors[idx] < -9.0f)
+		wetLvl = DRY;
+	else if (wetFactors[idx] >= -9.0f && wetFactors[idx] <= 9.0f)
+		wetLvl = MOIST;
+	else if (wetFactors[idx] > 9.0f)
+		wetLvl = DRENCHED;
+
+	if (heatLvl == TEMPERATE && wetLvl == MOIST)
+		return (PLAIN);
+	else if (heatLvl == HOT && wetLvl == DRY)
+		return (DESERT);
+	else if (heatLvl == COLD && wetLvl == DRENCHED)
+		return (FOREST);
+	return (NONE);
+}
+
+uint8_t	LayeredChunk::_getBlockFromBiome(const uint8_t &y, const uint8_t &biomeID)
+{
+	uint8_t	blockID = 0;
+
+	switch(biomeID) {
+		case PLAIN:
+			blockID = 1;
+			break ;
+		case DESERT:
+			blockID = 2;
+			break ;
+		case FOREST:
+			blockID = 3;
+			break ;
+		default:
+			blockID = 120;
+			break ;
+	}
+	return (blockID);
+}
+
 /// ---
 
 /// Public methods
 void	LayeredChunk::generate(const glm::ivec3 &pos)
 {
-	float	*heightFactors = _computeHeightMap(pos);
-	float	*heatFactors = _computeHeatMap(pos);
+	float *	heightFactors = _computeHeightMap(pos);
+	float *	heatFactors = _computeHeatMap(pos);
+	float *	humidityFactors = _computeHumidityMap(pos);
 
-	uint8_t	surfacePallets[2][2] {
-		{1, 3},
-		{2, 3}
-	};
-	
 	// Store the first block of each layer to handle decompression
 	uint8_t	fstBlkPerLayer[CHUNK_HEIGHT] = {0};
 
@@ -105,19 +170,20 @@ void	LayeredChunk::generate(const glm::ivec3 &pos)
 	for (int i = pos.x; i < CHUNK_WIDTH + pos.x; i++) {
 		for (int j = pos.z; j < CHUNK_WIDTH + pos.z; j++) {
 			int	idx = (i - pos.x) * CHUNK_WIDTH + (j - pos.z);
+			uint8_t	biomeID = _getBiomeID(idx, heatFactors, humidityFactors);
 
 			for (int k = pos.y; k < CHUNK_HEIGHT + pos.y; k++) {
-				uint8_t	id = (k < heightFactors[idx]);
-				uint8_t	palID = (heatFactors[idx] > 10);
+				uint8_t	id = _getBlockFromBiome(k, biomeID) * (k < heightFactors[idx]);
 
 				if (id != fstBlkPerLayer[k - pos.y] && dynamic_cast<SingleBlockChunkLayer *>(this->_layer[k - pos.y]))
 					this->_layer[k - pos.y] = _blockToLayer(this->_layer[k - pos.y]);
-				(*this->_layer[k - pos.y])[idx] = ((k == (int)heightFactors[idx] - 1) + 2 * (k < (int)heightFactors[idx] - 1 && k >= heightFactors[idx] - 4) + 3 * (k < heightFactors[idx] - 4)) * id;
+				(*this->_layer[k - pos.y])[idx] = id;
 			}
 		}
 	}
 	delete [] heightFactors;
 	delete [] heatFactors;
+	delete [] humidityFactors;
 }
 
 void	LayeredChunk::print()

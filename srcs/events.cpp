@@ -56,7 +56,7 @@ void	handleEvents(GameData &gameData) {
 	ShaderHandler	&shaders = gameData.shaders;
 	Camera			&camera  = gameData.camera;
 
-	static float time = 0; time += 0.01;
+	static float time = 50; time += 0.01;
 
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);

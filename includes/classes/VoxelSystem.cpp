@@ -124,7 +124,7 @@ VoxelSystem::VoxelSystem(const uint64_t &seed, Camera &camera) : _camera(camera)
 
 	requestChunk(spawnChunks);
 	// requestMesh({ChunkRequest{{0, 0, 0}, ChunkAction::CREATE_UPDATE}});
- 
+
 	if (VERBOSE)
 		cout << "VoxelSystem initialized\n";
 }

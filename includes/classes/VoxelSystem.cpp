@@ -61,7 +61,7 @@ VoxelSystem::VoxelSystem(const uint64_t &seed, Camera &camera) : _camera(camera)
 	_IB = new PMapBufferGL(GL_DRAW_INDIRECT_BUFFER, IBcapacity, buffersUsage);
 
 	// Create SSBO
-	size_t SSBOcapacity = VERTICAL_RENDER_DISTANCE * pow(HORIZONTAL_RENDER_DISTANCE, 2) * sizeof(SSBOData);
+	size_t SSBOcapacity = VERTICAL_RENDER_DISTANCE * pow(HORIZONTAL_RENDER_DISTANCE, 2) * 6 * sizeof(SSBOData);
 
 	if (VERBOSE) { cout << "> SSBO : "; }
 	_SSBO = new PMapBufferGL(GL_SHADER_STORAGE_BUFFER, SSBOcapacity, buffersUsage);
@@ -207,6 +207,9 @@ void	VoxelSystem::_loadTextureAtlas() {
 
 // Write data to the OpenGL buffers
 void	VoxelSystem::_writeInBuffer(PMapBufferGL *buffer, const void *data, const size_t &size, const size_t &offset) {
+	bool	resized = false;
+
+	// Resize the buffer if needed
 	if (size + offset > buffer->getCapacity()) {
 		if (!buffer->resize(buffer->getCapacity() * BUFFER_GROWTH_FACTOR))
 			throw	runtime_error("Failed to resize PMapBufferGL");
@@ -219,10 +222,20 @@ void	VoxelSystem::_writeInBuffer(PMapBufferGL *buffer, const void *data, const s
 		}
 		else if (buffer == _SSBO)
 			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _SSBO->getID());
+
+		resized = true;
 	}
 
 	buffer->write(data, size, offset);
-	buffer->flush(offset, size);
+
+	// Flush the whole buffer up to the new size if resized
+	if (resized)
+		buffer->flush(0, offset + size);
+	else
+		buffer->flush(offset, size);
+
+	if (buffer == _SSBO)
+		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 }
 
 // Update buffers if possible
@@ -286,13 +299,11 @@ const GeoFrameBuffers	&VoxelSystem::draw() {
 	_IB->bind();
 	_SSBO->bind();
 
+	// Setup textures
+	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, _textureAtlas);
 
 	glMultiDrawArraysIndirect(GL_TRIANGLE_STRIP, nullptr, _drawCount, sizeof(DrawCommand));
-
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-	glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
-	glBindVertexArray(0);
 	
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 

@@ -10,11 +10,11 @@ static void	lightingPass(const GeoFrameBuffers &gBuffer, GLuint &renderQuadVAO) 
 	glBindTexture(GL_TEXTURE_2D, gBuffer.gColor);
 
 	// Rendering to the renderQuad
-	// glDisable(GL_CULL_FACE);
+	glDisable(GL_CULL_FACE);
 	glBindVertexArray(renderQuadVAO);
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 	glBindVertexArray(0);
-	// glEnable(GL_CULL_FACE);
+	glEnable(GL_CULL_FACE);
 	
 	// Copying the final depth buffer to the default internal framebuffer
 	glBindFramebuffer(GL_READ_FRAMEBUFFER, gBuffer.gBuffer);
@@ -34,16 +34,6 @@ static void program_loop(GameData &gameData) {
 	// Voxel Geometrie
 	shaders.use(shaders[1]);
 	GeoFrameBuffers	gBuffer = voxelSystem.draw();
-
-	// To remove
-	// vector<ivec3>	positions;
-	// for (int i = -3; i < 3; i++)
-	// 	for (int j = -3; j < 3; j++)
-	// 		for (int k = -3; k < 3; k++)
-	// 			positions.push_back({i, j, k});
-
-	// voxelSystem.requestMeshUpdate(positions, ChunkAction::DELETE);
-	// --
 
 	// Deferred rendering lighting
 	shaders.use(shaders[2]);
@@ -70,7 +60,7 @@ void	Rendering(Window &window, const uint64_t &seed) {
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	// glEnable(GL_CULL_FACE);
+	glEnable(GL_CULL_FACE);
 
 	// Systemes Initialization
 	Camera	camera(

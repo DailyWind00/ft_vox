@@ -30,10 +30,9 @@ class PMapBufferGL {
 		/// Public functions
 		void    bind();
 		void    unbind();
-		size_t  resize(size_t newCapacity);
+		size_t  resize(size_t newCapacity, bool keepData = true);
 		bool    write(const void* src, size_t size, size_t offset = 0);
 		void    flush(size_t offset = 0, size_t length = 0) const;
-		void    sync(GLenum barrier) const;
 
 		/// Getters
 		const void *	getData() const;

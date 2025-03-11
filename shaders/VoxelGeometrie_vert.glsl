@@ -41,9 +41,9 @@ void main() {
 	uvec3	pos = uvec3(0);
 	uvec2	len = uvec2(0);
 
-	pos.x = (blockData)       & 0x1F;
-	pos.y = (blockData >> 5)  & 0x1F;
-	pos.z = (blockData >> 10) & 0x1F;
+	pos.x = (blockData)        & 0x1F;
+	pos.y = (blockData >> 5)   & 0x1F;
+	pos.z = (blockData >> 10)  & 0x1F;
 
 	texID = ((blockData >> 15) & 0x7F);
 

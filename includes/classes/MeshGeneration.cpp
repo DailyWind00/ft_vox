@@ -175,6 +175,8 @@ void	VoxelSystem::_generateMesh(ChunkData &chunk, ChunkData *neightboursChunks[6
 	if (IS_CHUNK_COMPRESSED(chunk.chunk) && !BLOCK_AT(chunk.chunk, 0, 0, 0))
 		return;
 
+	// TODO : check if the chunk is already in the buffers, if so, update it
+
 	vector<DATA_TYPE>	vertices[6];
 
 	// Generate vertices for visible faces

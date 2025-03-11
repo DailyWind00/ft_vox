@@ -114,15 +114,16 @@ VoxelSystem::VoxelSystem(const uint64_t &seed, Camera &camera) : _camera(camera)
 	_meshGenerationThread = thread(&VoxelSystem::_meshGenerationRoutine, this);
 
 	// Request the chunks around the camera
-	vector<ivec3>	positions;
-	positions.reserve(pow(HORIZONTAL_RENDER_DISTANCE * 2 - 1, 2) * (VERTICAL_RENDER_DISTANCE * 2 - 1));
+	vector<ChunkRequest>	spawnChunks;
+	spawnChunks.reserve(pow(HORIZONTAL_RENDER_DISTANCE * 2 - 1, 2) * (VERTICAL_RENDER_DISTANCE * 2 - 1));
 
 	for (int i = -HORIZONTAL_RENDER_DISTANCE + 1; i <= HORIZONTAL_RENDER_DISTANCE - 1; i++)
 		for (int j = -VERTICAL_RENDER_DISTANCE + 1; j <= VERTICAL_RENDER_DISTANCE - 1; j++)
 			for (int k = -HORIZONTAL_RENDER_DISTANCE + 1; k <= HORIZONTAL_RENDER_DISTANCE - 1; k++)
-				positions.push_back(ivec3{i, j, k});
+				spawnChunks.push_back({ivec3{i, j, k}, ChunkAction::CREATE_UPDATE});
 
-	requestChunk(positions);
+	requestChunk(spawnChunks);
+	// requestMesh({ChunkRequest{{0, 0, 0}, ChunkAction::CREATE_UPDATE}});
 
 	if (VERBOSE)
 		cout << "VoxelSystem initialized\n";
@@ -264,15 +265,16 @@ void	VoxelSystem::_updateBuffers() {
 			_SSBO_data.clear();
 		}
 
-		if (_chunksToDelete.size()) {
-			for (const ChunkData &chunk : _chunksToDelete) {
-				_writeInBuffer(_VBO, nullptr, chunk.VBO_area[0], chunk.VBO_area[1]);
-				_writeInBuffer(_IB, nullptr, chunk.IB_area[0], chunk.IB_area[1]);
-				_writeInBuffer(_SSBO, nullptr, chunk.SSBO_area[0], chunk.SSBO_area[1]);
-			}
-			_chunksToDelete.clear();
-			// cout << "Chunks deleted\n";
-		}
+		cout << _chunksToDelete.size() << endl;
+		// if (_chunksToDelete.size()) {
+		// 	for (const ChunkData &chunk : _chunksToDelete) {
+		// 		_writeInBuffer(_VBO, nullptr, chunk.VBO_area[0], chunk.VBO_area[1]);
+		// 		_writeInBuffer(_IB, nullptr, chunk.IB_area[0], chunk.IB_area[1]);
+		// 		_writeInBuffer(_SSBO, nullptr, chunk.SSBO_area[0], chunk.SSBO_area[1]);
+		// 	}
+		// 	_chunksToDelete.clear();
+		// 	// cout << "Chunks deleted\n";
+		// }
 
 		_buffersNeedUpdates = false;
 	}

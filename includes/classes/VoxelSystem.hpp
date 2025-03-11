@@ -61,26 +61,22 @@ typedef struct GeoFrameBuffers {
 
 // Data structure for CPU-side chunk data management
 typedef struct ChunkData {
-	// For creation
 	AChunk *	chunk;
 	size_t		LOD = 0;
 	ivec3		Wpos;
 
-	// For deletion
 	size_t		VBO_area[2]  = {0, 0};   // offset, size
 	size_t		IB_area[2]   = {0, 0};   // offset, size
 	size_t		SSBO_area[2] = {0, 0};   // offset, size
-
 } ChunkData;
 typedef unordered_map<ivec3, ChunkData> ChunkMap; // Wpos -> ChunkData
 
-// Interface for mesh modifications
+// Interface for chunk & mesh modifications
 enum class ChunkAction {
-	NONE,
 	CREATE_UPDATE,
 	DELETE
 };
-typedef pair<ivec3, ChunkAction> MeshRequest; // Wpos, Action
+typedef pair<ivec3, ChunkAction> ChunkRequest; // Wpos, Action
 
 // This class is responsible for managing the voxel system 
 // It have 2 child threads: ChunkGeneration & MeshGeneration
@@ -117,8 +113,8 @@ class VoxelSystem {
 		thread	_meshGenerationThread;
 		bool	_quitting = false;
 
-		deque<ivec3>		_requestedChunks; // Wpos
-		deque<MeshRequest>	_requestedMeshes; // Wpos, Action
+		deque<ChunkRequest>	_requestedChunks;
+		deque<ChunkRequest>	_requestedMeshes;
 
 		mutex	_requestedChunksMutex;
 		mutex	_requestedMeshesMutex;
@@ -131,8 +127,11 @@ class VoxelSystem {
 		void	_chunkGenerationRoutine();
 		void	_meshGenerationRoutine();
 
+		void	_generateChunk(const ivec3 &pos);
+		void	_deleteChunk  (const ivec3 &pos);
+
 		void	_generateMesh(ChunkData &chunk, ChunkData *neightboursChunks[6]);
-		void	_deleteChunk (ChunkData &chunk, ChunkData *neightboursChunks[6]);
+		void	_deleteMesh  (ChunkData &chunk, ChunkData *neightboursChunks[6]);
 
 		void	_updateBuffers();
 		void	_writeInBuffer(PMapBufferGL *buffer, const void *data, const size_t &size, const size_t &offset);
@@ -143,8 +142,8 @@ class VoxelSystem {
 
 		/// Public functions
 
-		void	requestChunk(const vector<ivec3> &Wpositions);
-		void	requestMeshUpdate(const vector<ivec3> &Wpositions, const ChunkAction &action);
+		void	requestChunk(const vector<ChunkRequest> &requests);
+		void	requestMesh (const vector<ChunkRequest> &requests);
 
 		const GeoFrameBuffers &	draw();
 

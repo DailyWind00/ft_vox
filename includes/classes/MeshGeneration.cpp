@@ -15,7 +15,7 @@ void	VoxelSystem::_meshGenerationRoutine() {
 			continue;
 		}
 
-		deque<MeshRequest> localRequestedMeshes = _requestedMeshes;
+		deque<ChunkRequest> localRequestedMeshes = _requestedMeshes;
 		_requestedMeshesMutex.unlock();
 
 		// Generate meshes up to the batch limit
@@ -23,14 +23,9 @@ void	VoxelSystem::_meshGenerationRoutine() {
 		_chunksMutex.lock();
 		_buffersMutex.lock();
 
-		for (MeshRequest request : localRequestedMeshes) {
-			if (batchCount >= BATCH_LIMIT)
+		for (ChunkRequest request : localRequestedMeshes) {
+			if (batchCount++ >= BATCH_LIMIT)
 				break;
-
-			batchCount++;
-			
-			if (request.second == ChunkAction::NONE)
-				continue;
 
 			ivec3	Wpos = request.first;
 
@@ -65,7 +60,7 @@ void	VoxelSystem::_meshGenerationRoutine() {
 					break;
 
 				case ChunkAction::DELETE:
-					_deleteChunk(data, neightboursChunks);
+					_deleteMesh(data, neightboursChunks);
 					break;
 
 				default:
@@ -80,13 +75,17 @@ void	VoxelSystem::_meshGenerationRoutine() {
 
 		// Remove the generated meshes from the requested list
 		_requestedMeshesMutex.lock();
-		while (batchCount--)
-			_requestedMeshes.pop_front();
+		_requestedMeshes.erase(_requestedMeshes.begin(), _requestedMeshes.begin() + batchCount);
 		_requestedMeshesMutex.unlock();
 	}
 
 	if (VERBOSE)
 		cout << "Mesh Generation thread stopped" << endl;
+}
+
+// Check if a neighbour chunk mesh is loaded
+static bool	isNeightbourLoaded(ChunkData *neightbour) {
+	return neightbour && neightbour->VBO_area[1] && neightbour->IB_area[1] && neightbour->SSBO_area[1];
 }
 
 // Check if the voxel at the given position is visible
@@ -118,11 +117,11 @@ static uint8_t	isVoxelVisible(const ivec3 &Vpos, const ChunkData &chunk, ChunkDa
 		/// X axis
 		// Border
 		if (pos.x < 0) {
-			if (!neightboursChunks[4] || !BLOCK_AT(neightboursChunks[4]->chunk, CHUNK_SIZE - LOD, pos.y, pos.z))
+			if (!isNeightbourLoaded(neightboursChunks[4]) || !BLOCK_AT(neightboursChunks[4]->chunk, CHUNK_SIZE - LOD, pos.y, pos.z))
 				visibleFaces |= (1 << 0);
 		}
 		else if (pos.x >= CHUNK_SIZE) {
-			if (!neightboursChunks[5] || !BLOCK_AT(neightboursChunks[5]->chunk, 0, pos.y, pos.z))
+			if (!isNeightbourLoaded(neightboursChunks[5]) || !BLOCK_AT(neightboursChunks[5]->chunk, 0, pos.y, pos.z))
 				visibleFaces |= (1 << 1);
 		}
 		// Inside
@@ -135,11 +134,11 @@ static uint8_t	isVoxelVisible(const ivec3 &Vpos, const ChunkData &chunk, ChunkDa
 		/// y axis
 		// Border
 		if (pos.y < 0) {
-			if (!neightboursChunks[2] || !BLOCK_AT(neightboursChunks[2]->chunk, pos.x, CHUNK_SIZE - LOD, pos.z))
+			if (!isNeightbourLoaded(neightboursChunks[2]) || !BLOCK_AT(neightboursChunks[2]->chunk, pos.x, CHUNK_SIZE - LOD, pos.z))
 				visibleFaces |= (1 << 2);
 		}
 		else if (pos.y >= CHUNK_SIZE) {
-			if (!neightboursChunks[3] || !BLOCK_AT(neightboursChunks[3]->chunk, pos.x, 0, pos.z))
+			if (!isNeightbourLoaded(neightboursChunks[3]) || !BLOCK_AT(neightboursChunks[3]->chunk, pos.x, 0, pos.z))
 				visibleFaces |= (1 << 3);
 		}
 		// Inside
@@ -152,11 +151,11 @@ static uint8_t	isVoxelVisible(const ivec3 &Vpos, const ChunkData &chunk, ChunkDa
 		/// z axis
 		// Border
 		if (pos.z < 0) {
-			if (!neightboursChunks[0] || !BLOCK_AT(neightboursChunks[0]->chunk, pos.x, pos.y, CHUNK_SIZE - LOD))
+			if (!isNeightbourLoaded(neightboursChunks[0]) || !BLOCK_AT(neightboursChunks[0]->chunk, pos.x, pos.y, CHUNK_SIZE - LOD))
 				visibleFaces |= (1 << 4);
 		}
 		else if (pos.z >= CHUNK_SIZE) {
-			if (!neightboursChunks[1] || !BLOCK_AT(neightboursChunks[1]->chunk, pos.x, pos.y, 0))
+			if (!isNeightbourLoaded(neightboursChunks[1]) || !BLOCK_AT(neightboursChunks[1]->chunk, pos.x, pos.y, 0))
 				visibleFaces |= (1 << 5);
 		}
 		// Inside
@@ -169,13 +168,15 @@ static uint8_t	isVoxelVisible(const ivec3 &Vpos, const ChunkData &chunk, ChunkDa
 	return visibleFaces;
 }
 
-// Create/update the mesh of the given chunk and store it in OpenGL buffers
+// Create/update the mesh of the given chunk and store it at the end of OpenGL buffers
 void	VoxelSystem::_generateMesh(ChunkData &chunk, ChunkData *neightboursChunks[6]) {
+	// Check if the chunk already have a mesh
+	if (chunk.VBO_area[1] && chunk.IB_area[1] && chunk.SSBO_area[1])
+		_deleteMesh(chunk, neightboursChunks);
+
 	// Check if the chunk completely empty
 	if (IS_CHUNK_COMPRESSED(chunk.chunk) && !BLOCK_AT(chunk.chunk, 0, 0, 0))
 		return;
-
-	// TODO : check if the chunk is already in the buffers, if so, update it
 
 	vector<DATA_TYPE>	vertices[6];
 
@@ -242,25 +243,22 @@ void	VoxelSystem::_generateMesh(ChunkData &chunk, ChunkData *neightboursChunks[6
 	chunk.SSBO_area[1] = _SSBO_data.size() * sizeof(SSBOData);
 }
 
-// Delete a chunk and its mesh
-void	VoxelSystem::_deleteChunk(ChunkData &chunk, ChunkData *neightboursChunks[6]) {
+// Delete the first mesh
+void	VoxelSystem::_deleteMesh(ChunkData &chunk, ChunkData *neightboursChunks[6]) {
 	if (!_chunks.count(chunk.Wpos))
 		return;
 
 	_chunksToDelete.push_back(chunk);
 
-	delete chunk.chunk;
-	_chunks.erase(chunk.Wpos);
-
 	// Request the update of neighbouring chunks
-	vector<ivec3>	neightboursPos;
+	vector<ChunkRequest>	neightboursRequests;
 
 	for (size_t i = 0; i < 6; i++) {
 		if (neightboursChunks[i])
-			neightboursPos.push_back(neightboursChunks[i]->Wpos);
+			neightboursRequests.push_back({neightboursChunks[i]->Wpos, ChunkAction::CREATE_UPDATE});
 	}
 
-	requestMeshUpdate(neightboursPos, ChunkAction::CREATE_UPDATE);
+	requestMesh(neightboursRequests);
 }
 /// ---
 
@@ -268,29 +266,21 @@ void	VoxelSystem::_deleteChunk(ChunkData &chunk, ChunkData *neightboursChunks[6]
 
 /// Public functions
 
-// Request the update of a chunk mesh
-// If a mesh is requested without a chunk, the chunk will be requested instead
-void	VoxelSystem::requestMeshUpdate(const vector<ivec3> &Wpositions, const ChunkAction &action) {
-	if (!Wpositions.size())
+// Request an action on a chunk mesh :
+//  - CREATE_UPDATE will generate or update the chunk mesh
+//  - DELETE will delete the mesh
+void	VoxelSystem::requestMesh(const vector<ChunkRequest> &requests) {
+	if (!requests.size())
 		return;
 
 	_requestedMeshesMutex.lock();
 
-	vector<ivec3>	chunkRequests;
-
-	chunkRequests.reserve(Wpositions.size());
-
-	for (ivec3 pos : Wpositions) {
-		if (!_chunks.count(pos) && action != ChunkAction::DELETE)
-			chunkRequests.push_back(pos);
-
-		else if (find(_requestedMeshes.begin(), _requestedMeshes.end(), MeshRequest{pos, action}) == _requestedMeshes.end())
-			_requestedMeshes.push_back({pos, action});
+	for (ChunkRequest req : requests) {
+		// Check if the request already exists
+		if (find(_requestedMeshes.begin(), _requestedMeshes.end(), req) == _requestedMeshes.end())
+			_requestedMeshes.push_back(req);
 	}
 
 	_requestedMeshesMutex.unlock();
-
-	if (chunkRequests.size())
-		requestChunk(chunkRequests);
 }
 /// ---

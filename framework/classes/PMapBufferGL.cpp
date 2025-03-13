@@ -88,11 +88,16 @@ size_t PMapBufferGL::resize(size_t newCapacity, bool keepData) {
 }
 
 // Write data to the buffer at a given offset
+// If src is nullptr, the data is filled with 0
 bool PMapBufferGL::write(const void* src, size_t size, size_t offset) {
     if (offset + size > _capacity)
-        return false;
+		return false;
 
-    std::memcpy(static_cast<uint8_t*>(_data) + offset, src, size);
+	if (!src)
+		std::memset(static_cast<uint8_t*>(_data) + offset, 0, size);
+	else
+		std::memcpy(static_cast<uint8_t*>(_data) + offset, src, size);
+
     return true;
 }
 /// ---

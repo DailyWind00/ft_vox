@@ -50,7 +50,7 @@ void	VoxelSystem::_meshGenerationRoutine() {
 			ChunkData	*neightboursChunks[6] = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
 
 			for (size_t i = 0; i < 6; i++) {
-				if (_chunks.find(neightboursPos[i]) != _chunks.end())
+				if (_chunks.find(neightboursPos[i]) != _chunks.end() && _chunks[neightboursPos[i]].chunk)
 					neightboursChunks[i] = &_chunks[neightboursPos[i]];
 			}
 
@@ -64,9 +64,6 @@ void	VoxelSystem::_meshGenerationRoutine() {
 				case ChunkAction::DELETE:
 					_deleteMesh(data, neightboursChunks);
 					break;
-
-				default:
-					throw std::runtime_error("Invalid ChunkAction");
 			}
 		}
 
@@ -170,14 +167,15 @@ static uint8_t	isVoxelVisible(const ivec3 &Vpos, const ChunkData &chunk, ChunkDa
 	return visibleFaces;
 }
 
-// Create/update the mesh of the given chunk and store it at the end of OpenGL buffers
+// Create/update the mesh of the given chunk
+// The data will be stored in the main thread at the end of OpenGL buffers
 void	VoxelSystem::_generateMesh(ChunkData &chunk, ChunkData *neightboursChunks[6]) {
 	// Check if the chunk already have a mesh
 	if (chunk.VBO_area[1] && chunk.IB_area[1] && chunk.SSBO_area[1])
 		_deleteMesh(chunk, neightboursChunks);
 
 	// Check if the chunk completely empty
-	if (IS_CHUNK_COMPRESSED(chunk.chunk) && !BLOCK_AT(chunk.chunk, 0, 0, 0))
+	if (!chunk.chunk || (IS_CHUNK_COMPRESSED(chunk.chunk) && !BLOCK_AT(chunk.chunk, 0, 0, 0)))
 		return;
 
 	vector<DATA_TYPE>	vertices[6];
@@ -250,7 +248,7 @@ void	VoxelSystem::_deleteMesh(ChunkData &chunk, ChunkData *neightboursChunks[6])
 	if (!_chunks.count(chunk.Wpos))
 		return;
 
-	_chunksToDelete.push_back(chunk);
+	_chunksToDelete.push_back(chunk.Wpos);
 
 	// Request the update of neighbouring chunks
 	vector<ChunkRequest>	neightboursRequests;

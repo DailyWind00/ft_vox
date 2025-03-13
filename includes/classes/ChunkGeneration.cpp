@@ -87,12 +87,13 @@ void VoxelSystem::_generateChunk(const ivec3 &pos) {
 }
 
 // Delete a chunk
+// It will be removed from the ChunkMap in the main thread
 void VoxelSystem::_deleteChunk(const ivec3 &pos) {
 	if (!_chunks.count(pos))
 		return;
 
 	delete _chunks[pos].chunk;
-	_chunks.erase(pos);
+	_chunks[pos].chunk = nullptr;
 }
 /// ---
 

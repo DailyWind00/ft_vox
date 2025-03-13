@@ -24,7 +24,7 @@ class	SkyBox {
 	private:
 		GLuint	VAO;
 		GLuint	VBO;
-		GLuint	textureID;
+		GLuint	textureID = 0;
 
 	public:
 		SkyBox(const std::vector<std::string> &path = {});

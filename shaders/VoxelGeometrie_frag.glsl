@@ -7,7 +7,7 @@ layout (location = 2) out vec4 gColor;
 in vec3	fragPos;
 in vec3	Normal;
 in vec2	uv;
-in float	l;
+in vec2	l;
 flat in uint	texID;
 
 uniform float		time;
@@ -21,5 +21,5 @@ void	main()
 	uint	xOff = texID % 16;
 	uint	yOff = texID / 16;
 
-	gColor = texture(atlas, vec2((fract(uv.x * l) + xOff) / 16, (fract(uv.y) + yOff) / 16));
+	gColor = texture(atlas, vec2((fract(uv.x * l.x) + xOff) / 16, (fract(uv.y * l.y) + yOff) / 16));
 }

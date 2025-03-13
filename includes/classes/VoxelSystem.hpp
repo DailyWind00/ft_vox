@@ -1,127 +1,153 @@
 #pragma once
+
 /// Defines
-# define COLOR_HEADER_CXX
-# define HORIZONTALE_RENDER_DISTANCE 16
-# define VERTICALE_RENDER_DISTANCE 8
-# define CHUNK_SIZE 32
-# define DATA_TYPE uint32_t
-# define BUFFER_GROWTH_FACTOR 1.5f
 # define GLM_ENABLE_EXPERIMENTAL
+# define DATA_TYPE uint32_t
+# define CHUNK_SIZE 32
+# define HORIZONTAL_RENDER_DISTANCE 7
+# define VERTICAL_RENDER_DISTANCE 5
+# define BUFFER_GROWTH_FACTOR 2
+# define BATCH_LIMIT (size_t)250
+# define THREAD_SLEEP_DURATION 10 // in ms
+# define MIN_LOD (size_t)4
+# define MAX_LOD (size_t)1
 
 /// System includes
 # include <iostream>
-# include <list>
-# include <vector>
-# include <mutex>
-# include <thread>
-# include <atomic>
-# include <type_traits>
+# include <algorithm>
 # include <unordered_map>
+# include <vector>
+# include <deque>
+# include <thread>
+# include <mutex>
+# include <atomic>
 
 /// Dependencies
 # include <glad/glad.h>
-# include <glfw/glfw3.h>
-# include "glm/gtx/hash.hpp" // Required for glm::ivec3 hash
+# include "glm/gtx/hash.hpp"
 # include "BufferGL.hpp"
 # include "PMapBufferGL.hpp"
 # include "Noise.hpp"
-# include "color.h"
+# include "Camera.hpp"
 # include "chunk.h"
 
 /// Global variables
 extern bool VERBOSE;
 
-// Data structure for CPU-side chunk data management
-typedef std::pair<glm::ivec3, AChunk *>	ChunkData;
-typedef std::unordered_map<glm::ivec3, AChunk *>	ChunkMap;
+using namespace std;
+using namespace glm;
 
-// Data structure for SSBO (Shader Storage Buffer Object)
+// Data structure of a OpenGL draw command
+// Used for indirect rendering
+typedef struct DrawCommand {
+	GLuint	verticeCount  = 0;
+	GLuint	instanceCount = 0;
+	GLuint	offset        = 0;
+ 	GLuint	baseInstance  = 0;
+} DrawCommand;
+
+// Data structure for the SSBO (Shader Storage Buffer Object)
 typedef struct SSBOData {
-	glm::ivec4	worldPos;
-}	SSBOData;
-typedef std::vector<SSBOData> VSSBOs;
+	ivec4	worldPos; // Wpos x y z, face orientation
+} SSBOData;
 
-// Data structure for IB (DrawArraysIndirectCommand)
-typedef struct {
-	GLuint	verticeCount;
-	GLuint	instanceCount;
-	GLuint	offset;
- 	GLuint	baseInstance;
-}	DrawCommand;
-typedef std::vector<DrawCommand>	VDrawCommand;
+// Data structure for the G-Buffer (Geometry pass)
+typedef struct GeoFrameBuffers {
+	GLuint	gBuffer;
+	GLuint	gPosition;
+	GLuint	gNormal;
+	GLuint	gColor;
+} GeoFrameBuffers;
 
-typedef struct {
-	std::vector<DATA_TYPE>	vertices[6];
-	DrawCommand		cmd[6];
-	glm::ivec3		wPos;
-}	DrawCommandData;
-typedef std::list<DrawCommandData>	VDrawCommandData;
+// Data structure for CPU-side chunk data management
+typedef struct ChunkData {
+	AChunk *	chunk;
+	size_t		LOD = 0;
+	ivec3		Wpos;
 
-// Core class for the voxel system
-// Create chunks and their meshes & manage their rendering
-class	VoxelSystem {
-	// This class use persistent mapped buffers (VBOs) with glMultiDrawArraysIndirect
-	// This allow:
-	//   - Load/update/delete chunks efficiently
-	//   - Batch all chunks in a single draw call
+	size_t		VBO_area[2]  = {0, 0};   // offset, size
+	size_t		IB_area[2]   = {0, 0};   // offset, size
+	size_t		SSBO_area[2] = {0, 0};   // offset, size
+} ChunkData;
+typedef unordered_map<ivec3, ChunkData> ChunkMap; // Wpos -> ChunkData
+
+// Interface for chunk & mesh modifications
+enum class ChunkAction {
+	CREATE_UPDATE,
+	DELETE
+};
+typedef pair<ivec3, ChunkAction> ChunkRequest; // Wpos, Action
+
+// This class is responsible for managing the voxel system 
+// It have 2 child threads: ChunkGeneration & MeshGeneration
+class VoxelSystem {
 	private:
-		GLuint		VAO;
-		ChunkMap	chunks;
+		ChunkMap	_chunks; // ChunkGeneration output
+		Camera &	_camera;
 
-		// Multithreading related data
-		std::thread		meshGenThread;
-		std::thread		chunkGenThread;
+		// OpenGL variables
+		GLuint			_VAO;
+		GLuint			_textureAtlas;
+		GeoFrameBuffers	_gBuffer;
+		GLuint			_drawCount = 0;
 
-		std::list<glm::ivec3>	requestedChunks;
-		std::mutex		requestedChunkMutex;
+		// OpenGL Buffers (MeshGeneration output)
+		PMapBufferGL *	_VBO;
+		PMapBufferGL *	_IB;
+		PMapBufferGL *	_SSBO;
 
-		ChunkMap		pendingChunks;
-		std::mutex		pendingChunkMutex;
+		size_t	_VBO_size  = 0;
+		size_t	_IB_size   = 0;
+		size_t	_SSBO_size = 0;
 
-		VDrawCommandData	cmdData;
-		std::mutex		VDrawCommandMutex;
+		vector<DATA_TYPE>	_VBO_data;
+		vector<DrawCommand>	_IB_data;
+		vector<SSBOData>	_SSBO_data;
+		vector<ChunkData>	_chunksToDelete;
 
-		std::atomic<bool>	updatingBuffers;
-		bool			quitting;
+		bool	_buffersNeedUpdates;
+		mutex	_buffersMutex;
 
-		// Deferred Rendering Buffers
-		GLuint	gBuffer;
-		GLuint	gPosition;
-		GLuint	gNormal;
-		GLuint	gColor;
+		// Multi-threading
+		thread	_chunkGenerationThread;
+		thread	_meshGenerationThread;
+		bool	_quitting = false;
 
-		// Voxels Texture Atlas
-		GLuint	textures;
-		
-		// Vertex Buffer Object
-		PMapBufferGL *	VBO;
-		size_t			currentVertexOffset = 0;
+		deque<ChunkRequest>	_requestedChunks;
+		deque<ChunkRequest>	_requestedMeshes;
 
-		// Indirect Buffer
-		BufferGL *		IB;
-		VDrawCommand	commands;
-
-		// Shader Storage Buffer Object
-		BufferGL *		SSBO;
-		VSSBOs			chunksInfos;
+		mutex	_requestedChunksMutex;
+		mutex	_requestedMeshesMutex;
+		mutex	_chunksMutex;
 
 		/// Private functions
-		void	updateDrawCommands();
-		void	updateIB();
-		void	updateSSBO();
-	
-		void	chunkGenRoutine();
 
-		void			meshGenRoutine();
-		DrawCommandData	genMesh(const ChunkData &data);
-		uint8_t			isVoxelVisible(const size_t &x, const size_t &y, const size_t &z,
-										const ChunkData &data, AChunk *neightboursChunks[6]);
+		void	_loadTextureAtlas();
+
+		void	_chunkGenerationRoutine();
+		void	_meshGenerationRoutine();
+
+		void	_generateChunk(const ivec3 &pos);
+		void	_deleteChunk  (const ivec3 &pos);
+
+		void	_generateMesh(ChunkData &chunk, ChunkData *neightboursChunks[6]);
+		void	_deleteMesh  (ChunkData &chunk, ChunkData *neightboursChunks[6]);
+
+		void	_updateBuffers();
+		void	_writeInBuffer(PMapBufferGL *buffer, const void *data, const size_t &size, const size_t &offset);
 
 	public:
-		VoxelSystem(); // Random seed
-		VoxelSystem(const uint64_t &seed); // Custom seed
+		VoxelSystem(const uint64_t &seed, Camera &camera); // seed 0 = random seed
 		~VoxelSystem();
 
 		/// Public functions
-		struct GeoFrameBuffers	draw();
+
+		void	requestChunk(const vector<ChunkRequest> &requests);
+		void	requestMesh (const vector<ChunkRequest> &requests);
+
+		const GeoFrameBuffers &	draw();
+
+		/// Setters
+
+		void	setCamera(Camera &cam);
 };

@@ -24,6 +24,8 @@ add_executable(ft_vox
 
 	# Includes
 	includes/classes/VoxelSystem.cpp
+	includes/classes/ChunkGeneration.cpp
+	includes/classes/MeshGeneration.cpp
 	includes/classes/Chunks/AChunk.cpp
 	includes/classes/Chunks/ChunkImpl.cpp
 	includes/classes/Chunks/ChunkHandler.cpp
@@ -50,3 +52,9 @@ target_link_libraries(ft_vox PRIVATE
 )
 
 target_compile_options(ft_vox PRIVATE -Wall -Wextra -O3 -g -fPIE)
+
+set_target_properties(ft_vox PROPERTIES
+	CXX_STANDARD 17
+	CXX_STANDARD_REQUIRED YES
+	CXX_EXTENSIONS NO
+)

@@ -265,7 +265,6 @@ void	VoxelSystem::_updateBuffers() {
 			_SSBO_data.clear();
 		}
 
-		cout << _chunksToDelete.size() << endl;
 		// if (_chunksToDelete.size()) {
 		// 	for (const ChunkData &chunk : _chunksToDelete) {
 		// 		_writeInBuffer(_VBO, nullptr, chunk.VBO_area[0], chunk.VBO_area[1]);

@@ -24,8 +24,10 @@ void	VoxelSystem::_meshGenerationRoutine() {
 		_buffersMutex.lock();
 
 		for (ChunkRequest request : localRequestedMeshes) {
-			if (batchCount++ >= BATCH_LIMIT)
+			if (batchCount >= BATCH_LIMIT)
 				break;
+
+			batchCount++;
 
 			ivec3	Wpos = request.first;
 

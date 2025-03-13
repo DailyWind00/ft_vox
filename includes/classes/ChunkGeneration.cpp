@@ -25,8 +25,10 @@ void VoxelSystem::_chunkGenerationRoutine() {
 		deque<ivec3>	chunksToDelete;
 
 		for (const ChunkRequest &req : localRequestedChunks) {
-			if (batchCount++ >= BATCH_LIMIT)
+			if (batchCount >= BATCH_LIMIT)
 				break;
+
+			batchCount++;
 
 			ivec3 pos = req.first;
 

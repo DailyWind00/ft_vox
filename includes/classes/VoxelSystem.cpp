@@ -123,7 +123,13 @@ VoxelSystem::VoxelSystem(const uint64_t &seed, Camera &camera) : _camera(camera)
 				spawnChunks.push_back({ivec3{i, j, k}, ChunkAction::CREATE_UPDATE});
 
 	requestChunk(spawnChunks);
-	// requestMesh({ChunkRequest{{0, 0, 0}, ChunkAction::CREATE_UPDATE}});
+
+	{ // to remove
+		this_thread::sleep_for(chrono::milliseconds(1000)); // Give time to the chunks to be generated
+		requestChunk({ChunkRequest{{0, 0, 0}, ChunkAction::DELETE}});
+		requestChunk({ChunkRequest{{0, -1, 0}, ChunkAction::DELETE}});
+		requestChunk({ChunkRequest{{0, -2, 0}, ChunkAction::DELETE}});
+	} // --
 
 	if (VERBOSE)
 		cout << "VoxelSystem initialized\n";
@@ -149,8 +155,10 @@ VoxelSystem::~VoxelSystem() {
 	_meshGenerationThread.join();
 
 	// Delete all chunks
-	for (auto &chunk : _chunks)
-		delete chunk.second.chunk;
+	for (const ChunkMap::value_type &chunk : _chunks) {
+		if (chunk.second.chunk)
+			delete chunk.second.chunk;
+	}
 
 	_chunks.clear();
 	
@@ -245,8 +253,6 @@ void	VoxelSystem::_updateBuffers() {
 		return;
 
 	if (_buffersNeedUpdates) {
-		_drawCount += _IB_data.size();
-
 		// VBO
 		if (_VBO_data.size()) {
 			_writeInBuffer(_VBO, _VBO_data.data(), _VBO_data.size() * sizeof(DATA_TYPE), _VBO_size);
@@ -258,25 +264,39 @@ void	VoxelSystem::_updateBuffers() {
 		if (_IB_data.size()) {
 			_writeInBuffer(_IB, _IB_data.data(), _IB_data.size() * sizeof(DrawCommand), _IB_size);
 			_IB_size += _IB_data.size() * sizeof(DrawCommand);
+			_drawCount += _IB_data.size();
 			_IB_data.clear();
 		}
 
-		// SSBO
+		// SSBO	
 		if (_SSBO_data.size()) {
 			_writeInBuffer(_SSBO, _SSBO_data.data(), _SSBO_data.size() * sizeof(SSBOData), _SSBO_size);
 			_SSBO_size += _SSBO_data.size() * sizeof(SSBOData);
 			_SSBO_data.clear();
 		}
 
-		// if (_chunksToDelete.size()) {
-		// 	for (const ChunkData &chunk : _chunksToDelete) {
-		// 		_writeInBuffer(_VBO, nullptr, chunk.VBO_area[0], chunk.VBO_area[1]);
-		// 		_writeInBuffer(_IB, nullptr, chunk.IB_area[0], chunk.IB_area[1]);
-		// 		_writeInBuffer(_SSBO, nullptr, chunk.SSBO_area[0], chunk.SSBO_area[1]);
-		// 	}
-		// 	_chunksToDelete.clear();
-		// 	// cout << "Chunks deleted\n";
-		// }
+		// Delete the chunks (may cause lag so we batch it)
+		if (_chunksToDelete.size() /* >= BATCH_LIMIT */) {
+			for (const ivec3 &WPos : _chunksToDelete) {
+
+				ChunkData &chunk = _chunks.find(WPos)->second;
+
+				// TODO : Recompact the buffers if needed
+				_writeInBuffer(_IB, nullptr, chunk.IB_area[1], chunk.IB_area[0]);
+				_writeInBuffer(_SSBO, nullptr, chunk.SSBO_area[1], chunk.SSBO_area[0]);
+
+				{ // To remove
+					cout << "Deleting at " << chunk.Wpos.x << " " << chunk.Wpos.y << " " << chunk.Wpos.z << endl;
+					cout << "IB area   : " << chunk.IB_area[0] << " " << chunk.IB_area[1] << endl;
+					cout << "SSBO area : " << chunk.SSBO_area[0] << " " << chunk.SSBO_area[1] << endl << endl;
+				} // --
+
+				// Delete the chunk from the map if asked by ChunkGeneration
+				if (!chunk.chunk)
+					_chunks.erase(chunk.Wpos);
+			}
+			_chunksToDelete.clear();
+		}
 
 		_buffersNeedUpdates = false;
 	}

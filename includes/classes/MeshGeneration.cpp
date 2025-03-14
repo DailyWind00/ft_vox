@@ -37,7 +37,7 @@ void	VoxelSystem::_meshGenerationRoutine() {
 			// const size_t	LOD    = glm::min(((dist >> 5) + MAX_LOD), MIN_LOD); // +1 LOD every 32 chunks
 
 			// _chunks[Wpos].LOD = LOD;
-			ChunkData data = _chunks[Wpos];
+			ChunkData &data = _chunks[Wpos];
 
 
 			// Search for neightbouring chunks
@@ -50,7 +50,10 @@ void	VoxelSystem::_meshGenerationRoutine() {
 			ChunkData	*neightboursChunks[6] = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
 
 			for (size_t i = 0; i < 6; i++) {
-				if (_chunks.find(neightboursPos[i]) != _chunks.end() && _chunks[neightboursPos[i]].chunk)
+				ChunkMap::iterator it = _chunks.find(neightboursPos[i]);
+
+				// Check if the chunk exist and have data to work with
+				if (it != _chunks.end() && it->second.chunk)
 					neightboursChunks[i] = &_chunks[neightboursPos[i]];
 			}
 
@@ -84,7 +87,7 @@ void	VoxelSystem::_meshGenerationRoutine() {
 
 // Check if a neighbour chunk mesh is loaded
 static bool	isNeightbourLoaded(ChunkData *neightbour) {
-	return neightbour && neightbour->VBO_area[1] && neightbour->IB_area[1] && neightbour->SSBO_area[1];
+	return neightbour;
 }
 
 // Check if the voxel at the given position is visible
@@ -215,6 +218,10 @@ void	VoxelSystem::_generateMesh(ChunkData &chunk, ChunkData *neightboursChunks[6
 
 	// TODO : greedy meshing here
 
+	size_t old_VBO_data_size = _VBO_data.size() * sizeof(DATA_TYPE);
+	size_t old_IB_data_size = _IB_data.size() * sizeof(DrawCommand);
+	size_t old_SSBO_data_size = _SSBO_data.size() * sizeof(SSBOData);
+
 	// Write the mesh in OpenGL buffers
 	for (int i = 0; i < 6; i++) {
 		if (!vertices[i].size())
@@ -233,20 +240,29 @@ void	VoxelSystem::_generateMesh(ChunkData &chunk, ChunkData *neightboursChunks[6
 	}
 
 	// Update the chunk data
-	chunk.VBO_area[0] = _VBO_size;
-	chunk.VBO_area[1] = _VBO_data.size() * sizeof(DATA_TYPE);
+	chunk.VBO_area[0] = old_VBO_data_size + _VBO_size;
+	chunk.VBO_area[1] = _VBO_data.size() * sizeof(DATA_TYPE) - old_VBO_data_size;
 
-	chunk.IB_area[0] = _IB_size;
-	chunk.IB_area[1] = _IB_data.size() * sizeof(DrawCommand);
+	chunk.IB_area[0] = old_IB_data_size + _IB_size;
+	chunk.IB_area[1] = _IB_data.size() * sizeof(DrawCommand) - old_IB_data_size;
 
-	chunk.SSBO_area[0] = _SSBO_size;
-	chunk.SSBO_area[1] = _SSBO_data.size() * sizeof(SSBOData);
+	chunk.SSBO_area[0] = old_SSBO_data_size + _SSBO_size;
+	chunk.SSBO_area[1] = _SSBO_data.size() * sizeof(SSBOData) - old_SSBO_data_size;
+
+	{ // to remove
+		cout << "Generated mesh at " << chunk.Wpos.x << " " << chunk.Wpos.y << " " << chunk.Wpos.z << endl;
+		cout << "VBO  : " << chunk.VBO_area[0] << " " << chunk.VBO_area[1] << endl;
+		cout << "IB   : " << chunk.IB_area[0] << " " << chunk.IB_area[1] << endl;
+		cout << "SSBO : " << chunk.SSBO_area[0] << " " << chunk.SSBO_area[1] << endl << endl;
+	} // --
 }
 
 // Delete the first mesh
 void	VoxelSystem::_deleteMesh(ChunkData &chunk, ChunkData *neightboursChunks[6]) {
 	if (!_chunks.count(chunk.Wpos))
 		return;
+
+	cout << "Deleting mesh at " << chunk.Wpos.x << " " << chunk.Wpos.y << " " << chunk.Wpos.z << endl;
 
 	_chunksToDelete.push_back(chunk.Wpos);
 
@@ -258,7 +274,7 @@ void	VoxelSystem::_deleteMesh(ChunkData &chunk, ChunkData *neightboursChunks[6])
 			neightboursRequests.push_back({neightboursChunks[i]->Wpos, ChunkAction::CREATE_UPDATE});
 	}
 
-	requestMesh(neightboursRequests);
+	// requestMesh(neightboursRequests);
 }
 /// ---
 

@@ -4,8 +4,8 @@
 # define GLM_ENABLE_EXPERIMENTAL
 # define DATA_TYPE uint32_t
 # define CHUNK_SIZE 32
-# define HORIZONTAL_RENDER_DISTANCE 7
-# define VERTICAL_RENDER_DISTANCE 5
+# define HORIZONTAL_RENDER_DISTANCE 1
+# define VERTICAL_RENDER_DISTANCE 4
 # define BUFFER_GROWTH_FACTOR 2
 # define BATCH_LIMIT (size_t)250
 # define THREAD_SLEEP_DURATION 10 // in ms
@@ -62,14 +62,14 @@ typedef struct GeoFrameBuffers {
 // Data structure for CPU-side chunk data management
 typedef struct ChunkData {
 	AChunk *	chunk;
-	size_t		LOD = 0;
 	ivec3		Wpos;
+	size_t		LOD = 0;
 
 	size_t		VBO_area[2]  = {0, 0};   // offset, size
 	size_t		IB_area[2]   = {0, 0};   // offset, size
 	size_t		SSBO_area[2] = {0, 0};   // offset, size
 } ChunkData;
-typedef unordered_map<ivec3, ChunkData> ChunkMap; // Wpos -> ChunkData
+typedef unordered_map<ivec3, ChunkData> ChunkMap; // Wpos -> ChunkData ptr
 
 // Interface for chunk & mesh modifications
 enum class ChunkAction {
@@ -103,7 +103,7 @@ class VoxelSystem {
 		vector<DATA_TYPE>	_VBO_data;
 		vector<DrawCommand>	_IB_data;
 		vector<SSBOData>	_SSBO_data;
-		vector<ChunkData>	_chunksToDelete;
+		vector<ivec3>		_chunksToDelete;
 
 		bool	_buffersNeedUpdates;
 		mutex	_buffersMutex;
@@ -127,7 +127,7 @@ class VoxelSystem {
 		void	_chunkGenerationRoutine();
 		void	_meshGenerationRoutine();
 
-		void	_generateChunk(const ivec3 &pos);
+		void	_generateChunk(ChunkMap::value_type &chunk);
 		void	_deleteChunk  (const ivec3 &pos);
 
 		void	_generateMesh(ChunkData &chunk, ChunkData *neightboursChunks[6]);

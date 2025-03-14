@@ -63,11 +63,11 @@ void	Rendering(Window &window, const uint64_t &seed) {
 	glEnable(GL_CULL_FACE);
 
 	// Systemes Initialization
-	Camera 			camera(
+	Camera	camera(
 		(CameraInfo){{0, 0, 0}, {0, 0, 1}, {0, 1, 0}},
 		(ProjectionInfo){FOV, (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, 0.1f, 10000.0f}
 	);
-	VoxelSystem		voxelSystem(seed);
+	VoxelSystem		voxelSystem(seed, camera);
 	SkyBox			skybox;
 	ShaderHandler	shaders; // Skybox -> Voxels Geometrie -> Voxels Lighting
 	shaders.add_shader("shaders/Skybox_vert.glsl", "shaders/Skybox_frag.glsl"); // Used by default

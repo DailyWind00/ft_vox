@@ -9,7 +9,6 @@ PMapBufferGL::PMapBufferGL(GLenum type, size_t capacity, GLenum usage)
 
     glBufferStorage(type, capacity, nullptr, PERSISTENT_BUFFER_USAGE);
 
-	_usage = usage | PERSISTENT_BUFFER_USAGE;
     _data = glMapBufferRange(type, 0, capacity, _usage);
 
     if (!_data)
@@ -20,8 +19,8 @@ PMapBufferGL::PMapBufferGL(GLenum type, size_t capacity, GLenum usage)
 }
 
 PMapBufferGL::~PMapBufferGL() {
-    if (_data)
-        glUnmapBuffer(_type);
+	if (_data)
+		glUnmapBuffer(_type);
 
 	if (VERBOSE)
 		std::cout << "Destroyed PMapBufferGL\n";
@@ -45,54 +44,60 @@ void PMapBufferGL::unbind() {
 // Flush the buffer (need GL_MAP_FLUSH_EXPLICIT_BIT flag)
 // If length is 0, the whole buffer is flushed from the offset
 void PMapBufferGL::flush(size_t offset, size_t length) const {
+	if (!(_usage & GL_MAP_FLUSH_EXPLICIT_BIT))
+		throw std::runtime_error("PMapBufferGL: Buffer not created with GL_MAP_FLUSH_EXPLICIT_BIT flag");
+
+	if (offset >= _capacity)
+		return;
+
 	if (!length || offset + length > _capacity)
 		length = _capacity - offset;
 
     glFlushMappedBufferRange(_type, offset, length);
 }
 
-// Synchronize the buffer with the GPU
-void PMapBufferGL::sync(GLenum barrier) const {
-    glMemoryBarrier(barrier);
-}
-
-// Reallocate the buffer with a new capacity (keeping the data)
-size_t PMapBufferGL::reallocate(size_t newCapacity) {
+// Reallocate the buffer with a new capacity (copy the data back if keepData is true)
+// This function recreate a new buffer so don't forget to update your buffer attributes
+size_t PMapBufferGL::resize(size_t newCapacity, bool keepData) {
 	if (newCapacity < _capacity)
 		return _capacity;
 
-    void *copy = new uint8_t[_capacity];
-	std::memcpy(copy, _data, _capacity);
+	// Copy current data
+	void *copy = nullptr;
+	if (keepData) {
+		copy = new uint8_t[_capacity];
+		std::memcpy(copy, _data, _capacity);
+	}
+
+	// Delete current buffer
 	glUnmapBuffer(_type);
-
-	_capacity = newCapacity;
-
 	glDeleteBuffers(1, &_id);
+
+	// Create a new buffer
 	glGenBuffers(1, &_id);
 	glBindBuffer(_type, _id);
-
 	glBufferStorage(_type, newCapacity, copy, PERSISTENT_BUFFER_USAGE);
-    _data = glMapBufferRange(_type, 0, newCapacity, PERSISTENT_BUFFER_USAGE | GL_MAP_FLUSH_EXPLICIT_BIT);
+    _data = glMapBufferRange(_type, 0, newCapacity, _usage);
 
-    if (!_data) {
-        if (copy)
-            delete[] static_cast<uint8_t*>(copy);
+	delete[] static_cast<uint8_t*>(copy);
 
+    if (!_data)
         return _capacity = 0;
-    }
-    
-    std::memcpy(_data, copy, _capacity);
-    delete[] static_cast<uint8_t*>(copy);
 
-    return newCapacity;
+    return _capacity = newCapacity;
 }
 
 // Write data to the buffer at a given offset
+// If src is nullptr, the data is filled with 0
 bool PMapBufferGL::write(const void* src, size_t size, size_t offset) {
     if (offset + size > _capacity)
-        return false;
+		return false;
 
-    std::memcpy(static_cast<uint8_t*>(_data) + offset, src, size);
+	if (!src)
+		std::memset(static_cast<uint8_t*>(_data) + offset, 0, size);
+	else
+		std::memcpy(static_cast<uint8_t*>(_data) + offset, src, size);
+
     return true;
 }
 /// ---
@@ -107,8 +112,13 @@ const void * PMapBufferGL::getData() const {
 }
 
 // Return the buffer ID
-const GLuint & PMapBufferGL::getBufferID() const {
+const GLuint & PMapBufferGL::getID() const {
     return _id;
+}
+
+// Return the buffer type
+const GLenum & PMapBufferGL::getType() const {
+	return _type;
 }
 
 // Return the buffer capacity

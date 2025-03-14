@@ -36,7 +36,7 @@ static void	cameraMovement(Window &window, Camera &camera) {
 	angles.y -= (mouseY - ((float)WINDOW_HEIGHT / 2)) * CAMERA_SENSITIVITY * window.getFrameTime();
 	angles.y = glm::clamp(angles.y, -89.0f, 89.0f);
 
-	vec3		cameraDir = vec3{
+	vec3	cameraDir = vec3{
 		cos(radians(angles.x)) * cos(radians(angles.y)),
 		sin(radians(angles.y)),
 		sin(radians(angles.x)) * cos(radians(angles.y))

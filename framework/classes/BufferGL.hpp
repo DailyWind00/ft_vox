@@ -40,5 +40,4 @@ class BufferGL {
 		const GLuint &	getID() const;
 		const GLenum &	getType() const;
 		const size_t &	getCapacity() const;
-		bool			isValid() const;
 };

@@ -4,7 +4,7 @@
 # define GLM_ENABLE_EXPERIMENTAL
 # define DATA_TYPE uint32_t
 # define CHUNK_SIZE 32
-# define HORIZONTAL_RENDER_DISTANCE 1
+# define HORIZONTAL_RENDER_DISTANCE 3
 # define VERTICAL_RENDER_DISTANCE 4
 # define BUFFER_GROWTH_FACTOR 2
 # define BATCH_LIMIT (size_t)250
@@ -60,14 +60,15 @@ typedef struct GeoFrameBuffers {
 } GeoFrameBuffers;
 
 // Data structure for CPU-side chunk data management
+typedef deque<pair<size_t, size_t>> buffer_areas; // <offset, size>
 typedef struct ChunkData {
 	AChunk *	chunk;
 	ivec3		Wpos;
 	size_t		LOD = 0;
 
-	size_t		VBO_area[2]  = {0, 0};   // offset, size
-	size_t		IB_area[2]   = {0, 0};   // offset, size
-	size_t		SSBO_area[2] = {0, 0};   // offset, size
+	size_t	VBO_area[2] = {0, 0};
+	size_t	IB_area[2] = {0, 0};
+	size_t	SSBO_area[2] = {0, 0};
 } ChunkData;
 typedef unordered_map<ivec3, ChunkData> ChunkMap; // Wpos -> ChunkData ptr
 

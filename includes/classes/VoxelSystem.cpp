@@ -277,13 +277,17 @@ void	VoxelSystem::_updateBuffers() {
 
 		// Delete the chunks (may cause lag so we batch it)
 		if (_chunksToDelete.size() /* >= BATCH_LIMIT */) {
-			for (const ivec3 &WPos : _chunksToDelete) {
+			static size_t	deletedCount = 0;
 
+			for (const ivec3 &WPos : _chunksToDelete) {
 				ChunkData &chunk = _chunks.find(WPos)->second;
 
-				// TODO : Recompact the buffers if needed
 				_writeInBuffer(_IB, nullptr, chunk.IB_area[1], chunk.IB_area[0]);
 				_writeInBuffer(_SSBO, nullptr, chunk.SSBO_area[1], chunk.SSBO_area[0]);
+
+				// Delete the chunk from the map if asked by ChunkGeneration
+				if (!chunk.chunk)
+					_chunks.erase(chunk.Wpos);
 
 				{ // To remove
 					cout << "Deleting at " << chunk.Wpos.x << " " << chunk.Wpos.y << " " << chunk.Wpos.z << endl;
@@ -291,11 +295,11 @@ void	VoxelSystem::_updateBuffers() {
 					cout << "SSBO area : " << chunk.SSBO_area[0] << " " << chunk.SSBO_area[1] << endl << endl;
 				} // --
 
-				// Delete the chunk from the map if asked by ChunkGeneration
-				if (!chunk.chunk)
-					_chunks.erase(chunk.Wpos);
+				deletedCount++;
 			}
 			_chunksToDelete.clear();
+
+			// TODO : Recompact the buffers if deletedCount > threshold
 		}
 
 		_buffersNeedUpdates = false;

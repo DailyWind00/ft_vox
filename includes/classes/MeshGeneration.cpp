@@ -68,6 +68,8 @@ void	VoxelSystem::_meshGenerationRoutine() {
 					_deleteMesh(data, neightboursChunks);
 					break;
 			}
+
+			data.inCreation = false;
 		}
 
 		_buffersNeedUpdates = true;
@@ -87,7 +89,7 @@ void	VoxelSystem::_meshGenerationRoutine() {
 
 // Check if a neighbour chunk mesh is loaded
 static bool	isNeightbourLoaded(ChunkData *neightbour) {
-	return neightbour && neightbour->chunk && neightbour->VBO_area[1] && neightbour->IB_area[1] && neightbour->SSBO_area[1];
+	return neightbour && neightbour->chunk && ((neightbour->VBO_area[1] && neightbour->IB_area[1] && neightbour->SSBO_area[1]) || neightbour->inCreation);
 }
 
 // Check if the voxel at the given position is visible
@@ -174,9 +176,11 @@ static uint8_t	isVoxelVisible(const ivec3 &Vpos, const ChunkData &chunk, ChunkDa
 // Create/update the mesh of the given chunk
 // The data will be stored in the main thread at the end of OpenGL buffers
 void	VoxelSystem::_generateMesh(ChunkData &chunk, ChunkData *neightboursChunks[6]) {
-	// Check if the chunk already have a mesh
-	if (chunk.VBO_area[1] && chunk.IB_area[1] && chunk.SSBO_area[1])
+	// Check if the chunk already have a mesh (in case of update)
+	if (chunk.VBO_area[1] && chunk.IB_area[1] && chunk.SSBO_area[1] && !chunk.neigthbourUpdated)
 		_deleteMesh(chunk, neightboursChunks);
+
+	chunk.neigthbourUpdated = false;
 
 	// Check if the chunk completely empty
 	if (!chunk.chunk || (IS_CHUNK_COMPRESSED(chunk.chunk) && !BLOCK_AT(chunk.chunk, 0, 0, 0)))
@@ -218,10 +222,6 @@ void	VoxelSystem::_generateMesh(ChunkData &chunk, ChunkData *neightboursChunks[6
 	}
 
 	// TODO : greedy meshing here
-
-	// Check if the chunk already have a mesh
-	if (chunk.VBO_area[1] && chunk.IB_area[1] && chunk.SSBO_area[1])
-		_deleteMesh(chunk, neightboursChunks);
 
 	size_t old_VBO_data_size = _VBO_data.size() * sizeof(DATA_TYPE);
 	size_t old_IB_data_size = _IB_data.size() * sizeof(DrawCommand);
@@ -281,8 +281,10 @@ void	VoxelSystem::_deleteMesh(ChunkData &chunk, ChunkData *neightboursChunks[6])
 	vector<ChunkRequest>	neightboursRequests;
 
 	for (size_t i = 0; i < 6; i++) {
-		if (neightboursChunks[i])
+		if (neightboursChunks[i]) {
+			neightboursChunks[i]->neigthbourUpdated = true;
 			neightboursRequests.push_back({neightboursChunks[i]->Wpos, ChunkAction::CREATE_UPDATE});
+		}
 	}
 
 	requestMesh(neightboursRequests);

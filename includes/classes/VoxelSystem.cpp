@@ -125,9 +125,12 @@ VoxelSystem::VoxelSystem(const uint64_t &seed, Camera &camera) : _camera(camera)
 	requestChunk(spawnChunks);
 
 	{ // to remove
-		this_thread::sleep_for(chrono::milliseconds(1000)); // Give time to the chunks to be generated
+		// Give time to the chunks to be generated
+		this_thread::sleep_for(chrono::milliseconds(1000));
 		requestChunk({ChunkRequest{{0, 0, 0}, ChunkAction::DELETE}});
+		// this_thread::sleep_for(chrono::milliseconds(1000));
 		requestChunk({ChunkRequest{{0, -1, 0}, ChunkAction::DELETE}});
+		// this_thread::sleep_for(chrono::milliseconds(1000));
 		requestChunk({ChunkRequest{{0, -2, 0}, ChunkAction::DELETE}});
 	} // --
 
@@ -264,7 +267,6 @@ void	VoxelSystem::_updateBuffers() {
 		if (_IB_data.size()) {
 			_writeInBuffer(_IB, _IB_data.data(), _IB_data.size() * sizeof(DrawCommand), _IB_size);
 			_IB_size += _IB_data.size() * sizeof(DrawCommand);
-			_drawCount += _IB_data.size();
 			_IB_data.clear();
 		}
 
@@ -282,18 +284,18 @@ void	VoxelSystem::_updateBuffers() {
 			for (const ivec3 &WPos : _chunksToDelete) {
 				ChunkData &chunk = _chunks.find(WPos)->second;
 
+				{ // To remove
+					cout << "Deleting at " << chunk.Wpos.x << " " << chunk.Wpos.y << " " << chunk.Wpos.z << endl;
+					cout << "IB area   : " << chunk.IB_area[0] << " " << chunk.IB_area[1] << endl;
+					cout << "SSBO area : " << chunk.SSBO_area[0] << " " << chunk.SSBO_area[1] << endl << endl;
+				} // --
+
 				_writeInBuffer(_IB, nullptr, chunk.IB_area[1], chunk.IB_area[0]);
 				_writeInBuffer(_SSBO, nullptr, chunk.SSBO_area[1], chunk.SSBO_area[0]);
 
 				// Delete the chunk from the map if asked by ChunkGeneration
 				if (!chunk.chunk)
 					_chunks.erase(chunk.Wpos);
-
-				{ // To remove
-					cout << "Deleting at " << chunk.Wpos.x << " " << chunk.Wpos.y << " " << chunk.Wpos.z << endl;
-					cout << "IB area   : " << chunk.IB_area[0] << " " << chunk.IB_area[1] << endl;
-					cout << "SSBO area : " << chunk.SSBO_area[0] << " " << chunk.SSBO_area[1] << endl << endl;
-				} // --
 
 				deletedCount++;
 			}
@@ -331,7 +333,7 @@ const GeoFrameBuffers	&VoxelSystem::draw() {
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, _textureAtlas);
 
-	glMultiDrawArraysIndirect(GL_TRIANGLE_STRIP, nullptr, _drawCount, sizeof(DrawCommand));
+	glMultiDrawArraysIndirect(GL_TRIANGLE_STRIP, nullptr, _IB_size / sizeof(DrawCommand), sizeof(DrawCommand));
 	
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 

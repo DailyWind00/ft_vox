@@ -4,7 +4,7 @@
 # define GLM_ENABLE_EXPERIMENTAL
 # define DATA_TYPE uint32_t
 # define CHUNK_SIZE 32
-# define HORIZONTAL_RENDER_DISTANCE 3
+# define HORIZONTAL_RENDER_DISTANCE 1
 # define VERTICAL_RENDER_DISTANCE 4
 # define BUFFER_GROWTH_FACTOR 2
 # define BATCH_LIMIT (size_t)250
@@ -65,9 +65,11 @@ typedef struct ChunkData {
 	AChunk *	chunk;
 	ivec3		Wpos;
 	size_t		LOD = 0;
+	bool		neigthbourUpdated = false;
+	bool		inCreation = true;
 
-	size_t	VBO_area[2] = {0, 0};
-	size_t	IB_area[2] = {0, 0};
+	size_t	VBO_area[2]  = {0, 0};
+	size_t	IB_area[2]   = {0, 0};
 	size_t	SSBO_area[2] = {0, 0};
 } ChunkData;
 typedef unordered_map<ivec3, ChunkData> ChunkMap; // Wpos -> ChunkData ptr
@@ -90,7 +92,6 @@ class VoxelSystem {
 		GLuint			_VAO;
 		GLuint			_textureAtlas;
 		GeoFrameBuffers	_gBuffer;
-		GLuint			_drawCount = 0;
 
 		// OpenGL Buffers (MeshGeneration output)
 		PMapBufferGL *	_VBO;

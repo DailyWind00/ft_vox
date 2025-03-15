@@ -24,6 +24,7 @@ enum	BiomeID {
 	PLAIN = 0,
 	DESERT,
 	FOREST,
+	SNOW_PLAIN,
 	NONE
 };
 
@@ -82,7 +83,7 @@ class	LayeredChunk : public AChunk {
 		float **	_computeCaveNoise(const glm::ivec3 &pos, float *heightMap);
 
 		uint8_t	_getBiomeID(const int &idx, const float *heatFactors, const float *wetFactors);
-		uint8_t	_getBlockFromBiome(const uint8_t &y, const uint8_t &biomeID);
+		uint8_t	_getBlockFromBiome(const int &surface, const int &y, const uint8_t &biomeID);
 		
 		ChunkLayer *		_blockToLayer(AChunkLayer *layer);
 		SingleBlockChunkLayer *	_layerToBlock(AChunkLayer *layer);

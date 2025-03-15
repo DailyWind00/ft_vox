@@ -155,29 +155,71 @@ uint8_t	LayeredChunk::_getBiomeID(const int &idx, const float *heatFactors, cons
 		return (PLAIN);
 	else if (heatLvl == HOT && wetLvl == DRY)
 		return (DESERT);
-	else if (heatLvl == COLD && wetLvl == DRENCHED)
+	else if (heatLvl == TEMPERATE && wetLvl == DRENCHED)
 		return (FOREST);
+	else if (heatLvl == COLD && wetLvl == MOIST)
+		return (SNOW_PLAIN);
 	return (NONE);
 }
 
-uint8_t	LayeredChunk::_getBlockFromBiome(const uint8_t &y, const uint8_t &biomeID)
+uint8_t	LayeredChunk::_getBlockFromBiome(const int &surface, const int &y, const uint8_t &biomeID)
 {
-	uint8_t	blockID = 0;
+	uint8_t	topLayerID = 0;
+	uint8_t	soilLayerID = 0;
+	uint8_t	stoneLayerID = 0;
+
+	int	soilOffset = 1;
+	int	stoneOffset = 4;
 
 	switch(biomeID) {
 		case PLAIN:
-			blockID = 1;
+			topLayerID = 1;
+			soilLayerID = 2;
+			stoneLayerID = 3;
+			
+			soilOffset = 1;
+			stoneOffset = 4;
 			break ;
 		case DESERT:
-			blockID = 2;
+			topLayerID = 4;
+			soilLayerID = 2;
+			stoneLayerID = 3;
+			
+			soilOffset = 3;
+			stoneOffset = 10;
 			break ;
 		case FOREST:
-			blockID = 3;
+			topLayerID = 2;
+			soilLayerID = 2;
+			stoneLayerID = 3;
+			
+			soilOffset = 1;
+			stoneOffset = 4;
 			break ;
+		case SNOW_PLAIN:
+			topLayerID = 5;
+			soilLayerID = 2;
+			stoneLayerID = 3;
+
+			soilOffset = 2;
+			stoneOffset = 6;
 		default:
-			blockID = 120;
+			topLayerID = 120;
+			soilLayerID = 120;
+			stoneLayerID = 120;
+			
+			soilOffset = 1;
+			stoneOffset = 4;
 			break ;
 	}
+
+	uint8_t	blockID = topLayerID;
+
+	if (y < surface - soilOffset && y >= surface - stoneOffset)
+		blockID = soilLayerID;
+	else if (y < surface - stoneOffset)
+		blockID = stoneLayerID;
+
 	return (blockID);
 }
 
@@ -205,7 +247,7 @@ void	LayeredChunk::generate(const glm::ivec3 &pos)
 			uint8_t	biomeID = _getBiomeID(idx, heatFactors, humidityFactors);
 
 			for (int k = pos.y; k < CHUNK_HEIGHT + pos.y; k++) {
-				uint8_t	id = _getBlockFromBiome(k, biomeID) * (k < heightFactors[idx] && caveFactors[idx][k - pos.y] < 0.01f);
+				uint8_t	id = _getBlockFromBiome(heightFactors[idx], k, biomeID) * (k < heightFactors[idx] && caveFactors[idx][k - pos.y] < 0.01f);
 
 				if (id != fstBlkPerLayer[k - pos.y] && dynamic_cast<SingleBlockChunkLayer *>(this->_layer[k - pos.y]))
 					this->_layer[k - pos.y] = _blockToLayer(this->_layer[k - pos.y]);

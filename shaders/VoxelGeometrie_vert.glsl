@@ -11,7 +11,8 @@ layout (std430, binding = 0) buffer SSBO {
 	Chunk meshData[];
 };
 
-uniform mat4	transform;
+uniform mat4	view;
+uniform mat4	projection;
 uniform float	time;
 
 out vec2	uv;
@@ -45,13 +46,13 @@ void main() {
 	pos.y = (blockData >> 5)   & 0x1F;
 	pos.z = (blockData >> 10)  & 0x1F;
 
-	texID = ((blockData >> 15) & 0x7F);
+	texID = ((blockData >> 15) & 0x7F) - 1;
 
 	len.x = ((blockData >> 22) & 0x1F) + 1;
 	len.y = ((blockData >> 27) & 0x1F) + 1;
 
 	// Color modifiers for the fragment shader
-	fragPos = vec3(ivec3(pos) + worldOffset);
+	fragPos = vec4(view * vec4(ivec3(pos) + worldOffset, 1.0f)).xyz;
 
 	// Create the final face mesh
 	vec3	fQuad;
@@ -116,5 +117,5 @@ void main() {
 
 	l = len;
 
-	gl_Position = transform * vec4((fQuad + ivec3(pos) + worldOffset), 1.0f);
+	gl_Position = projection * view * vec4((fQuad + ivec3(pos) + worldOffset), 1.0f);
 }

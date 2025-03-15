@@ -25,6 +25,7 @@ enum	BiomeID {
 	DESERT,
 	FOREST,
 	SNOW_PLAIN,
+	SNOW_FOREST,
 	NONE
 };
 

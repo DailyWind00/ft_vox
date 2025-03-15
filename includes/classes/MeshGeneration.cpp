@@ -90,6 +90,13 @@ static bool	isNeightbourLoaded(ChunkData *neightbour) {
 	return neightbour;
 }
 
+static bool	isOpac(const uint8_t &block)
+{
+	if (!block || block == 6)
+		return (false);
+	return (true);
+}
+
 // Check if the voxel at the given position is visible
 // Return a bitmask of the visible faces (6 bits : ZzYyXx)
 static uint8_t	isVoxelVisible(const ivec3 &Vpos, const ChunkData &chunk, ChunkData *neightboursChunks[6]) {
@@ -102,6 +109,9 @@ static uint8_t	isVoxelVisible(const ivec3 &Vpos, const ChunkData &chunk, ChunkDa
 	// Check if the voxel is solid
 	if (!BLOCK_AT(data, x, y, z))
 		return 0;
+
+	if (BLOCK_AT(data, x, y, z) == 6)
+		return (1 << 0) | (1 << 1) | (1 << 4) | (1 << 5);
 
 	// Define neightbouring blocks positions
 	ivec3	neightbours[6] = {
@@ -119,51 +129,51 @@ static uint8_t	isVoxelVisible(const ivec3 &Vpos, const ChunkData &chunk, ChunkDa
 		/// X axis
 		// Border
 		if (pos.x < 0) {
-			if (!isNeightbourLoaded(neightboursChunks[4]) || !BLOCK_AT(neightboursChunks[4]->chunk, CHUNK_SIZE - LOD, pos.y, pos.z))
+			if (!isNeightbourLoaded(neightboursChunks[4]) || !isOpac(BLOCK_AT(neightboursChunks[4]->chunk, CHUNK_SIZE - LOD, pos.y, pos.z)))
 				visibleFaces |= (1 << 0);
 		}
 		else if (pos.x >= CHUNK_SIZE) {
-			if (!isNeightbourLoaded(neightboursChunks[5]) || !BLOCK_AT(neightboursChunks[5]->chunk, 0, pos.y, pos.z))
+			if (!isNeightbourLoaded(neightboursChunks[5]) || !isOpac(BLOCK_AT(neightboursChunks[5]->chunk, 0, pos.y, pos.z)))
 				visibleFaces |= (1 << 1);
 		}
 		// Inside
-		else if (size_t(pos.x) < x && !BLOCK_AT(data, pos.x, pos.y, pos.z))
+		else if (size_t(pos.x) < x && !isOpac(BLOCK_AT(data, pos.x, pos.y, pos.z)))
 				visibleFaces |= (1 << 0);
-		else if (size_t(pos.x) > x && !BLOCK_AT(data, pos.x, pos.y, pos.z))
+		else if (size_t(pos.x) > x && !isOpac(BLOCK_AT(data, pos.x, pos.y, pos.z)))
 				visibleFaces |= (1 << 1);
 
 
 		/// y axis
 		// Border
 		if (pos.y < 0) {
-			if (!isNeightbourLoaded(neightboursChunks[2]) || !BLOCK_AT(neightboursChunks[2]->chunk, pos.x, CHUNK_SIZE - LOD, pos.z))
+			if (!isNeightbourLoaded(neightboursChunks[2]) || !isOpac(BLOCK_AT(neightboursChunks[2]->chunk, pos.x, CHUNK_SIZE - LOD, pos.z)))
 				visibleFaces |= (1 << 2);
 		}
 		else if (pos.y >= CHUNK_SIZE) {
-			if (!isNeightbourLoaded(neightboursChunks[3]) || !BLOCK_AT(neightboursChunks[3]->chunk, pos.x, 0, pos.z))
+			if (!isNeightbourLoaded(neightboursChunks[3]) || !isOpac(BLOCK_AT(neightboursChunks[3]->chunk, pos.x, 0, pos.z)))
 				visibleFaces |= (1 << 3);
 		}
 		// Inside
-		else if (size_t(pos.y) < y && !BLOCK_AT(data, pos.x, pos.y, pos.z))
+		else if (size_t(pos.y) < y && !isOpac(BLOCK_AT(data, pos.x, pos.y, pos.z)))
 				visibleFaces |= (1 << 2);
-		else if (size_t(pos.y) > y && !BLOCK_AT(data, pos.x, pos.y, pos.z))
+		else if (size_t(pos.y) > y && !isOpac(BLOCK_AT(data, pos.x, pos.y, pos.z)))
 				visibleFaces |= (1 << 3);
 
 
 		/// z axis
 		// Border
 		if (pos.z < 0) {
-			if (!isNeightbourLoaded(neightboursChunks[0]) || !BLOCK_AT(neightboursChunks[0]->chunk, pos.x, pos.y, CHUNK_SIZE - LOD))
+			if (!isNeightbourLoaded(neightboursChunks[0]) || !isOpac(BLOCK_AT(neightboursChunks[0]->chunk, pos.x, pos.y, CHUNK_SIZE - LOD)))
 				visibleFaces |= (1 << 4);
 		}
 		else if (pos.z >= CHUNK_SIZE) {
-			if (!isNeightbourLoaded(neightboursChunks[1]) || !BLOCK_AT(neightboursChunks[1]->chunk, pos.x, pos.y, 0))
+			if (!isNeightbourLoaded(neightboursChunks[1]) || !isOpac(BLOCK_AT(neightboursChunks[1]->chunk, pos.x, pos.y, 0)))
 				visibleFaces |= (1 << 5);
 		}
 		// Inside
-		else if (size_t(pos.z) < z && !BLOCK_AT(data, pos.x, pos.y, pos.z))
+		else if (size_t(pos.z) < z && !isOpac(BLOCK_AT(data, pos.x, pos.y, pos.z)))
 				visibleFaces |= (1 << 4);
-		else if (size_t(pos.z) > z && !BLOCK_AT(data, pos.x, pos.y, pos.z))
+		else if (size_t(pos.z) > z && !isOpac(BLOCK_AT(data, pos.x, pos.y, pos.z)))
 				visibleFaces |= (1 << 5);
 	}
 

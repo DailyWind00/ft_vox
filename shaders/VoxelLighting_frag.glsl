@@ -94,7 +94,7 @@ void	main()
 	float	diffuseSun = max(dot(Normal.rgb, sunPos), 0.0) * pow(sunPos.y, 1.2);
 	float	diffuseMoon = max(dot(Normal.rgb, -sunPos), 0.0) * pow(-sunPos.y, 3);
 
-	vec3	diffColor = (diffuseMoon + diffuseSun) * Color.rgb;
+	vec3	diffColor = max(diffuseSun, diffuseMoon) * Color.rgb;
 
 	//-ScreenColor= vec4((face * 1.8) * (0.2 * vec3(randFactor)) + ivec3(fragPos) * 0.01, 1.0);
 	//-ScreenColor = vec4(vec3(0.3 * (face + 1) * (fragPos.y + 100) * 0.005), 1.0f);

@@ -5,9 +5,9 @@
 # define DATA_TYPE uint32_t
 # define CHUNK_SIZE 32
 # define HORIZONTAL_RENDER_DISTANCE 16
-# define VERTICAL_RENDER_DISTANCE 4
+# define VERTICAL_RENDER_DISTANCE 2
 # define BUFFER_GROWTH_FACTOR 2
-# define BATCH_LIMIT (size_t)1024
+# define BATCH_LIMIT (size_t)64
 # define THREAD_SLEEP_DURATION 10 // in ms
 # define MIN_LOD (size_t)4
 # define MAX_LOD (size_t)1

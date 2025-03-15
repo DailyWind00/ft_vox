@@ -12,7 +12,7 @@ LayeredChunk::LayeredChunk(const uint8_t &id)
 	// Chunk Layer allocation
 	this->_layer = new AChunkLayer*[CHUNK_HEIGHT];
 	for (int i = 0; i < CHUNK_HEIGHT; i++)
-		this->_layer[i] = new ChunkLayer(id);
+		this->_layer[i] = new SingleBlockChunkLayer(id);
 }
 
 LayeredChunk::~LayeredChunk()
@@ -96,8 +96,38 @@ float *	LayeredChunk::_computeHeightMap(const glm::ivec3 &pos)
 
 		factor += Noise::perlin2D(glm::vec2{(pos.x + (i % CHUNK_WIDTH)) / 2048,
 				(pos.z+ ((float)i / CHUNK_WIDTH)) / 2048}) * 512;
-		factors[i] = factor;
 
+		factors[i] = factor;
+	}
+	return (factors);
+}
+
+float **	LayeredChunk::_computeCaveNoise(const glm::ivec3 &pos, float *heightMap)
+{
+	float		**factors = new float*[CHUNK_WIDTH * CHUNK_WIDTH];
+	uint32_t	maxPos = MAX_WORLD_SIZE * CHUNK_WIDTH;
+	
+	for (int i = 0; i < CHUNK_WIDTH * CHUNK_WIDTH; i++) {
+		float	factor = 0;
+
+		factors[i] = new float[CHUNK_WIDTH];
+		for (int j = 0; j < CHUNK_WIDTH; j++) {
+			float	amp = 20.0f;
+
+			if (j + pos.y > heightMap[0]) {
+				factors[i][j] = 0;
+				continue ;
+			}
+
+			float	x = (maxPos + pos.x + (i % CHUNK_WIDTH));
+			float	y = (maxPos + pos.y + j);
+			float	z = (maxPos + pos.z + ((float)i / CHUNK_WIDTH)) ;
+
+			factor = Noise::perlin3D({x / amp, y / amp, z / amp}) * amp;
+			amp = 120;
+			factor -= fabsf(Noise::perlin3D({x / amp, y / amp, z / amp}) * amp);
+			factors[i][j] = factor;
+		}
 	}
 	return (factors);
 }
@@ -159,6 +189,7 @@ void	LayeredChunk::generate(const glm::ivec3 &pos)
 	float *	heightFactors = _computeHeightMap(pos);
 	float *	heatFactors = _computeHeatMap(pos);
 	float *	humidityFactors = _computeHumidityMap(pos);
+	float **	caveFactors = _computeCaveNoise(pos, heightFactors);
 
 	// Store the first block of each layer to handle decompression
 	uint8_t	fstBlkPerLayer[CHUNK_HEIGHT] = {0};
@@ -170,10 +201,11 @@ void	LayeredChunk::generate(const glm::ivec3 &pos)
 	for (int i = pos.x; i < CHUNK_WIDTH + pos.x; i++) {
 		for (int j = pos.z; j < CHUNK_WIDTH + pos.z; j++) {
 			int	idx = (i - pos.x) * CHUNK_WIDTH + (j - pos.z);
+
 			uint8_t	biomeID = _getBiomeID(idx, heatFactors, humidityFactors);
 
 			for (int k = pos.y; k < CHUNK_HEIGHT + pos.y; k++) {
-				uint8_t	id = _getBlockFromBiome(k, biomeID) * (k < heightFactors[idx]);
+				uint8_t	id = _getBlockFromBiome(k, biomeID) * (k < heightFactors[idx] && caveFactors[idx][k - pos.y] < 0.01f);
 
 				if (id != fstBlkPerLayer[k - pos.y] && dynamic_cast<SingleBlockChunkLayer *>(this->_layer[k - pos.y]))
 					this->_layer[k - pos.y] = _blockToLayer(this->_layer[k - pos.y]);

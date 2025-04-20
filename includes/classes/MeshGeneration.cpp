@@ -88,7 +88,7 @@ void	VoxelSystem::_meshGenerationRoutine() {
 }
 
 // Check if a neighbour chunk mesh is loaded
-static bool	isNeightbourLoaded(ChunkData *neightbour) {
+static inline bool	isNeightbourLoaded(ChunkData *neightbour) {
 	return neightbour && neightbour->chunk && ((neightbour->VBO_area[1] && neightbour->IB_area[1] && neightbour->SSBO_area[1]) || neightbour->inCreation);
 }
 

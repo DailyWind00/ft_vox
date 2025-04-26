@@ -60,6 +60,17 @@ void	handleEvents(GameData &gameData) {
 
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
+		
+	static bool pressed = false;
+	if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS && !pressed) {
+		pressed = true;
+		ivec3 camPos = (ivec3)camera.getCameraInfo().position / CHUNK_SIZE;
+
+		gameData.voxelSystem.requestChunk({ChunkRequest{camPos, ChunkAction::DELETE}});
+		cout << ">>> F key pressed at : " << camPos.x << " " << camPos.y << " " << camPos.z << endl;
+	} else if (glfwGetKey(window, GLFW_KEY_F) == GLFW_RELEASE) {
+		pressed = false;
+	}
 
 	cameraMovement(window, camera);
 

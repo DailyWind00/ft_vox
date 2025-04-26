@@ -126,12 +126,12 @@ VoxelSystem::VoxelSystem(const uint64_t &seed, Camera &camera) : _camera(camera)
 
 	{ // to remove
 		// Give time to the chunks to be generated
-		this_thread::sleep_for(chrono::milliseconds(1000));
-		requestChunk({ChunkRequest{{0, 0, 0}, ChunkAction::DELETE}});
 		// this_thread::sleep_for(chrono::milliseconds(1000));
-		requestChunk({ChunkRequest{{0, -1, 0}, ChunkAction::DELETE}});
+		// requestChunk({ChunkRequest{{0, 0, 0}, ChunkAction::DELETE}});
 		// this_thread::sleep_for(chrono::milliseconds(1000));
-		requestChunk({ChunkRequest{{0, -2, 0}, ChunkAction::DELETE}});
+		// requestChunk({ChunkRequest{{0, -1, 0}, ChunkAction::DELETE}});
+		// this_thread::sleep_for(chrono::milliseconds(1000));
+		// requestChunk({ChunkRequest{{0, -2, 0}, ChunkAction::DELETE}});
 	} // --
 
 	if (VERBOSE)
@@ -224,7 +224,7 @@ void	VoxelSystem::_writeInBuffer(PMapBufferGL *buffer, const void *data, const s
 	// Resize the buffer if needed
 	if (size + offset > buffer->getCapacity()) {
 		if (!buffer->resize(buffer->getCapacity() * BUFFER_GROWTH_FACTOR))
-			throw	runtime_error("Failed to resize PMapBufferGL");
+			throw runtime_error("Failed to resize PMapBufferGL");
 
 		// Update attributes
 		if (buffer == _VBO) {
@@ -255,12 +255,13 @@ void	VoxelSystem::_updateBuffers() {
 	if (!_buffersMutex.try_lock())
 		return;
 
-	if (_buffersNeedUpdates) {
+	if (_buffersNeedUpdates) { // TODO : Add a limit to the number of updates
 		// VBO
 		if (_VBO_data.size()) {
 			_writeInBuffer(_VBO, _VBO_data.data(), _VBO_data.size() * sizeof(DATA_TYPE), _VBO_size);
 			_VBO_size += _VBO_data.size() * sizeof(DATA_TYPE);
 			_VBO_data.clear();
+			cout << "VBO size : " << _VBO_size << endl;
 		}
 
 		// IB
@@ -268,6 +269,7 @@ void	VoxelSystem::_updateBuffers() {
 			_writeInBuffer(_IB, _IB_data.data(), _IB_data.size() * sizeof(DrawCommand), _IB_size);
 			_IB_size += _IB_data.size() * sizeof(DrawCommand);
 			_IB_data.clear();
+			cout << "IB size  : " << _IB_size << endl;
 		}
 
 		// SSBO	
@@ -275,6 +277,7 @@ void	VoxelSystem::_updateBuffers() {
 			_writeInBuffer(_SSBO, _SSBO_data.data(), _SSBO_data.size() * sizeof(SSBOData), _SSBO_size);
 			_SSBO_size += _SSBO_data.size() * sizeof(SSBOData);
 			_SSBO_data.clear();
+			cout << "SSBO size: " << _SSBO_size << endl << endl;
 		}
 
 		// Delete the chunks (may cause lag so we batch it)
@@ -290,8 +293,14 @@ void	VoxelSystem::_updateBuffers() {
 					cout << "SSBO area : " << chunk.SSBO_area[0] << " " << chunk.SSBO_area[1] << endl << endl;
 				} // --
 
+				// We loose pointer to the chunk data so VBO cleanup is not needed
 				_writeInBuffer(_IB, nullptr, chunk.IB_area[1], chunk.IB_area[0]);
 				_writeInBuffer(_SSBO, nullptr, chunk.SSBO_area[1], chunk.SSBO_area[0]);
+
+				// Reset the chunk data
+				chunk.VBO_area [0] = chunk.VBO_area [1] = 0;
+				chunk.IB_area  [0] = chunk.IB_area  [1] = 0;
+				chunk.SSBO_area[0] = chunk.SSBO_area[1] = 0;
 
 				// Delete the chunk from the map if asked by ChunkGeneration
 				if (!chunk.chunk)

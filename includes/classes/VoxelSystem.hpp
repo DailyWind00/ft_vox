@@ -71,6 +71,10 @@ typedef struct ChunkData {
 	size_t	VBO_area[2]  = {0, 0};
 	size_t	IB_area[2]   = {0, 0};
 	size_t	SSBO_area[2] = {0, 0};
+
+	bool hasMesh() const {
+        return VBO_area[1] && IB_area[1] && SSBO_area[1];
+    }
 } ChunkData;
 typedef unordered_map<ivec3, ChunkData> ChunkMap; // Wpos -> ChunkData ptr
 

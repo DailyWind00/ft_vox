@@ -89,7 +89,7 @@ void	VoxelSystem::_meshGenerationRoutine() {
 
 // Check if a neighbour chunk mesh is loaded
 static inline bool	isNeightbourLoaded(ChunkData *neightbour) {
-	return neightbour && neightbour->chunk && ((neightbour->VBO_area[1] && neightbour->IB_area[1] && neightbour->SSBO_area[1]) || neightbour->inCreation);
+	return neightbour && neightbour->chunk && (neightbour->hasMesh() || neightbour->inCreation);
 }
 
 // Check if the voxel at the given position is visible
@@ -177,7 +177,7 @@ static uint8_t	isVoxelVisible(const ivec3 &Vpos, const ChunkData &chunk, ChunkDa
 // The data will be stored in the main thread at the end of OpenGL buffers
 void	VoxelSystem::_generateMesh(ChunkData &chunk, ChunkData *neightboursChunks[6]) {
 	// Check if the chunk already have a mesh (in case of update)
-	if (chunk.VBO_area[1] && chunk.IB_area[1] && chunk.SSBO_area[1] && !chunk.neigthbourUpdated)
+	if (chunk.VBO_area[1] && chunk.IB_area[1] && chunk.SSBO_area[1])
 		_deleteMesh(chunk, neightboursChunks);
 
 	chunk.neigthbourUpdated = false;
@@ -232,7 +232,7 @@ void	VoxelSystem::_generateMesh(ChunkData &chunk, ChunkData *neightboursChunks[6
 		if (!vertices[i].size())
 			continue;
 
-		// IB first as it need the VBO size before being written
+		// IB first as it need the VBO size before it being written
 		DrawCommand	cmd = {4, GLuint(vertices[i].size()), 0, GLuint((_VBO_size / sizeof(DATA_TYPE)) + _VBO_data.size())};
 		_IB_data.push_back(cmd);
 
@@ -270,12 +270,15 @@ void	VoxelSystem::_generateMesh(ChunkData &chunk, ChunkData *neightboursChunks[6
 
 // Delete the first mesh
 void	VoxelSystem::_deleteMesh(ChunkData &chunk, ChunkData *neightboursChunks[6]) {
-	if (!_chunks.count(chunk.Wpos))
+	if (!_chunks.count(chunk.Wpos) || !chunk.hasMesh())
 		return;
 
 	cout << "Deleting mesh at " << chunk.Wpos.x << " " << chunk.Wpos.y << " " << chunk.Wpos.z << endl;
 
 	_chunksToDelete.push_back(chunk.Wpos);
+
+	if (chunk.neigthbourUpdated)
+		return;
 
 	// Request the update of neighbouring chunks
 	vector<ChunkRequest>	neightboursRequests;

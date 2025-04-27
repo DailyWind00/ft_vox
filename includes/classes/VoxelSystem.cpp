@@ -298,9 +298,11 @@ void	VoxelSystem::_updateBuffers() {
 				_writeInBuffer(_SSBO, nullptr, chunk.SSBO_area[1], chunk.SSBO_area[0]);
 
 				// Reset the chunk data
-				chunk.VBO_area [0] = chunk.VBO_area [1] = 0;
-				chunk.IB_area  [0] = chunk.IB_area  [1] = 0;
-				chunk.SSBO_area[0] = chunk.SSBO_area[1] = 0;
+				if (!chunk.hasMesh()) {
+					chunk.VBO_area [0] = 0;
+					chunk.IB_area  [0] = 0;
+					chunk.SSBO_area[0] = 0;
+				}
 
 				// Delete the chunk from the map if asked by ChunkGeneration
 				if (!chunk.chunk)

@@ -211,8 +211,8 @@ void	VoxelSystem::_generateMesh(ChunkData &chunk, ChunkData *neightboursChunks[6
 
 						data |= (BLOCK_AT(chunk.chunk, x, y, z) & 0x7F) << 15;	// 7 bits for block ID
 
-						data |= (1 - 1 & 0x1F) << 22;	// 5 bits for length (1 by default)
-						data |= (1 - 1 & 0x1F) << 27;	// 5 bits for length (1 by default)
+						data |= ((1 - 1) & 0x1F) << 22;	// 5 bits for length (1 by default)
+						data |= ((1 - 1) & 0x1F) << 27;	// 5 bits for length (1 by default)
 
 						vertices[i].push_back(data);
 					}

@@ -245,26 +245,26 @@ void	VoxelSystem::_generateMesh(ChunkData &chunk, ChunkData *neightboursChunks[6
 	}
 
 	// Update the chunk data
-	if (!chunk.VBO_area[1] || chunk.VBO_area[1] > _VBO_data.size() * sizeof(DATA_TYPE) - old_VBO_data_size) {
-		chunk.VBO_area[0] = old_VBO_data_size + _VBO_size;
-		chunk.VBO_area[1] = _VBO_data.size() * sizeof(DATA_TYPE) - old_VBO_data_size;
+	if (!chunk.VBO_area.size || chunk.VBO_area.size > _VBO_data.size() * sizeof(DATA_TYPE) - old_VBO_data_size) {
+		chunk.VBO_area.offset = old_VBO_data_size + _VBO_size;
+		chunk.VBO_area.size = _VBO_data.size() * sizeof(DATA_TYPE) - old_VBO_data_size;
 	}
 
-	if (!chunk.IB_area[1]) {
-		chunk.IB_area[0] = old_IB_data_size + _IB_size;
-		chunk.IB_area[1] = _IB_data.size() * sizeof(DrawCommand) - old_IB_data_size;
+	if (!chunk.IB_area.size) {
+		chunk.IB_area.offset = old_IB_data_size + _IB_size;
+		chunk.IB_area.size = _IB_data.size() * sizeof(DrawCommand) - old_IB_data_size;
 	}
 
-	if (!chunk.SSBO_area[1]) {
-		chunk.SSBO_area[0] = old_SSBO_data_size + _SSBO_size;
-		chunk.SSBO_area[1] = _SSBO_data.size() * sizeof(SSBOData) - old_SSBO_data_size;
+	if (!chunk.SSBO_area.size) {
+		chunk.SSBO_area.offset = old_SSBO_data_size + _SSBO_size;
+		chunk.SSBO_area.size = _SSBO_data.size() * sizeof(SSBOData) - old_SSBO_data_size;
 	}
 
 	{ // to remove
 		cout << "Generated mesh at " << chunk.Wpos.x << " " << chunk.Wpos.y << " " << chunk.Wpos.z << endl;
-		cout << "VBO  : " << chunk.VBO_area[0] << " " << chunk.VBO_area[1] << endl;
-		cout << "IB   : " << chunk.IB_area[0] << " " << chunk.IB_area[1] << endl;
-		cout << "SSBO : " << chunk.SSBO_area[0] << " " << chunk.SSBO_area[1] << endl << endl;
+		cout << "VBO  : " << chunk.VBO_area.offset << " " << chunk.VBO_area.size << endl;
+		cout << "IB   : " << chunk.IB_area.offset << " " << chunk.IB_area.size << endl;
+		cout << "SSBO : " << chunk.SSBO_area.offset << " " << chunk.SSBO_area.size << endl << endl;
 	} // --
 }
 

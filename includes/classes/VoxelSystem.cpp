@@ -289,19 +289,19 @@ void	VoxelSystem::_updateBuffers() {
 
 				{ // To remove
 					cout << "Deleting at " << chunk.Wpos.x << " " << chunk.Wpos.y << " " << chunk.Wpos.z << endl;
-					cout << "IB area   : " << chunk.IB_area[0] << " " << chunk.IB_area[1] << endl;
-					cout << "SSBO area : " << chunk.SSBO_area[0] << " " << chunk.SSBO_area[1] << endl << endl;
+					cout << "IB area   : " << chunk.IB_area.offset << " " << chunk.IB_area.size << endl;
+					cout << "SSBO area : " << chunk.SSBO_area.offset << " " << chunk.SSBO_area.size << endl << endl;
 				} // --
 
 				// We loose pointer to the chunk data so VBO cleanup is not needed
-				_writeInBuffer(_IB, nullptr, chunk.IB_area[1], chunk.IB_area[0]);
-				_writeInBuffer(_SSBO, nullptr, chunk.SSBO_area[1], chunk.SSBO_area[0]);
+				_writeInBuffer(_IB, nullptr, chunk.IB_area.size, chunk.IB_area.offset);
+				_writeInBuffer(_SSBO, nullptr, chunk.SSBO_area.size, chunk.SSBO_area.offset);
 
 				// Reset the chunk data
 				if (!chunk.hasMesh()) {
-					chunk.VBO_area [0] = 0;
-					chunk.IB_area  [0] = 0;
-					chunk.SSBO_area[0] = 0;
+					chunk.VBO_area.offset  = 0;
+					chunk.IB_area.offset   = 0;
+					chunk.SSBO_area.offset = 0;
 				}
 
 				// Delete the chunk from the map if asked by ChunkGeneration

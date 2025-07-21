@@ -60,7 +60,11 @@ typedef struct GeoFrameBuffers {
 } GeoFrameBuffers;
 
 // Data structure for CPU-side chunk data management
-typedef deque<pair<size_t, size_t>> buffer_areas; // <offset, size>
+typedef struct BufferArea {
+    size_t offset;
+    size_t size;
+} BufferArea;
+
 typedef struct ChunkData {
 	AChunk *	chunk;
 	ivec3		Wpos;
@@ -68,12 +72,12 @@ typedef struct ChunkData {
 	bool		neigthbourUpdated = false;
 	bool		inCreation = true;
 
-	size_t	VBO_area[2]  = {0, 0};
-	size_t	IB_area[2]   = {0, 0};
-	size_t	SSBO_area[2] = {0, 0};
+	BufferArea	VBO_area  = {0, 0};
+	BufferArea	IB_area   = {0, 0};
+	BufferArea	SSBO_area = {0, 0};
 
 	inline bool hasMesh() const {
-        return VBO_area[1] && IB_area[1] && SSBO_area[1];
+        return VBO_area.size && IB_area.size && SSBO_area.size;
     }
 } ChunkData;
 typedef unordered_map<ivec3, ChunkData> ChunkMap; // Wpos -> ChunkData ptr

@@ -177,7 +177,7 @@ static uint8_t	isVoxelVisible(const ivec3 &Vpos, const ChunkData &chunk, ChunkDa
 // The data will be stored in the main thread at the end of OpenGL buffers
 void	VoxelSystem::_generateMesh(ChunkData &chunk, ChunkData *neightboursChunks[6]) {
 	// Check if the chunk already have a mesh (in case of update)
-	if (chunk.VBO_area[1] && chunk.IB_area[1] && chunk.SSBO_area[1])
+	if (chunk.hasMesh())
 		_deleteMesh(chunk, neightboursChunks);
 
 	chunk.neigthbourUpdated = false;

@@ -256,29 +256,6 @@ void	VoxelSystem::_updateBuffers() {
 		return;
 
 	if (_buffersNeedUpdates) { // TODO : Add a limit to the number of updates
-		// VBO
-		if (_VBO_data.size()) {
-			_writeInBuffer(_VBO, _VBO_data.data(), _VBO_data.size() * sizeof(DATA_TYPE), _VBO_size);
-			_VBO_size += _VBO_data.size() * sizeof(DATA_TYPE);
-			_VBO_data.clear();
-			cout << "VBO size : " << _VBO_size << endl;
-		}
-
-		// IB
-		if (_IB_data.size()) {
-			_writeInBuffer(_IB, _IB_data.data(), _IB_data.size() * sizeof(DrawCommand), _IB_size);
-			_IB_size += _IB_data.size() * sizeof(DrawCommand);
-			_IB_data.clear();
-			cout << "IB size  : " << _IB_size << endl;
-		}
-
-		// SSBO	
-		if (_SSBO_data.size()) {
-			_writeInBuffer(_SSBO, _SSBO_data.data(), _SSBO_data.size() * sizeof(SSBOData), _SSBO_size);
-			_SSBO_size += _SSBO_data.size() * sizeof(SSBOData);
-			_SSBO_data.clear();
-			cout << "SSBO size: " << _SSBO_size << endl << endl;
-		}
 
 		// Delete the chunks (may cause lag so we batch it)
 		if (_chunksToDelete.size() /* >= BATCH_LIMIT */) {
@@ -313,6 +290,30 @@ void	VoxelSystem::_updateBuffers() {
 			_chunksToDelete.clear();
 
 			// TODO : Recompact the buffers if deletedCount > threshold
+		}
+
+		// VBO
+		if (_VBO_data.size()) {
+			_writeInBuffer(_VBO, _VBO_data.data(), _VBO_data.size() * sizeof(DATA_TYPE), _VBO_size);
+			_VBO_size += _VBO_data.size() * sizeof(DATA_TYPE);
+			_VBO_data.clear();
+			cout << "| VBO size : " << _VBO_size << endl;
+		}
+
+		// IB
+		if (_IB_data.size()) {
+			_writeInBuffer(_IB, _IB_data.data(), _IB_data.size() * sizeof(DrawCommand), _IB_size);
+			_IB_size += _IB_data.size() * sizeof(DrawCommand);
+			_IB_data.clear();
+			cout << "| IB size  : " << _IB_size << endl;
+		}
+
+		// SSBO	
+		if (_SSBO_data.size()) {
+			_writeInBuffer(_SSBO, _SSBO_data.data(), _SSBO_data.size() * sizeof(SSBOData), _SSBO_size);
+			_SSBO_size += _SSBO_data.size() * sizeof(SSBOData);
+			_SSBO_data.clear();
+			cout << "| SSBO size: " << _SSBO_size << endl << endl;
 		}
 
 		_buffersNeedUpdates = false;

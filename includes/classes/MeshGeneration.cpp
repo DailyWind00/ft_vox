@@ -173,6 +173,16 @@ static uint8_t	isVoxelVisible(const ivec3 &Vpos, const ChunkData &chunk, ChunkDa
 	return visibleFaces;
 }
 
+// Update the area of the given buffer
+// Use of template to avoid issues with the different buffer types
+template<typename AreaType>
+void updateArea(AreaType& area, size_t old_size, size_t current_size, size_t buffer_offset) {
+	if (!area.size || area.size > current_size - old_size) {
+		area.offset = old_size + buffer_offset;
+		area.size   = current_size - old_size;
+	}
+}
+
 // Create/update the mesh of the given chunk
 // The data will be stored in the main thread at the end of OpenGL buffers
 void	VoxelSystem::_generateMesh(ChunkData &chunk, ChunkData *neightboursChunks[6]) {
@@ -244,21 +254,10 @@ void	VoxelSystem::_generateMesh(ChunkData &chunk, ChunkData *neightboursChunks[6
 		_SSBO_data.push_back(data);
 	}
 
-	// Update the chunk data
-	if (!chunk.VBO_area.size || chunk.VBO_area.size > _VBO_data.size() * sizeof(DATA_TYPE) - old_VBO_data_size) {
-		chunk.VBO_area.offset = old_VBO_data_size + _VBO_size;
-		chunk.VBO_area.size = _VBO_data.size() * sizeof(DATA_TYPE) - old_VBO_data_size;
-	}
-
-	if (!chunk.IB_area.size) {
-		chunk.IB_area.offset = old_IB_data_size + _IB_size;
-		chunk.IB_area.size = _IB_data.size() * sizeof(DrawCommand) - old_IB_data_size;
-	}
-
-	if (!chunk.SSBO_area.size) {
-		chunk.SSBO_area.offset = old_SSBO_data_size + _SSBO_size;
-		chunk.SSBO_area.size = _SSBO_data.size() * sizeof(SSBOData) - old_SSBO_data_size;
-	}
+	// Update the areas of the buffers
+	updateArea(chunk.VBO_area, old_VBO_data_size, _VBO_data.size() * sizeof(DATA_TYPE), _VBO_size);
+	updateArea(chunk.IB_area, old_IB_data_size, _IB_data.size() * sizeof(DrawCommand), _IB_size);
+	updateArea(chunk.SSBO_area, old_SSBO_data_size, _SSBO_data.size() * sizeof(SSBOData), _SSBO_size);
 
 	{ // to remove
 		cout << "Generated mesh at " << chunk.Wpos.x << " " << chunk.Wpos.y << " " << chunk.Wpos.z << endl;
@@ -273,7 +272,7 @@ void	VoxelSystem::_deleteMesh(ChunkData &chunk, ChunkData *neightboursChunks[6])
 	if (!_chunks.count(chunk.Wpos) || !chunk.hasMesh())
 		return;
 
-	cout << "Deleting mesh at " << chunk.Wpos.x << " " << chunk.Wpos.y << " " << chunk.Wpos.z << endl;
+	cout << "Request mesh deletion at " << chunk.Wpos.x << " " << chunk.Wpos.y << " " << chunk.Wpos.z << endl; // To remove
 
 	_chunksToDelete.push_back(chunk.Wpos);
 

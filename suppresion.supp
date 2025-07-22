@@ -1,0 +1,1245 @@
+# Valgrind suppression file per OpenGL/GLFW/GLEW su WSL con NVIDIA
+# Uso: valgrind --suppressions=suppressions.supp ./scop model.obj
+
+#==============================================================================
+# NVIDIA WSL Driver Suppressions (Più Specifici)
+#==============================================================================
+
+{
+   nvidia_wsl_libnvwgf2umx_all_errors
+   Memcheck:Addr1
+   obj:*/libnvwgf2umx.so*
+}
+
+{
+   nvidia_wsl_libnvwgf2umx_all_errors_2
+   Memcheck:Addr2
+   obj:*/libnvwgf2umx.so*
+}
+
+{
+   nvidia_wsl_libnvwgf2umx_all_errors_4
+   Memcheck:Addr4
+   obj:*/libnvwgf2umx.so*
+}
+
+{
+   nvidia_wsl_libnvwgf2umx_all_errors_8
+   Memcheck:Addr8
+   obj:*/libnvwgf2umx.so*
+}
+
+{
+   nvidia_wsl_libnvwgf2umx_all_errors_16
+   Memcheck:Addr16
+   obj:*/libnvwgf2umx.so*
+}
+
+{
+   nvidia_wsl_libnvwgf2umx_memcpy_errors
+   Memcheck:Addr8
+   fun:memcpy*
+   obj:*/libnvwgf2umx.so*
+}
+
+{
+   nvidia_wsl_libnvwgf2umx_memcpy_errors_2
+   Memcheck:Addr2
+   fun:memcpy*
+   obj:*/libnvwgf2umx.so*
+}
+
+{
+   nvidia_wsl_libnvwgf2umx_memcpy_errors_1
+   Memcheck:Addr1
+   fun:memcpy*
+   obj:*/libnvwgf2umx.so*
+}
+
+{
+   nvidia_wsl_libnvwgf2umx_memcpy_errors_4
+   Memcheck:Addr4
+   fun:memcpy*
+   obj:*/libnvwgf2umx.so*
+}
+
+{
+   nvidia_wsl_libnvwgf2umx_memcpy_errors_16
+   Memcheck:Addr16
+   fun:memcpy*
+   obj:*/libnvwgf2umx.so*
+}
+
+{
+   nvidia_wsl_libnvwgf2umx_memset_errors
+   Memcheck:Addr8
+   fun:memset*
+   obj:*/libnvwgf2umx.so*
+}
+
+{
+   nvidia_wsl_libnvwgf2umx_memmove_errors
+   Memcheck:Addr8
+   fun:memmove*
+   obj:*/libnvwgf2umx.so*
+}
+
+{
+   nvidia_wsl_libnvwgf2umx_cond_jump
+   Memcheck:Cond
+   obj:*/libnvwgf2umx.so*
+}
+
+{
+   nvidia_wsl_libnvwgf2umx_uninit_value
+   Memcheck:Value8
+   obj:*/libnvwgf2umx.so*
+}
+
+{
+   nvidia_wsl_libnvwgf2umx_uninit_value_4
+   Memcheck:Value4
+   obj:*/libnvwgf2umx.so*
+}
+
+{
+   nvidia_wsl_libnvwgf2umx_uninit_value_1
+   Memcheck:Value1
+   obj:*/libnvwgf2umx.so*
+}
+
+# Valgrind Suppressions File for WSL Graphics Stack and System Libraries
+# Generated for scop project - suppresses all external library errors
+
+# 1. NVIDIA Graphics Driver Suppressions
+{
+   nvidia_driver_conditional_jump
+   Memcheck:Cond
+   obj:/usr/lib/wsl/drivers/nvam.inf_amd64_e2f50f704b588ae6/libnvwgf2umx.so
+}
+
+{
+   nvidia_driver_invalid_read
+   Memcheck:Addr8
+   obj:/usr/lib/wsl/drivers/nvam.inf_amd64_e2f50f704b588ae6/libnvwgf2umx.so
+}
+
+{
+   nvidia_driver_invalid_write
+   Memcheck:Addr4
+   obj:/usr/lib/wsl/drivers/nvam.inf_amd64_e2f50f704b588ae6/libnvwgf2umx.so
+}
+
+{
+   nvidia_driver_invalid_write8
+   Memcheck:Addr8
+   obj:/usr/lib/wsl/drivers/nvam.inf_amd64_e2f50f704b588ae6/libnvwgf2umx.so
+}
+
+{
+   nvidia_driver_memset_write
+   Memcheck:Addr8
+   fun:memset
+   obj:/usr/lib/wsl/drivers/nvam.inf_amd64_e2f50f704b588ae6/libnvwgf2umx.so
+}
+
+{
+   nvidia_driver_uninitialized_heap
+   Memcheck:Cond
+   obj:/usr/lib/wsl/drivers/nvam.inf_amd64_e2f50f704b588ae6/libnvwgf2umx.so
+   ...
+   fun:posix_memalign
+   obj:/usr/lib/wsl/drivers/nvam.inf_amd64_e2f50f704b588ae6/libnvwgf2umx.so
+}
+
+# 2. DirectX Core Library Suppressions
+{
+   dxcore_conditional_jump
+   Memcheck:Cond
+   obj:/usr/lib/wsl/lib/libdxcore.so
+}
+
+{
+   dxcore_syscall_uninit
+   Memcheck:Param
+   ioctl(generic)
+   fun:ioctl
+   fun:D3DKMTQueryAdapterInfo
+   obj:/usr/lib/wsl/lib/libdxcore.so
+}
+
+{
+   dxcore_uninit_value
+   Memcheck:Cond
+   obj:/usr/lib/wsl/lib/libdxcore.so
+   ...
+   fun:DXCoreCreateAdapterFactory
+}
+
+{
+   dxcore_lock_uninit
+   Memcheck:Param
+   ioctl(generic)
+   fun:ioctl
+   fun:D3DKMTLock2
+   obj:/usr/lib/wsl/lib/libdxcore.so
+}
+
+# 3. D3D12 Core Library Suppressions
+{
+   d3d12core_stack_uninit
+   Memcheck:Param
+   ioctl(generic)
+   fun:ioctl
+   fun:D3DKMTQueryAdapterInfo
+   obj:/usr/lib/wsl/lib/libd3d12core.so
+}
+
+{
+   d3d12core_general_errors
+   Memcheck:Addr8
+   obj:/usr/lib/wsl/lib/libd3d12core.so
+}
+
+{
+   d3d12core_conditional
+   Memcheck:Cond
+   obj:/usr/lib/wsl/lib/libd3d12core.so
+}
+
+# 4. D3D12 Library Suppressions
+{
+   d3d12_general_errors
+   Memcheck:Addr8
+   obj:/usr/lib/wsl/lib/libd3d12.so
+}
+
+# 5. Software Rasterizer (swrast) Suppressions
+{
+   swrast_dri_conditional
+   Memcheck:Cond
+   obj:/usr/lib/x86_64-linux-gnu/dri/swrast_dri.so
+}
+
+{
+   swrast_dri_invalid_read
+   Memcheck:Addr8
+   obj:/usr/lib/x86_64-linux-gnu/dri/swrast_dri.so
+}
+
+# 6. System Dynamic Loader Suppressions
+{
+   ld_strncmp_uninit
+   Memcheck:Addr8
+   fun:strncmp
+   fun:is_dst
+   ...
+   fun:_dl_map_object
+}
+
+{
+   ld_strdup_uninit
+   Memcheck:Addr8
+   fun:strncmp
+   fun:is_dst
+   ...
+   fun:strdup
+   fun:decompose_rpath
+}
+
+{
+   ld_malloc_uninit
+   Memcheck:Addr8
+   fun:strncmp
+   fun:is_dst
+   ...
+   fun:malloc
+   fun:strdup
+}
+
+# 7. OpenGL/Mesa Library Suppressions
+{
+   mesa_gl_uninit
+   Memcheck:Cond
+   obj:/usr/lib/x86_64-linux-gnu/libGL.so*
+}
+
+{
+   mesa_gl_invalid_read
+   Memcheck:Addr8
+   obj:/usr/lib/x86_64-linux-gnu/libGL.so*
+}
+
+{
+   mesa_glx_uninit
+   Memcheck:Cond
+   obj:/usr/lib/x86_64-linux-gnu/libGLX.so*
+}
+
+# 8. X11 Library Suppressions
+{
+   x11_xcb_uninit
+   Memcheck:Cond
+   obj:/usr/lib/x86_64-linux-gnu/libxcb.so*
+}
+
+{
+   x11_lib_uninit
+   Memcheck:Cond
+   obj:/usr/lib/x86_64-linux-gnu/libX11.so*
+}
+
+# 9. General WSL Library Suppressions
+{
+   wsl_lib_general
+   Memcheck:Cond
+   obj:/usr/lib/wsl/lib/*
+}
+
+{
+   wsl_lib_invalid_read
+   Memcheck:Addr8
+   obj:/usr/lib/wsl/lib/*
+}
+
+{
+   wsl_lib_invalid_write
+   Memcheck:Addr4
+   obj:/usr/lib/wsl/lib/*
+}
+
+{
+   wsl_lib_invalid_write8
+   Memcheck:Addr8
+   obj:/usr/lib/wsl/lib/*
+}
+
+{
+   wsl_lib_syscall_uninit
+   Memcheck:Param
+   ioctl(generic)
+   fun:ioctl
+   obj:/usr/lib/wsl/lib/*
+}
+
+# 10. GLFW Library Suppressions
+{
+   glfw_uninit
+   Memcheck:Cond
+   obj:/usr/lib/x86_64-linux-gnu/libglfw.so*
+}
+
+{
+   glfw_invalid_read
+   Memcheck:Addr8
+   obj:/usr/lib/x86_64-linux-gnu/libglfw.so*
+}
+
+# 11. C++ Standard Library Suppressions
+{
+   libstdc_uninit
+   Memcheck:Cond
+   obj:/usr/lib/x86_64-linux-gnu/libstdc++.so*
+}
+
+{
+   libstdc_invalid_read
+   Memcheck:Addr8
+   obj:/usr/lib/x86_64-linux-gnu/libstdc++.so*
+}
+
+# 12. System libc Suppressions
+{
+   libc_uninit
+   Memcheck:Cond
+   obj:/usr/lib/x86_64-linux-gnu/libc.so*
+}
+
+{
+   libc_invalid_read
+   Memcheck:Addr8
+   obj:/usr/lib/x86_64-linux-gnu/libc.so*
+}
+
+# 13. Wildcard Suppressions for All System Libraries
+{
+   system_lib_conditional_all
+   Memcheck:Cond
+   obj:/usr/lib/*
+}
+
+{
+   system_lib_invalid_read_all
+   Memcheck:Addr8
+   obj:/usr/lib/*
+}
+
+{
+   system_lib_invalid_write_all
+   Memcheck:Addr4
+   obj:/usr/lib/*
+}
+
+{
+   system_lib_invalid_write8_all
+   Memcheck:Addr8
+   obj:/usr/lib/*
+}
+
+{
+   system_lib_syscall_all
+   Memcheck:Param
+   ioctl(generic)
+   fun:ioctl
+   obj:/usr/lib/*
+}
+
+{
+   system_lib_memset_all
+   Memcheck:Addr8
+   fun:memset
+   obj:/usr/lib/*
+}
+
+{
+   system_bin_all
+   Memcheck:Cond
+   obj:/usr/bin/*
+}
+
+{
+   system_libexec_all
+   Memcheck:Cond
+   obj:/usr/libexec/*
+}
+
+# 14. Memory Leak Suppressions
+{
+   nvidia_driver_leak
+   Memcheck:Leak
+   match-leak-kinds: all
+   obj:/usr/lib/wsl/drivers/nvam.inf_amd64_e2f50f704b588ae6/libnvwgf2umx.so
+}
+
+{
+   dxcore_leak
+   Memcheck:Leak
+   match-leak-kinds: all
+   obj:/usr/lib/wsl/lib/libdxcore.so
+}
+
+{
+   d3d12_leak
+   Memcheck:Leak
+   match-leak-kinds: all
+   obj:/usr/lib/wsl/lib/libd3d12*.so
+}
+
+{
+   swrast_leak
+   Memcheck:Leak
+   match-leak-kinds: all
+   obj:/usr/lib/x86_64-linux-gnu/dri/swrast_dri.so
+}
+
+{
+   gl_mesa_leak
+   Memcheck:Leak
+   match-leak-kinds: all
+   obj:/usr/lib/x86_64-linux-gnu/libGL.so*
+}
+
+{
+   system_lib_leak_all
+   Memcheck:Leak
+   match-leak-kinds: all
+   obj:/usr/lib/*
+}
+
+# 15. Broad Catch-All Suppressions
+{
+   all_external_conditional
+   Memcheck:Cond
+   obj:*
+   ...
+}
+
+{
+   all_external_invalid_read
+   Memcheck:Addr8
+   obj:*
+   ...
+}
+
+{
+   all_external_invalid_write
+   Memcheck:Addr4
+   obj:*
+   ...
+}
+
+{
+   all_external_invalid_write8
+   Memcheck:Addr8
+   obj:*
+   ...
+}
+
+{
+   all_external_syscall
+   Memcheck:Param
+   ioctl(generic)
+   fun:ioctl
+   obj:*
+   ...
+}
+
+{
+   all_external_memset
+   Memcheck:Addr8
+   fun:memset
+   obj:*
+   ...
+}
+
+{
+   all_external_leaks
+   Memcheck:Leak
+   match-leak-kinds: all
+   obj:*
+   ...
+}
+
+#==============================================================================
+# D3D12 WSL Suppressions (Più Completi)
+#==============================================================================
+
+{
+   wsl_d3d12core_all_errors
+   Memcheck:Addr8
+   obj:*/libd3d12core.so*
+}
+
+{
+   wsl_d3d12core_addr4
+   Memcheck:Addr4
+   obj:*/libd3d12core.so*
+}
+
+{
+   wsl_d3d12core_addr2
+   Memcheck:Addr2
+   obj:*/libd3d12core.so*
+}
+
+{
+   wsl_d3d12core_addr1
+   Memcheck:Addr1
+   obj:*/libd3d12core.so*
+}
+
+{
+   wsl_d3d12core_cond
+   Memcheck:Cond
+   obj:*/libd3d12core.so*
+}
+
+{
+   wsl_d3d12core_uninit
+   Memcheck:Value8
+   obj:*/libd3d12core.so*
+}
+
+{
+   wsl_d3d12core_uninit_4
+   Memcheck:Value4
+   obj:*/libd3d12core.so*
+}
+
+{
+   wsl_d3d12core_uninit_1
+   Memcheck:Value1
+   obj:*/libd3d12core.so*
+}
+
+{
+   wsl_d3d12core_leaks
+   Memcheck:Leak
+   match-leak-kinds: all
+   obj:*/libd3d12core.so*
+}
+
+{
+   wsl_d3d12_main_all_errors
+   Memcheck:Addr8
+   obj:*/libd3d12.so*
+}
+
+{
+   wsl_d3d12_main_leaks
+   Memcheck:Leak
+   match-leak-kinds: all
+   obj:*/libd3d12.so*
+}
+
+#==============================================================================
+# DXCore WSL Suppressions (Più Completi)
+#==============================================================================
+
+{
+   wsl_dxcore_all_addr_errors
+   Memcheck:Addr8
+   obj:*/libdxcore.so*
+}
+
+{
+   wsl_dxcore_all_addr_errors_4
+   Memcheck:Addr4
+   obj:*/libdxcore.so*
+}
+
+{
+   wsl_dxcore_all_addr_errors_2
+   Memcheck:Addr2
+   obj:*/libdxcore.so*
+}
+
+{
+   wsl_dxcore_all_addr_errors_1
+   Memcheck:Addr1
+   obj:*/libdxcore.so*
+}
+
+{
+   wsl_dxcore_cond_errors
+   Memcheck:Cond
+   obj:*/libdxcore.so*
+}
+
+{
+   wsl_dxcore_uninit_errors
+   Memcheck:Value8
+   obj:*/libdxcore.so*
+}
+
+{
+   wsl_dxcore_uninit_errors_4
+   Memcheck:Value4
+   obj:*/libdxcore.so*
+}
+
+{
+   wsl_dxcore_uninit_errors_1
+   Memcheck:Value1
+   obj:*/libdxcore.so*
+}
+
+{
+   wsl_dxcore_all_leaks
+   Memcheck:Leak
+   match-leak-kinds: all
+   obj:*/libdxcore.so*
+}
+
+{
+   wsl_dxcore_syscall_ioctl
+   Memcheck:Param
+   ioctl(generic)
+   fun:ioctl
+   obj:*/libdxcore.so*
+}
+
+{
+   wsl_dxcore_syscall_ioctl_d3dkmt
+   Memcheck:Param
+   ioctl(generic)
+   fun:ioctl
+   fun:D3DKMT*
+   obj:*/libdxcore.so*
+}
+
+#==============================================================================
+# Mesa SwRast Driver Suppressions (Più Completi)
+#==============================================================================
+
+{
+   mesa_swrast_all_addr_errors
+   Memcheck:Addr8
+   obj:*/swrast_dri.so*
+}
+
+{
+   mesa_swrast_all_addr_errors_4
+   Memcheck:Addr4
+   obj:*/swrast_dri.so*
+}
+
+{
+   mesa_swrast_all_addr_errors_2
+   Memcheck:Addr2
+   obj:*/swrast_dri.so*
+}
+
+{
+   mesa_swrast_all_addr_errors_1
+   Memcheck:Addr1
+   obj:*/swrast_dri.so*
+}
+
+{
+   mesa_swrast_cond_errors
+   Memcheck:Cond
+   obj:*/swrast_dri.so*
+}
+
+{
+   mesa_swrast_uninit_errors
+   Memcheck:Value8
+   obj:*/swrast_dri.so*
+}
+
+{
+   mesa_swrast_uninit_errors_4
+   Memcheck:Value4
+   obj:*/swrast_dri.so*
+}
+
+{
+   mesa_swrast_uninit_errors_1
+   Memcheck:Value1
+   obj:*/swrast_dri.so*
+}
+
+{
+   mesa_swrast_memmove_errors
+   Memcheck:Addr8
+   fun:memmove*
+   obj:*/swrast_dri.so*
+}
+
+{
+   mesa_swrast_memmove_errors_4
+   Memcheck:Addr4
+   fun:memmove*
+   obj:*/swrast_dri.so*
+}
+
+{
+   mesa_swrast_memmove_errors_2
+   Memcheck:Addr2
+   fun:memmove*
+   obj:*/swrast_dri.so*
+}
+
+{
+   mesa_swrast_memmove_errors_1
+   Memcheck:Addr1
+   fun:memmove*
+   obj:*/swrast_dri.so*
+}
+
+{
+   mesa_swrast_memcpy_errors
+   Memcheck:Addr8
+   fun:memcpy*
+   obj:*/swrast_dri.so*
+}
+
+{
+   mesa_swrast_leaks
+   Memcheck:Leak
+   match-leak-kinds: all
+   obj:*/swrast_dri.so*
+}
+
+#==============================================================================
+# Mesa GLX Suppressions (Più Completi)
+#==============================================================================
+
+{
+   mesa_glx_all_addr_errors
+   Memcheck:Addr8
+   obj:*/libGLX_mesa.so*
+}
+
+{
+   mesa_glx_all_addr_errors_4
+   Memcheck:Addr4
+   obj:*/libGLX_mesa.so*
+}
+
+{
+   mesa_glx_all_addr_errors_2
+   Memcheck:Addr2
+   obj:*/libGLX_mesa.so*
+}
+
+{
+   mesa_glx_all_addr_errors_1
+   Memcheck:Addr1
+   obj:*/libGLX_mesa.so*
+}
+
+{
+   mesa_glx_cond_errors
+   Memcheck:Cond
+   obj:*/libGLX_mesa.so*
+}
+
+{
+   mesa_glx_uninit_errors
+   Memcheck:Value8
+   obj:*/libGLX_mesa.so*
+}
+
+{
+   mesa_glx_uninit_errors_4
+   Memcheck:Value4
+   obj:*/libGLX_mesa.so*
+}
+
+{
+   mesa_glx_uninit_errors_1
+   Memcheck:Value1
+   obj:*/libGLX_mesa.so*
+}
+
+{
+   mesa_glx_all_leaks
+   Memcheck:Leak
+   match-leak-kinds: all
+   obj:*/libGLX_mesa.so*
+}
+
+#==============================================================================
+# GLFW Suppressions (Più Completi)
+#==============================================================================
+
+{
+   glfw_all_addr_errors
+   Memcheck:Addr8
+   obj:*/libglfw.so*
+}
+
+{
+   glfw_all_addr_errors_4
+   Memcheck:Addr4
+   obj:*/libglfw.so*
+}
+
+{
+   glfw_all_addr_errors_2
+   Memcheck:Addr2
+   obj:*/libglfw.so*
+}
+
+{
+   glfw_all_addr_errors_1
+   Memcheck:Addr1
+   obj:*/libglfw.so*
+}
+
+{
+   glfw_cond_errors
+   Memcheck:Cond
+   obj:*/libglfw.so*
+}
+
+{
+   glfw_uninit_errors
+   Memcheck:Value8
+   obj:*/libglfw.so*
+}
+
+{
+   glfw_uninit_errors_4
+   Memcheck:Value4
+   obj:*/libglfw.so*
+}
+
+{
+   glfw_uninit_errors_1
+   Memcheck:Value1
+   obj:*/libglfw.so*
+}
+
+{
+   glfw_all_leaks
+   Memcheck:Leak
+   match-leak-kinds: all
+   obj:*/libglfw.so*
+}
+
+#==============================================================================
+# OpenGL/GLEW Suppressions
+#==============================================================================
+
+{
+   opengl_all_addr_errors
+   Memcheck:Addr8
+   obj:*/libGL.so*
+}
+
+{
+   opengl_all_addr_errors_4
+   Memcheck:Addr4
+   obj:*/libGL.so*
+}
+
+{
+   opengl_all_addr_errors_2
+   Memcheck:Addr2
+   obj:*/libGL.so*
+}
+
+{
+   opengl_all_addr_errors_1
+   Memcheck:Addr1
+   obj:*/libGL.so*
+}
+
+{
+   opengl_cond_errors
+   Memcheck:Cond
+   obj:*/libGL.so*
+}
+
+{
+   opengl_uninit_errors
+   Memcheck:Value8
+   obj:*/libGL.so*
+}
+
+{
+   opengl_uninit_errors_4
+   Memcheck:Value4
+   obj:*/libGL.so*
+}
+
+{
+   opengl_uninit_errors_1
+   Memcheck:Value1
+   obj:*/libGL.so*
+}
+
+{
+   opengl_all_leaks
+   Memcheck:Leak
+   match-leak-kinds: all
+   obj:*/libGL.so*
+}
+
+{
+   glew_all_addr_errors
+   Memcheck:Addr8
+   obj:*/libGLEW.so*
+}
+
+{
+   glew_all_addr_errors_4
+   Memcheck:Addr4
+   obj:*/libGLEW.so*
+}
+
+{
+   glew_all_addr_errors_2
+   Memcheck:Addr2
+   obj:*/libGLEW.so*
+}
+
+{
+   glew_all_addr_errors_1
+   Memcheck:Addr1
+   obj:*/libGLEW.so*
+}
+
+{
+   glew_cond_errors
+   Memcheck:Cond
+   obj:*/libGLEW.so*
+}
+
+{
+   glew_uninit_errors
+   Memcheck:Value8
+   obj:*/libGLEW.so*
+}
+
+{
+   glew_uninit_errors_4
+   Memcheck:Value4
+   obj:*/libGLEW.so*
+}
+
+{
+   glew_uninit_errors_1
+   Memcheck:Value1
+   obj:*/libGLEW.so*
+}
+
+{
+   glew_all_leaks
+   Memcheck:Leak
+   match-leak-kinds: all
+   obj:*/libGLEW.so*
+}
+
+#==============================================================================
+# X11/DRI Suppressions
+#==============================================================================
+
+{
+   x11_all_addr_errors
+   Memcheck:Addr8
+   obj:*/libX11.so*
+}
+
+{
+   x11_all_addr_errors_4
+   Memcheck:Addr4
+   obj:*/libX11.so*
+}
+
+{
+   x11_all_addr_errors_2
+   Memcheck:Addr2
+   obj:*/libX11.so*
+}
+
+{
+   x11_all_addr_errors_1
+   Memcheck:Addr1
+   obj:*/libX11.so*
+}
+
+{
+   x11_cond_errors
+   Memcheck:Cond
+   obj:*/libX11.so*
+}
+
+{
+   x11_uninit_errors
+   Memcheck:Value8
+   obj:*/libX11.so*
+}
+
+{
+   x11_uninit_errors_4
+   Memcheck:Value4
+   obj:*/libX11.so*
+}
+
+{
+   x11_uninit_errors_1
+   Memcheck:Value1
+   obj:*/libX11.so*
+}
+
+{
+   x11_all_leaks
+   Memcheck:Leak
+   match-leak-kinds: all
+   obj:*/libX11.so*
+}
+
+{
+   dri_all_addr_errors
+   Memcheck:Addr8
+   obj:*/dri/*_dri.so*
+}
+
+{
+   dri_all_addr_errors_4
+   Memcheck:Addr4
+   obj:*/dri/*_dri.so*
+}
+
+{
+   dri_all_addr_errors_2
+   Memcheck:Addr2
+   obj:*/dri/*_dri.so*
+}
+
+{
+   dri_all_addr_errors_1
+   Memcheck:Addr1
+   obj:*/dri/*_dri.so*
+}
+
+{
+   dri_cond_errors
+   Memcheck:Cond
+   obj:*/dri/*_dri.so*
+}
+
+{
+   dri_uninit_errors
+   Memcheck:Value8
+   obj:*/dri/*_dri.so*
+}
+
+{
+   dri_uninit_errors_4
+   Memcheck:Value4
+   obj:*/dri/*_dri.so*
+}
+
+{
+   dri_uninit_errors_1
+   Memcheck:Value1
+   obj:*/dri/*_dri.so*
+}
+
+{
+   dri_all_leaks
+   Memcheck:Leak
+   match-leak-kinds: all
+   obj:*/dri/*_dri.so*
+}
+
+#==============================================================================
+# System Libraries Suppressions
+#==============================================================================
+
+{
+   usr_lib_all_addr_errors
+   Memcheck:Addr8
+   obj:*/usr/lib/*
+}
+
+{
+   usr_lib_all_addr_errors_4
+   Memcheck:Addr4
+   obj:*/usr/lib/*
+}
+
+{
+   usr_lib_all_addr_errors_2
+   Memcheck:Addr2
+   obj:*/usr/lib/*
+}
+
+{
+   usr_lib_all_addr_errors_1
+   Memcheck:Addr1
+   obj:*/usr/lib/*
+}
+
+{
+   usr_lib_cond_errors
+   Memcheck:Cond
+   obj:*/usr/lib/*
+}
+
+{
+   usr_lib_uninit_errors
+   Memcheck:Value8
+   obj:*/usr/lib/*
+}
+
+{
+   usr_lib_uninit_errors_4
+   Memcheck:Value4
+   obj:*/usr/lib/*
+}
+
+{
+   usr_lib_uninit_errors_1
+   Memcheck:Value1
+   obj:*/usr/lib/*
+}
+
+{
+   usr_lib_all_leaks
+   Memcheck:Leak
+   match-leak-kinds: all
+   obj:*/usr/lib/*
+}
+
+{
+   usr_lib_syscall_ioctl
+   Memcheck:Param
+   ioctl(generic)
+   fun:ioctl
+   obj:*/usr/lib/*
+}
+
+#==============================================================================
+# glibc/Dynamic Loader Suppressions
+#==============================================================================
+
+{
+   glibc_dl_all_addr_errors
+   Memcheck:Addr8
+   fun:strncmp
+   fun:is_dst
+   fun:_dl_*
+}
+
+{
+   glibc_dl_all_addr_errors_4
+   Memcheck:Addr4
+   fun:strncmp
+   fun:is_dst
+   fun:_dl_*
+}
+
+{
+   glibc_dl_all_addr_errors_2
+   Memcheck:Addr2
+   fun:strncmp
+   fun:is_dst
+   fun:_dl_*
+}
+
+{
+   glibc_dl_all_addr_errors_1
+   Memcheck:Addr1
+   fun:strncmp
+   fun:is_dst
+   fun:_dl_*
+}
+
+{
+   glibc_dl_cond_errors
+   Memcheck:Cond
+   fun:strncmp
+   fun:is_dst
+   fun:_dl_*
+}
+
+{
+   glibc_dl_uninit_errors
+   Memcheck:Value8
+   fun:strncmp
+   fun:is_dst
+   fun:_dl_*
+}
+
+{
+   glibc_dl_all_leaks
+   Memcheck:Leak
+   match-leak-kinds: all
+   fun:malloc
+   fun:strdup
+   fun:decompose_rpath
+   fun:fillin_rpath
+   fun:_dl_*
+}
+
+{
+   glibc_dl_simple_leaks
+   Memcheck:Leak
+   match-leak-kinds: all
+   fun:malloc
+   fun:_dl_*
+}
+
+{
+   glibc_dl_calloc_leaks
+   Memcheck:Leak
+   match-leak-kinds: all
+   fun:calloc
+   fun:_dl_*
+}

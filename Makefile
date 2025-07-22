@@ -1,6 +1,7 @@
 MAKEFLAGS += --no-print-directory
 NAME = ft_vox
 VALGRIND_ARGS =  # Default empty value
+VALGRIND_OUTFILE = valgrind.log
 
 all: release
 
@@ -34,8 +35,8 @@ re: fclean all
 
 valgrind:
 	@if [ -f $(NAME) ]; then \
-		valgrind --suppressions=suppresion.supp ./$(NAME) $(VALGRIND_ARGS) 2>&1 | tee valgrind.log; \
-		echo "\033[1;34m> Valgrind log saved to: \033[1;37mvalgrind.log\033[0m"; \
+		valgrind --suppressions=suppresion.supp ./$(NAME) $(VALGRIND_ARGS) 2>&1 | tee $(VALGRIND_OUTFILE); \
+		echo "\033[1;34m> Valgrind log saved to: \033[1;37m$(VALGRIND_OUTFILE)\033[0m"; \
 	else \
 		echo "\033[1;31mError: Executable not found. Please build first.\033[0m"; \
 	fi

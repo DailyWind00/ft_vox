@@ -176,7 +176,7 @@ static uint8_t	isVoxelVisible(const ivec3 &Vpos, const ChunkData &chunk, ChunkDa
 // Update the area of the given buffer
 // Use of template to avoid issues with the different buffer types
 template<typename AreaType>
-void updateArea(AreaType& area, size_t old_size, size_t current_size, size_t buffer_offset) {
+static inline void updateArea(AreaType& area, size_t old_size, size_t current_size, size_t buffer_offset) {
 	if (!area.size || area.size > current_size - old_size) {
 		area.offset = old_size + buffer_offset;
 		area.size   = current_size - old_size;

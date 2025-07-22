@@ -34,10 +34,10 @@ re: fclean all
 
 valgrind:
 	@if [ -f $(NAME) ]; then \
-		valgrind --suppressions=suppresion.supp --log-file="valgrind.log" ./$(NAME) $(VALGRIND_ARGS); \
+		valgrind --suppressions=suppresion.supp ./$(NAME) $(VALGRIND_ARGS) 2>&1 | tee valgrind.log; \
 		echo "\033[1;34m> Valgrind log saved to: \033[1;37mvalgrind.log\033[0m"; \
 	else \
 		echo "\033[1;31mError: Executable not found. Please build first.\033[0m"; \
 	fi
 
-.PHONY: all release debug clean fclean wipe re
+.PHONY: all release debug clean fclean wipe re valgrind

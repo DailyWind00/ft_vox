@@ -38,7 +38,6 @@ ft_vox
 compile_commands.json
 .session.vim
 .cache/
-.vscode/
 dependencies/
 build/
 TODO

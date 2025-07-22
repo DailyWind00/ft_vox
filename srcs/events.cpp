@@ -4,7 +4,7 @@
 static void	cameraMovement(Window &window, Camera &camera) {
 	CameraInfo	cameraInfo = camera.getCameraInfo();
 
-	/// Movements
+	# pragma region Camera controls
 	vec3	cameraFront = cameraInfo.lookAt - cameraInfo.position;
 	vec3	cameraRight = normalize(cross(cameraFront, cameraInfo.up));
 	cameraFront.y = 0; cameraRight.y = 0; // Remove the Y axis
@@ -25,9 +25,9 @@ static void	cameraMovement(Window &window, Camera &camera) {
 		move = normalize(move);
 
 	cameraInfo.position += move * camSpeed;
-	/// ---
+	# pragma endregion
 
-	/// Mouse
+	# pragma region Mouse
 	double mouseX, mouseY;
 	glfwGetCursorPos(window, &mouseX, &mouseY);
 
@@ -45,7 +45,7 @@ static void	cameraMovement(Window &window, Camera &camera) {
 	cameraInfo.lookAt = cameraInfo.position + cameraDir;
 
 	glfwSetCursorPos(window, (float)WINDOW_WIDTH / 2, (float)WINDOW_HEIGHT / 2);
-	/// ---
+	# pragma endregion
 	
 	camera.setCameraInfo(cameraInfo);
 }
@@ -60,7 +60,7 @@ void	handleEvents(GameData &gameData) {
 
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
-		
+
 	static bool pressed = false;
 	if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS && !pressed) {
 		pressed = true;

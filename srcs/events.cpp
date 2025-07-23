@@ -67,7 +67,8 @@ void	handleEvents(GameData &gameData) {
 		ivec3 camPos = (ivec3)camera.getCameraInfo().position / CHUNK_SIZE;
 
 		gameData.voxelSystem.requestChunk({ChunkRequest{camPos, ChunkAction::DELETE}});
-		cout << ">>> F key pressed at : " << camPos.x << " " << camPos.y << " " << camPos.z << endl;
+		if (VERBOSE)
+			cout << "Deleting chunk at worldPos : " << camPos.x << " " << camPos.y << " " << camPos.z << endl;
 	} else if (glfwGetKey(window, GLFW_KEY_F) == GLFW_RELEASE) {
 		pressed = false;
 	}

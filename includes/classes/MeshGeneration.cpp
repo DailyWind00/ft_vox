@@ -36,11 +36,9 @@ void	VoxelSystem::_meshGenerationRoutine() {
 			// Calculate the LOD of the chunk (cause crashes for now)
 			// const vec3 &	camPos = _camera.getCameraInfo().position;
 			// const size_t	dist   = glm::distance(camPos, (vec3)Wpos);
-			// const size_t	LOD    = glm::min(((dist >> 5) + MAX_LOD), MIN_LOD); // +1 LOD every 32 chunks
+			// _chunks[Wpos].LOD   = glm::min(((dist >> 5) + MAX_LOD), MIN_LOD); // +1 LOD every 32 chunks
 
-			// _chunks[Wpos].LOD = LOD;
 			ChunkData &data = _chunks[Wpos];
-
 
 			// Search for neightbouring chunks
 			const ivec3	neightboursPos[6] = { 
@@ -176,11 +174,11 @@ static uint8_t	isVoxelVisible(const ivec3 &Vpos, const ChunkData &chunk, ChunkDa
 // Update the area of the given buffer
 // Use of template to avoid issues with the different buffer types
 template<typename AreaType>
-static inline void updateArea(AreaType& area, size_t old_size, size_t current_size, size_t buffer_offset) {
-	if (!area.size || area.size > current_size - old_size) {
+static inline void updateArea(AreaType &area, size_t old_size, size_t current_size, size_t buffer_offset) {
+	// if (!area.size || area.size > current_size - old_size) {
 		area.offset = old_size + buffer_offset;
 		area.size   = current_size - old_size;
-	}
+	// }
 }
 
 // Create/update the mesh of the given chunk
@@ -254,25 +252,21 @@ void	VoxelSystem::_generateMesh(ChunkData &chunk, ChunkData *neightboursChunks[6
 		_SSBO_data.push_back(data);
 	}
 
-	// Update the areas of the buffers
-	updateArea(chunk.VBO_area, old_VBO_data_size, _VBO_data.size() * sizeof(DATA_TYPE), _VBO_size);
-	updateArea(chunk.IB_area, old_IB_data_size, _IB_data.size() * sizeof(DrawCommand), _IB_size);
-	updateArea(chunk.SSBO_area, old_SSBO_data_size, _SSBO_data.size() * sizeof(SSBOData), _SSBO_size);
+	// Create new areas for the buffers
+	chunk.VBO_area.push_back({0, 0});
+	chunk.IB_area.push_back({0, 0});
+	chunk.SSBO_area.push_back({0, 0});
 
-	{ // to remove
-		cout << "Generated mesh at " << chunk.Wpos.x << " " << chunk.Wpos.y << " " << chunk.Wpos.z << endl;
-		cout << "VBO  : " << chunk.VBO_area.offset << " " << chunk.VBO_area.size << endl;
-		cout << "IB   : " << chunk.IB_area.offset << " " << chunk.IB_area.size << endl;
-		cout << "SSBO : " << chunk.SSBO_area.offset << " " << chunk.SSBO_area.size << endl << endl;
-	} // --
+	// Update the areas of the buffers
+	updateArea(chunk.VBO_area.back(), old_VBO_data_size, _VBO_data.size() * sizeof(DATA_TYPE), _VBO_size);
+	updateArea(chunk.IB_area.back(), old_IB_data_size, _IB_data.size() * sizeof(DrawCommand), _IB_size);
+	updateArea(chunk.SSBO_area.back(), old_SSBO_data_size, _SSBO_data.size() * sizeof(SSBOData), _SSBO_size);
 }
 
 // Delete the first mesh
 void	VoxelSystem::_deleteMesh(ChunkData &chunk, ChunkData *neightboursChunks[6]) {
 	if (!_chunks.count(chunk.Wpos) || !chunk.hasMesh())
 		return;
-
-	cout << "Request mesh deletion at " << chunk.Wpos.x << " " << chunk.Wpos.y << " " << chunk.Wpos.z << endl; // To remove
 
 	_chunksToDelete.push_back(chunk.Wpos);
 

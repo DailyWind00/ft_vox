@@ -250,6 +250,7 @@ void	VoxelSystem::_writeInBuffer(PMapBufferGL *buffer, const void *data, const s
 		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 }
 
+
 // Update buffers if possible
 void	VoxelSystem::_updateBuffers() {
 	if (!_buffersMutex.try_lock())
@@ -263,22 +264,35 @@ void	VoxelSystem::_updateBuffers() {
 
 			for (const ivec3 &WPos : _chunksToDelete) {
 				ChunkData &chunk = _chunks.find(WPos)->second;
-
-				{ // To remove
-					cout << "Deleting at " << chunk.Wpos.x << " " << chunk.Wpos.y << " " << chunk.Wpos.z << endl;
-					cout << "IB area   : " << chunk.IB_area.offset << " " << chunk.IB_area.size << endl;
-					cout << "SSBO area : " << chunk.SSBO_area.offset << " " << chunk.SSBO_area.size << endl << endl;
-				} // --
+				BufferArea &IB_area   = chunk.IB_area.back();
+				BufferArea &SSBO_area = chunk.SSBO_area.back();
 
 				// We loose pointer to the chunk data so VBO cleanup is not needed
-				_writeInBuffer(_IB, nullptr, chunk.IB_area.size, chunk.IB_area.offset);
-				_writeInBuffer(_SSBO, nullptr, chunk.SSBO_area.size, chunk.SSBO_area.offset);
+				_writeInBuffer(_IB, nullptr, IB_area.size, IB_area.offset);
+				_writeInBuffer(_SSBO, nullptr, SSBO_area.size, SSBO_area.offset);
 
 				// Reset the chunk data
 				if (!chunk.hasMesh()) {
-					chunk.VBO_area.offset  = 0;
-					chunk.IB_area.offset   = 0;
-					chunk.SSBO_area.offset = 0;
+					chunk.VBO_area.clear();
+					chunk.IB_area.clear();
+					chunk.SSBO_area.clear();
+				}
+
+				// Remove previous areas
+ 				while (chunk.VBO_area.size() > 1)
+				{
+					_writeInBuffer(_VBO, nullptr, chunk.VBO_area.front().size, chunk.VBO_area.front().offset);
+					chunk.VBO_area.pop_front();
+				}
+				while (chunk.IB_area.size() > 1)
+				{
+					_writeInBuffer(_IB, nullptr, chunk.IB_area.front().size, chunk.IB_area.front().offset);
+					chunk.IB_area.pop_front();
+				}
+				while (chunk.SSBO_area.size() > 1)
+				{
+					_writeInBuffer(_SSBO, nullptr, chunk.SSBO_area.front().size, chunk.SSBO_area.front().offset);
+					chunk.SSBO_area.pop_front();
 				}
 
 				// Delete the chunk from the map if asked by ChunkGeneration
@@ -297,7 +311,6 @@ void	VoxelSystem::_updateBuffers() {
 			_writeInBuffer(_VBO, _VBO_data.data(), _VBO_data.size() * sizeof(DATA_TYPE), _VBO_size);
 			_VBO_size += _VBO_data.size() * sizeof(DATA_TYPE);
 			_VBO_data.clear();
-			cout << "| VBO size : " << _VBO_size << endl;
 		}
 
 		// IB
@@ -305,7 +318,6 @@ void	VoxelSystem::_updateBuffers() {
 			_writeInBuffer(_IB, _IB_data.data(), _IB_data.size() * sizeof(DrawCommand), _IB_size);
 			_IB_size += _IB_data.size() * sizeof(DrawCommand);
 			_IB_data.clear();
-			cout << "| IB size  : " << _IB_size << endl;
 		}
 
 		// SSBO	
@@ -313,7 +325,6 @@ void	VoxelSystem::_updateBuffers() {
 			_writeInBuffer(_SSBO, _SSBO_data.data(), _SSBO_data.size() * sizeof(SSBOData), _SSBO_size);
 			_SSBO_size += _SSBO_data.size() * sizeof(SSBOData);
 			_SSBO_data.clear();
-			cout << "| SSBO size: " << _SSBO_size << endl << endl;
 		}
 
 		_buffersNeedUpdates = false;

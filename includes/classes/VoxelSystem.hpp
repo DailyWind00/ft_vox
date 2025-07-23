@@ -72,12 +72,14 @@ typedef struct ChunkData {
 	bool		neigthbourUpdated = false;
 	bool		inCreation = true;
 
-	BufferArea	VBO_area  = {0, 0};
-	BufferArea	IB_area   = {0, 0};
-	BufferArea	SSBO_area = {0, 0};
+	deque<BufferArea>	VBO_area  = {{0, 0}};
+	deque<BufferArea>	IB_area   = {{0, 0}};
+	deque<BufferArea>	SSBO_area = {{0, 0}};
 
 	inline bool hasMesh() const {
-        return VBO_area.size && IB_area.size && SSBO_area.size;
+		return VBO_area.size() && VBO_area.back().size
+			&& IB_area.size() && IB_area.back().size
+			&& SSBO_area.size() && SSBO_area.back().size;
     }
 } ChunkData;
 typedef unordered_map<ivec3, ChunkData> ChunkMap; // Wpos -> ChunkData ptr

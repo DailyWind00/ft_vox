@@ -123,7 +123,6 @@ VoxelSystem::VoxelSystem(const uint64_t &seed, Camera &camera) : _camera(camera)
 				spawnChunks.push_back({ivec3{i, j, k}, ChunkAction::CREATE_UPDATE});
 
 	requestChunk(spawnChunks);
-	// requestMesh({ChunkRequest{{0, 0, 0}, ChunkAction::CREATE_UPDATE}});
 
 	if (VERBOSE)
 		cout << "VoxelSystem initialized\n";
@@ -149,8 +148,10 @@ VoxelSystem::~VoxelSystem() {
 	_meshGenerationThread.join();
 
 	// Delete all chunks
-	for (auto &chunk : _chunks)
-		delete chunk.second.chunk;
+	for (const ChunkMap::value_type &chunk : _chunks) {
+		if (chunk.second.chunk)
+			delete chunk.second.chunk;
+	}
 
 	_chunks.clear();
 	
@@ -213,7 +214,7 @@ void	VoxelSystem::_writeInBuffer(PMapBufferGL *buffer, const void *data, const s
 	// Resize the buffer if needed
 	if (size + offset > buffer->getCapacity()) {
 		if (!buffer->resize(buffer->getCapacity() * BUFFER_GROWTH_FACTOR))
-			throw	runtime_error("Failed to resize PMapBufferGL");
+			throw runtime_error("Failed to resize PMapBufferGL");
 
 		// Update attributes
 		if (buffer == _VBO) {
@@ -239,41 +240,82 @@ void	VoxelSystem::_writeInBuffer(PMapBufferGL *buffer, const void *data, const s
 		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 }
 
+
 // Update buffers if possible
 void	VoxelSystem::_updateBuffers() {
 	if (!_buffersMutex.try_lock())
 		return;
 
-	if (_buffersNeedUpdates) {
-		_drawCount += _IB_data.size();
+	if (_buffersNeedUpdates) { // TODO : Add a limit to the number of updates
 
+		// Delete the chunks (may cause lag so we batch it)
+		if (_chunksToDelete.size() /* >= BATCH_LIMIT */) {
+			static size_t	deletedCount = 0;
+
+			for (const ivec3 &WPos : _chunksToDelete) {
+				ChunkData &chunk = _chunks.find(WPos)->second;
+				BufferArea &IB_area   = chunk.IB_area.back();
+				BufferArea &SSBO_area = chunk.SSBO_area.back();
+
+				// We loose pointer to the chunk data so VBO cleanup is not needed
+				_writeInBuffer(_IB, nullptr, IB_area.size, IB_area.offset);
+				_writeInBuffer(_SSBO, nullptr, SSBO_area.size, SSBO_area.offset);
+
+				// Reset the chunk data
+				if (!chunk.hasMesh()) {
+					chunk.VBO_area.clear();
+					chunk.IB_area.clear();
+					chunk.SSBO_area.clear();
+				}
+
+				// Remove previous areas
+ 				while (chunk.VBO_area.size() > 1)
+				{
+					_writeInBuffer(_VBO, nullptr, chunk.VBO_area.front().size, chunk.VBO_area.front().offset);
+					chunk.VBO_area.pop_front();
+				}
+				while (chunk.IB_area.size() > 1)
+				{
+					_writeInBuffer(_IB, nullptr, chunk.IB_area.front().size, chunk.IB_area.front().offset);
+					chunk.IB_area.pop_front();
+				}
+				while (chunk.SSBO_area.size() > 1)
+				{
+					_writeInBuffer(_SSBO, nullptr, chunk.SSBO_area.front().size, chunk.SSBO_area.front().offset);
+					chunk.SSBO_area.pop_front();
+				}
+
+				// Delete the chunk from the map if asked by ChunkGeneration
+				if (!chunk.chunk)
+					_chunks.erase(chunk.Wpos);
+
+				deletedCount++;
+			}
+			_chunksToDelete.clear();
+
+			// TODO : Recompact the buffers if deletedCount > threshold
+		}
+
+		// VBO
 		if (_VBO_data.size()) {
 			_writeInBuffer(_VBO, _VBO_data.data(), _VBO_data.size() * sizeof(DATA_TYPE), _VBO_size);
 			_VBO_size += _VBO_data.size() * sizeof(DATA_TYPE);
 			_VBO_data.clear();
 		}
 
+		// IB
 		if (_IB_data.size()) {
 			_writeInBuffer(_IB, _IB_data.data(), _IB_data.size() * sizeof(DrawCommand), _IB_size);
 			_IB_size += _IB_data.size() * sizeof(DrawCommand);
 			_IB_data.clear();
 		}
 
+		// SSBO	
 		if (_SSBO_data.size()) {
 			_writeInBuffer(_SSBO, _SSBO_data.data(), _SSBO_data.size() * sizeof(SSBOData), _SSBO_size);
 			_SSBO_size += _SSBO_data.size() * sizeof(SSBOData);
 			_SSBO_data.clear();
 		}
-
-		// if (_chunksToDelete.size()) {
-		// 	for (const ChunkData &chunk : _chunksToDelete) {
-		// 		_writeInBuffer(_VBO, nullptr, chunk.VBO_area[0], chunk.VBO_area[1]);
-		// 		_writeInBuffer(_IB, nullptr, chunk.IB_area[0], chunk.IB_area[1]);
-		// 		_writeInBuffer(_SSBO, nullptr, chunk.SSBO_area[0], chunk.SSBO_area[1]);
-		// 	}
-		// 	_chunksToDelete.clear();
-		// 	// cout << "Chunks deleted\n";
-		// }
 
 		_buffersNeedUpdates = false;
 	}
@@ -304,7 +346,7 @@ const GeoFrameBuffers	&VoxelSystem::draw() {
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, _textureAtlas);
 
-	glMultiDrawArraysIndirect(GL_TRIANGLE_STRIP, nullptr, _drawCount, sizeof(DrawCommand));
+	glMultiDrawArraysIndirect(GL_TRIANGLE_STRIP, nullptr, _IB_size / sizeof(DrawCommand), sizeof(DrawCommand));
 	
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 

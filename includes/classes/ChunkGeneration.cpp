@@ -35,7 +35,7 @@ void VoxelSystem::_chunkGenerationRoutine() {
 			// Execute the requested action on the chunk in local memory
 			switch (req.second) {
 				case ChunkAction::CREATE_UPDATE:
-					generatedChunks[pos] = {ChunkHandler::createChunk(pos), MAX_LOD, pos};
+					generatedChunks[pos] = ChunkData{ChunkHandler::createChunk(pos), pos, MAX_LOD};
 					break;
 
 				case ChunkAction::DELETE:
@@ -50,8 +50,8 @@ void VoxelSystem::_chunkGenerationRoutine() {
 		_chunksMutex.lock();
 
 		// Put the generated chunks in the shared memory and request their meshes
-		for (const auto& chunk : generatedChunks) {
-			_generateChunk(chunk.first);
+		for (ChunkMap::value_type &chunk : generatedChunks) {
+			_generateChunk(chunk);
 			meshRequests.push_back({chunk.first, ChunkAction::CREATE_UPDATE});
 		}
 		
@@ -79,20 +79,21 @@ void VoxelSystem::_chunkGenerationRoutine() {
 }
 
 // Generate a new chunk
-void VoxelSystem::_generateChunk(const ivec3 &pos) {
-	if (_chunks.count(pos))
+void VoxelSystem::_generateChunk(ChunkMap::value_type &chunk) {
+	if (_chunks.count(chunk.first))
 		return;
 
-	_chunks[pos] = {ChunkHandler::createChunk(pos), MAX_LOD, pos};
+	_chunks[chunk.first] = chunk.second;
 }
 
 // Delete a chunk
+// It will be removed from the ChunkMap in the main thread
 void VoxelSystem::_deleteChunk(const ivec3 &pos) {
 	if (!_chunks.count(pos))
 		return;
 
 	delete _chunks[pos].chunk;
-	_chunks.erase(pos);
+	_chunks[pos].chunk = nullptr;
 }
 /// ---
 

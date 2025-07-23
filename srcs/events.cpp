@@ -66,7 +66,7 @@ void	handleEvents(GameData &gameData) {
 		pressed = true;
 		ivec3 camPos = (ivec3)camera.getCameraInfo().position / CHUNK_SIZE;
 
-		gameData.voxelSystem.requestChunk({ChunkRequest{camPos, ChunkAction::DELETE}});
+		gameData.voxelSystem.requestChunk({ChunkRequest{camPos, ChunkAction::DELETE}}); // todo : fix inverted and shifted position
 		if (VERBOSE)
 			cout << "Deleting chunk at worldPos : " << camPos.x << " " << camPos.y << " " << camPos.z << endl;
 	} else if (glfwGetKey(window, GLFW_KEY_F) == GLFW_RELEASE) {

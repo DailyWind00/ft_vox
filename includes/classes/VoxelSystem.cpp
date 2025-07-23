@@ -124,16 +124,6 @@ VoxelSystem::VoxelSystem(const uint64_t &seed, Camera &camera) : _camera(camera)
 
 	requestChunk(spawnChunks);
 
-	{ // to remove
-		// Give time to the chunks to be generated
-		// this_thread::sleep_for(chrono::milliseconds(1000));
-		// requestChunk({ChunkRequest{{0, 0, 0}, ChunkAction::DELETE}});
-		// this_thread::sleep_for(chrono::milliseconds(1000));
-		// requestChunk({ChunkRequest{{0, -1, 0}, ChunkAction::DELETE}});
-		// this_thread::sleep_for(chrono::milliseconds(1000));
-		// requestChunk({ChunkRequest{{0, -2, 0}, ChunkAction::DELETE}});
-	} // --
-
 	if (VERBOSE)
 		cout << "VoxelSystem initialized\n";
 }

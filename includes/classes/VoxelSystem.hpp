@@ -7,7 +7,7 @@
 # define HORIZONTAL_RENDER_DISTANCE 8
 # define VERTICAL_RENDER_DISTANCE 4
 # define BUFFER_GROWTH_FACTOR 2
-# define BATCH_LIMIT (size_t)64
+# define BATCH_LIMIT (size_t)8
 # define THREAD_SLEEP_DURATION 10 // in ms
 # define MIN_LOD (size_t)4
 # define MAX_LOD (size_t)1
@@ -60,16 +60,29 @@ typedef struct GeoFrameBuffers {
 } GeoFrameBuffers;
 
 // Data structure for CPU-side chunk data management
+typedef struct BufferArea {
+    size_t offset;
+    size_t size;
+} BufferArea;
+
 typedef struct ChunkData {
 	AChunk *	chunk;
-	size_t		LOD = 0;
 	ivec3		Wpos;
+	size_t		LOD = 0;
+	bool		neigthbourUpdated = false;
+	bool		inCreation = true;
 
-	size_t		VBO_area[2]  = {0, 0};   // offset, size
-	size_t		IB_area[2]   = {0, 0};   // offset, size
-	size_t		SSBO_area[2] = {0, 0};   // offset, size
+	deque<BufferArea>	VBO_area  = {{0, 0}};
+	deque<BufferArea>	IB_area   = {{0, 0}};
+	deque<BufferArea>	SSBO_area = {{0, 0}};
+
+	inline bool hasMesh() const {
+		return VBO_area.size() && VBO_area.back().size
+			&& IB_area.size() && IB_area.back().size
+			&& SSBO_area.size() && SSBO_area.back().size;
+    }
 } ChunkData;
-typedef unordered_map<ivec3, ChunkData> ChunkMap; // Wpos -> ChunkData
+typedef unordered_map<ivec3, ChunkData> ChunkMap; // Wpos -> ChunkData ptr
 
 // Interface for chunk & mesh modifications
 enum class ChunkAction {
@@ -89,7 +102,6 @@ class VoxelSystem {
 		GLuint			_VAO;
 		GLuint			_textureAtlas;
 		GeoFrameBuffers	_gBuffer;
-		GLuint			_drawCount = 0;
 
 		// OpenGL Buffers (MeshGeneration output)
 		PMapBufferGL *	_VBO;
@@ -103,7 +115,7 @@ class VoxelSystem {
 		vector<DATA_TYPE>	_VBO_data;
 		vector<DrawCommand>	_IB_data;
 		vector<SSBOData>	_SSBO_data;
-		vector<ChunkData>	_chunksToDelete;
+		vector<ivec3>		_chunksToDelete;
 
 		bool	_buffersNeedUpdates;
 		mutex	_buffersMutex;
@@ -127,7 +139,7 @@ class VoxelSystem {
 		void	_chunkGenerationRoutine();
 		void	_meshGenerationRoutine();
 
-		void	_generateChunk(const ivec3 &pos);
+		void	_generateChunk(ChunkMap::value_type &chunk);
 		void	_deleteChunk  (const ivec3 &pos);
 
 		void	_generateMesh(ChunkData &chunk, ChunkData *neightboursChunks[6]);

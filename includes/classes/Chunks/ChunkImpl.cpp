@@ -260,9 +260,6 @@ void	LayeredChunk::generate(const glm::ivec3 &pos)
 			for (int k = pos.y; k < CHUNK_HEIGHT + pos.y; k++) {
 				uint8_t	id = _getBlockFromBiome(heightFactors[idx], k, biomeID) * (k < heightFactors[idx] && caveFactors[idx][k - pos.y] < 0.01f);
 				
-				if (k == (int)heightFactors[idx])
-					id = 6;
-
 				if (id != fstBlkPerLayer[k - pos.y] && dynamic_cast<SingleBlockChunkLayer *>(this->_layer[k - pos.y]))
 					this->_layer[k - pos.y] = _blockToLayer(this->_layer[k - pos.y]);
 				(*this->_layer[k - pos.y])[idx] = id;

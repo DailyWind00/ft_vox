@@ -30,15 +30,15 @@ void	VoxelSystem::_meshGenerationRoutine() {
 			batchCount++;
 
 			ivec3	Wpos = request.first;
+			if (_chunks.find(Wpos) == _chunks.end())
+				continue;
 
 			// Calculate the LOD of the chunk (cause crashes for now)
 			// const vec3 &	camPos = _camera.getCameraInfo().position;
 			// const size_t	dist   = glm::distance(camPos, (vec3)Wpos);
-			// const size_t	LOD    = glm::min(((dist >> 5) + MAX_LOD), MIN_LOD); // +1 LOD every 32 chunks
+			// _chunks[Wpos].LOD   = glm::min(((dist >> 5) + MAX_LOD), MIN_LOD); // +1 LOD every 32 chunks
 
-			// _chunks[Wpos].LOD = LOD;
-			ChunkData data = _chunks[Wpos];
-
+			ChunkData &data = _chunks[Wpos];
 
 			// Search for neightbouring chunks
 			const ivec3	neightboursPos[6] = { 
@@ -50,6 +50,7 @@ void	VoxelSystem::_meshGenerationRoutine() {
 			ChunkData	*neightboursChunks[6] = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
 
 			for (size_t i = 0; i < 6; i++) {
+				// Check if the chunk exist and have data to work with
 				if (_chunks.find(neightboursPos[i]) != _chunks.end())
 					neightboursChunks[i] = &_chunks[neightboursPos[i]];
 			}
@@ -64,10 +65,9 @@ void	VoxelSystem::_meshGenerationRoutine() {
 				case ChunkAction::DELETE:
 					_deleteMesh(data, neightboursChunks);
 					break;
-
-				default:
-					throw std::runtime_error("Invalid ChunkAction");
 			}
+
+			data.inCreation = false;
 		}
 
 		_buffersNeedUpdates = true;
@@ -86,8 +86,8 @@ void	VoxelSystem::_meshGenerationRoutine() {
 }
 
 // Check if a neighbour chunk mesh is loaded
-static bool	isNeightbourLoaded(ChunkData *neightbour) {
-	return neightbour;
+static inline bool	isNeightbourLoaded(ChunkData *neightbour) {
+	return neightbour && neightbour->chunk && (neightbour->hasMesh() || neightbour->inCreation);
 }
 
 static bool	isOpac(const uint8_t &block)
@@ -125,15 +125,16 @@ static uint8_t	isVoxelVisible(const ivec3 &Vpos, const ChunkData &chunk, ChunkDa
 
 	uint8_t	visibleFaces = 0;
 
+	// TODO : Compact & optimize this code
 	for (const ivec3 &pos : neightbours) {
 		/// X axis
 		// Border
 		if (pos.x < 0) {
-			if (!isNeightbourLoaded(neightboursChunks[4]) || !isOpac(BLOCK_AT(neightboursChunks[4]->chunk, CHUNK_SIZE - LOD, pos.y, pos.z)))
+			if (!isNeightbourLoaded(neightboursChunks[4]) || (neightboursChunks[4]->chunk && !BLOCK_AT(neightboursChunks[4]->chunk, CHUNK_SIZE - LOD, pos.y, pos.z)))
 				visibleFaces |= (1 << 0);
 		}
 		else if (pos.x >= CHUNK_SIZE) {
-			if (!isNeightbourLoaded(neightboursChunks[5]) || !isOpac(BLOCK_AT(neightboursChunks[5]->chunk, 0, pos.y, pos.z)))
+			if (!isNeightbourLoaded(neightboursChunks[5]) || (neightboursChunks[5]->chunk && !BLOCK_AT(neightboursChunks[5]->chunk, 0, pos.y, pos.z)))
 				visibleFaces |= (1 << 1);
 		}
 		// Inside
@@ -146,11 +147,11 @@ static uint8_t	isVoxelVisible(const ivec3 &Vpos, const ChunkData &chunk, ChunkDa
 		/// y axis
 		// Border
 		if (pos.y < 0) {
-			if (!isNeightbourLoaded(neightboursChunks[2]) || !isOpac(BLOCK_AT(neightboursChunks[2]->chunk, pos.x, CHUNK_SIZE - LOD, pos.z)))
+			if (!isNeightbourLoaded(neightboursChunks[2]) || (neightboursChunks[2]->chunk && !BLOCK_AT(neightboursChunks[2]->chunk, pos.x, CHUNK_SIZE - LOD, pos.z)))
 				visibleFaces |= (1 << 2);
 		}
 		else if (pos.y >= CHUNK_SIZE) {
-			if (!isNeightbourLoaded(neightboursChunks[3]) || !isOpac(BLOCK_AT(neightboursChunks[3]->chunk, pos.x, 0, pos.z)))
+			if (!isNeightbourLoaded(neightboursChunks[3]) || (neightboursChunks[3]->chunk && !BLOCK_AT(neightboursChunks[3]->chunk, pos.x, 0, pos.z)))
 				visibleFaces |= (1 << 3);
 		}
 		// Inside
@@ -163,11 +164,11 @@ static uint8_t	isVoxelVisible(const ivec3 &Vpos, const ChunkData &chunk, ChunkDa
 		/// z axis
 		// Border
 		if (pos.z < 0) {
-			if (!isNeightbourLoaded(neightboursChunks[0]) || !isOpac(BLOCK_AT(neightboursChunks[0]->chunk, pos.x, pos.y, CHUNK_SIZE - LOD)))
+			if (!isNeightbourLoaded(neightboursChunks[0]) || (neightboursChunks[0]->chunk && !BLOCK_AT(neightboursChunks[0]->chunk, pos.x, pos.y, CHUNK_SIZE - LOD)))
 				visibleFaces |= (1 << 4);
 		}
 		else if (pos.z >= CHUNK_SIZE) {
-			if (!isNeightbourLoaded(neightboursChunks[1]) || !isOpac(BLOCK_AT(neightboursChunks[1]->chunk, pos.x, pos.y, 0)))
+			if (!isNeightbourLoaded(neightboursChunks[1]) || (neightboursChunks[1]->chunk && !BLOCK_AT(neightboursChunks[1]->chunk, pos.x, pos.y, 0)))
 				visibleFaces |= (1 << 5);
 		}
 		// Inside
@@ -180,14 +181,27 @@ static uint8_t	isVoxelVisible(const ivec3 &Vpos, const ChunkData &chunk, ChunkDa
 	return visibleFaces;
 }
 
-// Create/update the mesh of the given chunk and store it at the end of OpenGL buffers
+// Update the area of the given buffer
+// Use of template to avoid issues with the different buffer types
+template<typename AreaType>
+static inline void updateArea(AreaType &area, size_t old_size, size_t current_size, size_t buffer_offset) {
+	// if (!area.size || area.size > current_size - old_size) {
+		area.offset = old_size + buffer_offset;
+		area.size   = current_size - old_size;
+	// }
+}
+
+// Create/update the mesh of the given chunk
+// The data will be stored in the main thread at the end of OpenGL buffers
 void	VoxelSystem::_generateMesh(ChunkData &chunk, ChunkData *neightboursChunks[6]) {
-	// Check if the chunk already have a mesh
-	if (chunk.VBO_area[1] && chunk.IB_area[1] && chunk.SSBO_area[1])
+	// Check if the chunk already have a mesh (in case of update)
+	if (chunk.hasMesh())
 		_deleteMesh(chunk, neightboursChunks);
 
+	chunk.neigthbourUpdated = false;
+
 	// Check if the chunk completely empty
-	if (IS_CHUNK_COMPRESSED(chunk.chunk) && !BLOCK_AT(chunk.chunk, 0, 0, 0))
+	if (!chunk.chunk || (IS_CHUNK_COMPRESSED(chunk.chunk) && !BLOCK_AT(chunk.chunk, 0, 0, 0)))
 		return;
 
 	vector<DATA_TYPE>	vertices[6];
@@ -215,8 +229,8 @@ void	VoxelSystem::_generateMesh(ChunkData &chunk, ChunkData *neightboursChunks[6
 
 						data |= (BLOCK_AT(chunk.chunk, x, y, z) & 0x7F) << 15;	// 7 bits for block ID
 
-						data |= (1 - 1 & 0x1F) << 22;	// 5 bits for length (1 by default)
-						data |= (1 - 1 & 0x1F) << 27;	// 5 bits for length (1 by default)
+						data |= ((1 - 1) & 0x1F) << 22;	// 5 bits for length (1 by default)
+						data |= ((1 - 1) & 0x1F) << 27;	// 5 bits for length (1 by default)
 
 						vertices[i].push_back(data);
 					}
@@ -227,12 +241,16 @@ void	VoxelSystem::_generateMesh(ChunkData &chunk, ChunkData *neightboursChunks[6
 
 	// TODO : greedy meshing here
 
+	size_t old_VBO_data_size = _VBO_data.size() * sizeof(DATA_TYPE);
+	size_t old_IB_data_size = _IB_data.size() * sizeof(DrawCommand);
+	size_t old_SSBO_data_size = _SSBO_data.size() * sizeof(SSBOData);
+
 	// Write the mesh in OpenGL buffers
 	for (int i = 0; i < 6; i++) {
 		if (!vertices[i].size())
 			continue;
 
-		// IB first as it need the VBO size before being written
+		// IB first as it need the VBO size before it being written
 		DrawCommand	cmd = {4, GLuint(vertices[i].size()), 0, GLuint((_VBO_size / sizeof(DATA_TYPE)) + _VBO_data.size())};
 		_IB_data.push_back(cmd);
 
@@ -244,30 +262,35 @@ void	VoxelSystem::_generateMesh(ChunkData &chunk, ChunkData *neightboursChunks[6
 		_SSBO_data.push_back(data);
 	}
 
-	// Update the chunk data
-	chunk.VBO_area[0] = _VBO_size;
-	chunk.VBO_area[1] = _VBO_data.size() * sizeof(DATA_TYPE);
+	// Create new areas for the buffers
+	chunk.VBO_area.push_back({0, 0});
+	chunk.IB_area.push_back({0, 0});
+	chunk.SSBO_area.push_back({0, 0});
 
-	chunk.IB_area[0] = _IB_size;
-	chunk.IB_area[1] = _IB_data.size() * sizeof(DrawCommand);
-
-	chunk.SSBO_area[0] = _SSBO_size;
-	chunk.SSBO_area[1] = _SSBO_data.size() * sizeof(SSBOData);
+	// Update the areas of the buffers
+	updateArea(chunk.VBO_area.back(), old_VBO_data_size, _VBO_data.size() * sizeof(DATA_TYPE), _VBO_size);
+	updateArea(chunk.IB_area.back(), old_IB_data_size, _IB_data.size() * sizeof(DrawCommand), _IB_size);
+	updateArea(chunk.SSBO_area.back(), old_SSBO_data_size, _SSBO_data.size() * sizeof(SSBOData), _SSBO_size);
 }
 
 // Delete the first mesh
 void	VoxelSystem::_deleteMesh(ChunkData &chunk, ChunkData *neightboursChunks[6]) {
-	if (!_chunks.count(chunk.Wpos))
+	if (!_chunks.count(chunk.Wpos) || !chunk.hasMesh())
 		return;
 
-	_chunksToDelete.push_back(chunk);
+	_chunksToDelete.push_back(chunk.Wpos);
+
+	if (chunk.neigthbourUpdated)
+		return;
 
 	// Request the update of neighbouring chunks
 	vector<ChunkRequest>	neightboursRequests;
 
 	for (size_t i = 0; i < 6; i++) {
-		if (neightboursChunks[i])
+		if (neightboursChunks[i]) {
+			neightboursChunks[i]->neigthbourUpdated = true;
 			neightboursRequests.push_back({neightboursChunks[i]->Wpos, ChunkAction::CREATE_UPDATE});
+		}
 	}
 
 	requestMesh(neightboursRequests);

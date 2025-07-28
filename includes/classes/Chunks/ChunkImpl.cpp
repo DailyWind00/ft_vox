@@ -3,6 +3,9 @@
 
 # include "ChunkImpl.hpp"
 # include "Noise.hpp"
+# include "features_declaration.h"
+
+std::list<std::pair<glm::ivec3, WorldFeature> >	g_pendingFeatures;
 
 //// LayeredChunk class
 
@@ -68,6 +71,21 @@ float *	LayeredChunk::_computeHumidityMap(const glm::ivec3 &pos)
 	return (factors);
 }
 
+float *	LayeredChunk::_computeFeatureMap(const glm::ivec3 &pos)
+{
+	float *	factors = new float[CHUNK_WIDTH * CHUNK_WIDTH];
+	uint32_t	maxPos = MAX_WORLD_SIZE * CHUNK_WIDTH;
+
+	for (int i = 0; i < pow(CHUNK_WIDTH, 2); i++) {
+		float	factor = 0;
+
+		factor += Noise::perlin2D(glm::vec2{(maxPos + pos.x + (i % CHUNK_WIDTH)) / 2.0f,
+				(maxPos + pos.z+ ((float)i / CHUNK_WIDTH)) / 2.0f}) * 2.0f;
+		factors[i] = pow(factor, 16.0f);
+	}
+	return (factors);
+}
+
 float *	LayeredChunk::_computeHeightMap(const glm::ivec3 &pos)
 {
 	// Pre-compute the perlin noise factors
@@ -104,21 +122,22 @@ float *	LayeredChunk::_computeHeightMap(const glm::ivec3 &pos)
 
 float **	LayeredChunk::_computeCaveNoise(const glm::ivec3 &pos, float *heightMap)
 {
-	float		**factors = new float*[CHUNK_WIDTH * CHUNK_WIDTH];
+	float **	factors = new float*[CHUNK_WIDTH * CHUNK_WIDTH];
 	uint32_t	maxPos = MAX_WORLD_SIZE * CHUNK_WIDTH;
+	int		scale = 4;
 	
-	for (int i = 0; i < CHUNK_WIDTH * CHUNK_WIDTH; i++) {
+	for (int i = 0; i < (CHUNK_WIDTH * CHUNK_WIDTH); i+=1) {
 		float	factor = 0;
 
 		factors[i] = new float[CHUNK_WIDTH];
-		for (int j = 0; j < CHUNK_WIDTH; j++) {
+		for (int j = 0; j < CHUNK_WIDTH; j+=1) {
 			float	amp = 20.0f;
 
-			if (j + pos.y > heightMap[0]) {
+			if (j + pos.y > heightMap[0] || ((j % scale) != 0 && j >= scale) || ((i % scale) != 0 && i >= scale)) {
 				factors[i][j] = 0;
 				continue ;
 			}
-
+			
 			float	x = (maxPos + pos.x + (i % CHUNK_WIDTH));
 			float	y = (maxPos + pos.y + j);
 			float	z = (maxPos + pos.z + ((float)i / CHUNK_WIDTH)) ;
@@ -129,13 +148,25 @@ float **	LayeredChunk::_computeCaveNoise(const glm::ivec3 &pos, float *heightMap
 			factors[i][j] = factor;
 		}
 	}
+	for (int i = 0; i < (CHUNK_WIDTH * CHUNK_WIDTH); i+=1) {
+		for (int j = 0; j < CHUNK_WIDTH; j+=1) {
+			int	prevI = i - 1;
+			int	nextI = i + (scale - (i % scale));
+			int	prevJ = j - 1;
+			int	nextJ = j + (scale - (j % scale));
+
+			if (i < scale || j < scale || nextI >= CHUNK_WIDTH * CHUNK_WIDTH || nextJ >= CHUNK_HEIGHT)
+				continue ;
+			factors[i][j] = (factors[prevI][prevJ] + factors[nextI][nextJ]) / 2.0f;
+		}
+	}
 	return (factors);
 }
 
 uint8_t	LayeredChunk::_getBiomeID(const int &idx, const float *heatFactors, const float *wetFactors)
 {
 	int	heatLvl = TEMPERATE;
-	int	wetLvl = MOIST;
+	int	wetLvl = DRENCHED;
 
 	if (heatFactors[idx] < -9.0f)
 		heatLvl = COLD;
@@ -144,23 +175,23 @@ uint8_t	LayeredChunk::_getBiomeID(const int &idx, const float *heatFactors, cons
 	else if (heatFactors[idx] > 9.0f)
 		heatLvl = HOT;
 
-	if (wetFactors[idx] < -9.0f)
+	if (wetFactors[idx] < 0.0f)
 		wetLvl = DRY;
-	else if (wetFactors[idx] >= -9.0f && wetFactors[idx] <= 9.0f)
-		wetLvl = MOIST;
-	else if (wetFactors[idx] > 9.0f)
+	else if (wetFactors[idx] >= 0.0f)
 		wetLvl = DRENCHED;
 
-	if (heatLvl == TEMPERATE && wetLvl == MOIST)
-		return (PLAIN);
-	else if (heatLvl == HOT && wetLvl == DRY)
-		return (DESERT);
-	else if (heatLvl == TEMPERATE && wetLvl == DRENCHED)
-		return (FOREST);
-	else if (heatLvl == COLD && wetLvl == MOIST)
+	if (heatLvl == COLD && wetLvl == DRY)
 		return (SNOW_PLAIN);
 	else if (heatLvl == COLD && wetLvl == DRENCHED)
 		return (SNOW_FOREST);
+	else if (heatLvl == TEMPERATE && wetLvl == DRY)
+		return (PLAIN);
+	else if (heatLvl == TEMPERATE && wetLvl == DRENCHED)
+		return (FOREST);
+	else if (heatLvl == HOT && wetLvl == DRY)
+		return (DESERT);
+	else if (heatLvl == HOT && wetLvl == DRENCHED)
+		return (DESERT);
 	return (NONE);
 }
 
@@ -234,6 +265,27 @@ uint8_t	LayeredChunk::_getBlockFromBiome(const int &surface, const int &y, const
 	return (blockID);
 }
 
+WorldFeature	LayeredChunk::_getFeatureFromBiome(const uint8_t &biomeID, const glm::ivec3 pos)
+{
+	int	variation;
+
+	switch(biomeID) {
+	case PLAIN:
+		return (WorldFeature){pos, WF_NONE, NULL, true};
+	case DESERT:
+		variation = rand() % CACTIE_VARIATION_COUNT;
+		return (WorldFeature){pos, WF_CACTUS, g_featureCactus[variation], true};
+	case FOREST:
+		return (WorldFeature){pos, WF_TREE, g_featureTree[0], true};
+	case SNOW_PLAIN:
+		return (WorldFeature){pos, WF_NONE, NULL, true};
+	case SNOW_FOREST:
+		return (WorldFeature){pos, WF_SNOW_TREE, g_featureTree[0], true};
+	default:
+		return (WorldFeature){pos, WF_NONE, NULL, true};
+	}
+}
+
 /// ---
 
 /// Public methods
@@ -242,7 +294,10 @@ void	LayeredChunk::generate(const glm::ivec3 &pos)
 	float *	heightFactors = _computeHeightMap(pos);
 	float *	heatFactors = _computeHeatMap(pos);
 	float *	humidityFactors = _computeHumidityMap(pos);
+	float *	featuresFactors = _computeFeatureMap(pos);
 	float **	caveFactors = _computeCaveNoise(pos, heightFactors);
+
+	glm::ivec3	wPos = {pos.x / CHUNK_WIDTH, pos.y / CHUNK_HEIGHT, pos.z / CHUNK_WIDTH};
 
 	// Store the first block of each layer to handle decompression
 	uint8_t	fstBlkPerLayer[CHUNK_HEIGHT] = {0};
@@ -258,17 +313,106 @@ void	LayeredChunk::generate(const glm::ivec3 &pos)
 			uint8_t	biomeID = _getBiomeID(idx, heatFactors, humidityFactors);
 
 			for (int k = pos.y; k < CHUNK_HEIGHT + pos.y; k++) {
-				uint8_t	id = _getBlockFromBiome(heightFactors[idx], k, biomeID) * (k < heightFactors[idx] && caveFactors[idx][k - pos.y] < 0.01f);
+				uint8_t	id = _getBlockFromBiome(heightFactors[idx], k, biomeID) * ((k < heightFactors[idx] && caveFactors[idx][k - pos.y] < 0.01f));
 				
 				if (id != fstBlkPerLayer[k - pos.y] && dynamic_cast<SingleBlockChunkLayer *>(this->_layer[k - pos.y]))
 					this->_layer[k - pos.y] = _blockToLayer(this->_layer[k - pos.y]);
 				(*this->_layer[k - pos.y])[idx] = id;
+				if (k == (int)heightFactors[idx] && featuresFactors[idx] > 1.0f)
+					g_pendingFeatures.push_back(std::pair(wPos, _getFeatureFromBiome(biomeID, {i - pos.x, k - pos.y, j - pos.z})));
 			}
 		}
 	}
+
+
+	for (auto it = g_pendingFeatures.begin(); it != g_pendingFeatures.end();) {
+		if (it->first != wPos || it->second._type == WF_NONE) {
+			it++;
+			continue ;
+		}
+
+		glm::ivec3	newDir = {0, 0, 0};
+
+		for (int i = 1; i <= it->second._data[0].x; i++) {
+			int	idx = (it->second._data[i].x + it->second._localPosition.x) * CHUNK_WIDTH + (it->second._data[i].z + it->second._localPosition.z);
+			
+			if (it->second._localPosition.y + it->second._data[i].y >= CHUNK_HEIGHT) {
+				if (it->second._origin == true && newDir.y == 0) {
+					WorldFeature	newFeature = it->second;
+					newFeature._localPosition.y -= CHUNK_HEIGHT;
+					newFeature._origin = false;
+					g_pendingFeatures.push_back(std::pair<glm::ivec3, WorldFeature>({it->first.x, it->first.y + 1, it->first.z}, newFeature));
+					newDir.y = 1;
+				}
+				continue ;
+			}
+			else if (it->second._localPosition.y + it->second._data[i].y < 0) {
+				if (it->second._origin == true && newDir.y == 0) {
+					WorldFeature	newFeature = it->second;
+					newFeature._localPosition.y += CHUNK_HEIGHT;
+					newFeature._origin = false;
+					g_pendingFeatures.push_back(std::pair<glm::ivec3, WorldFeature>({it->first.x, it->first.y - 1, it->first.z}, newFeature));
+					newDir.y = -1;
+				}
+				continue ;
+			}
+			
+			if (it->second._localPosition.x + it->second._data[i].x >= CHUNK_WIDTH) {
+			// 	if (it->second._origin == true && newDir.x == 0) {
+			// 		WorldFeature	newFeature = it->second;
+			// 		newFeature._localPosition.x -= CHUNK_WIDTH;
+			// 		newFeature._origin = false;
+			// 		g_pendingFeatures.push_back(std::pair<glm::ivec3, WorldFeature>({it->first.x + 1, it->first.y, it->first.z}, newFeature));
+			// 		newDir.x = 1;
+			// 	}
+				continue ;
+			}
+			else if (it->second._localPosition.x + it->second._data[i].x < 0) {
+			// 	if (it->second._origin == true && newDir.x == 0) {
+			// 		WorldFeature	newFeature = it->second;
+			// 		newFeature._localPosition.x += CHUNK_WIDTH;
+			// 		newFeature._origin = false;
+			// 		g_pendingFeatures.push_back(std::pair<glm::ivec3, WorldFeature>({it->first.x - 1, it->first.y, it->first.z}, newFeature));
+			// 		newDir.x = -1;
+			// 	}
+				continue ;
+			}
+
+			if (it->second._localPosition.x + it->second._data[i].x >= CHUNK_WIDTH) {
+				// if (it->second._origin == true && newDir.z == 0) {
+				// 	WorldFeature	newFeature = it->second;
+				// 	newFeature._localPosition.z -= CHUNK_WIDTH;
+				// 	newFeature._origin = false;
+				// 	g_pendingFeatures.push_back(std::pair<glm::ivec3, WorldFeature>({it->first.x, it->first.y, it->first.z + 1}, newFeature));
+				// 	newDir.z = 1;
+				// }
+				continue ;
+			}
+			else if (it->second._localPosition.x + it->second._data[i].x < 0) {
+				// if (it->second._origin == true && newDir.z == 0) {
+				// 	WorldFeature	newFeature = it->second;
+				// 	newFeature._localPosition.z += CHUNK_WIDTH;
+				// 	newFeature._origin = false;
+				// 	g_pendingFeatures.push_back(std::pair<glm::ivec3, WorldFeature>({it->first.x, it->first.y, it->first.z - 1}, newFeature));
+				// 	newDir.z = -1;
+				// }
+				continue ;
+			}
+
+			if (it->second._data[i].w != fstBlkPerLayer[it->second._localPosition.y + it->second._data[i].y] && dynamic_cast<SingleBlockChunkLayer *>(this->_layer[it->second._localPosition.y + it->second._data[i].y]))
+				this->_layer[it->second._localPosition.y + it->second._data[i].y] = _blockToLayer(this->_layer[it->second._localPosition.y + it->second._data[i].y]);
+			
+			(*this->_layer[it->second._localPosition.y + it->second._data[i].y])[idx] = it->second._data[i].w;
+		}
+
+		g_pendingFeatures.erase(it);
+		it = g_pendingFeatures.begin();
+	}
+
 	delete [] heightFactors;
 	delete [] heatFactors;
 	delete [] humidityFactors;
+	delete [] featuresFactors;
 }
 
 void	LayeredChunk::print()

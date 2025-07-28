@@ -110,9 +110,6 @@ static uint8_t	isVoxelVisible(const ivec3 &Vpos, const ChunkData &chunk, ChunkDa
 	if (!BLOCK_AT(data, x, y, z))
 		return 0;
 
-	if (BLOCK_AT(data, x, y, z) == 6)
-		return (1 << 0) | (1 << 1) | (1 << 4) | (1 << 5);
-
 	// Define neightbouring blocks positions
 	ivec3	neightbours[6] = {
 		{x - 1 * LOD, y, z},

@@ -5,15 +5,13 @@
 /// System includes
 # include <cstdint>
 # include <cstring>
+# include <list>
 
 /// Dependencies
 # include "AChunk.hpp"
 
-/// Global variables
-
 enum	EnvParams {
 	DRY = 0,
-	MOIST,
 	DRENCHED,
 	COLD,
 	TEMPERATE,
@@ -28,6 +26,23 @@ enum	BiomeID {
 	SNOW_FOREST,
 	NONE
 };
+
+typedef struct WorldFeature {
+	glm::ivec3	_localPosition;
+	uint8_t		_type;
+	glm::ivec4 *	_data;
+	bool		_origin;
+} WorldFeature;
+
+enum e_worldFeatures {
+	WF_NONE = 0,
+	WF_CACTUS,
+	WF_TREE,
+	WF_SNOW_TREE
+};
+
+/// Global variables
+extern std::list<std::pair<glm::ivec3, WorldFeature> >	g_pendingFeatures;
 
 // Chunk layer interface.
 class	AChunkLayer {
@@ -81,10 +96,12 @@ class	LayeredChunk : public AChunk {
 		float *		_computeHeatMap(const glm::ivec3 &pos);
 		float *		_computeHeightMap(const glm::ivec3 &pos);
 		float *		_computeHumidityMap(const glm::ivec3 &pos);
+		float *		_computeFeatureMap(const glm::ivec3 &pos);
 		float **	_computeCaveNoise(const glm::ivec3 &pos, float *heightMap);
 
 		uint8_t	_getBiomeID(const int &idx, const float *heatFactors, const float *wetFactors);
 		uint8_t	_getBlockFromBiome(const int &surface, const int &y, const uint8_t &biomeID);
+		WorldFeature	_getFeatureFromBiome(const uint8_t &biomeID, const glm::ivec3 pos);
 		
 		ChunkLayer *		_blockToLayer(AChunkLayer *layer);
 		SingleBlockChunkLayer *	_layerToBlock(AChunkLayer *layer);

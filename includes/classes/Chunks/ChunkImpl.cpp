@@ -124,7 +124,6 @@ float **	LayeredChunk::_computeCaveNoise(const glm::ivec3 &pos, float *heightMap
 {
 	float **	factors = new float*[CHUNK_WIDTH * CHUNK_WIDTH];
 	uint32_t	maxPos = MAX_WORLD_SIZE * CHUNK_WIDTH;
-	int		scale = 4;
 	
 	for (int i = 0; i < (CHUNK_WIDTH * CHUNK_WIDTH); i+=1) {
 		float	factor = 0;
@@ -133,7 +132,7 @@ float **	LayeredChunk::_computeCaveNoise(const glm::ivec3 &pos, float *heightMap
 		for (int j = 0; j < CHUNK_WIDTH; j+=1) {
 			float	amp = 20.0f;
 
-			if (j + pos.y > heightMap[0] || ((j % scale) != 0 && j >= scale) || ((i % scale) != 0 && i >= scale)) {
+			if (j + pos.y > heightMap[0]) {
 				factors[i][j] = 0;
 				continue ;
 			}
@@ -146,18 +145,6 @@ float **	LayeredChunk::_computeCaveNoise(const glm::ivec3 &pos, float *heightMap
 			amp = 120;
 			factor -= fabsf(Noise::perlin3D({x / amp, y / amp, z / amp}) * amp);
 			factors[i][j] = factor;
-		}
-	}
-	for (int i = 0; i < (CHUNK_WIDTH * CHUNK_WIDTH); i+=1) {
-		for (int j = 0; j < CHUNK_WIDTH; j+=1) {
-			int	prevI = i - 1;
-			int	nextI = i + (scale - (i % scale));
-			int	prevJ = j - 1;
-			int	nextJ = j + (scale - (j % scale));
-
-			if (i < scale || j < scale || nextI >= CHUNK_WIDTH * CHUNK_WIDTH || nextJ >= CHUNK_HEIGHT)
-				continue ;
-			factors[i][j] = (factors[prevI][prevJ] + factors[nextI][nextJ]) / 2.0f;
 		}
 	}
 	return (factors);
@@ -332,7 +319,6 @@ void	LayeredChunk::generate(const glm::ivec3 &pos)
 		}
 
 		glm::ivec3	newDir = {0, 0, 0};
-
 		for (int i = 1; i <= it->second._data[0].x; i++) {
 			int	idx = (it->second._data[i].x + it->second._localPosition.x) * CHUNK_WIDTH + (it->second._data[i].z + it->second._localPosition.z);
 			
@@ -357,45 +343,45 @@ void	LayeredChunk::generate(const glm::ivec3 &pos)
 				continue ;
 			}
 			
-			if (it->second._localPosition.x + it->second._data[i].x >= CHUNK_WIDTH) {
-			// 	if (it->second._origin == true && newDir.x == 0) {
-			// 		WorldFeature	newFeature = it->second;
-			// 		newFeature._localPosition.x -= CHUNK_WIDTH;
-			// 		newFeature._origin = false;
-			// 		g_pendingFeatures.push_back(std::pair<glm::ivec3, WorldFeature>({it->first.x + 1, it->first.y, it->first.z}, newFeature));
-			// 		newDir.x = 1;
-			// 	}
+			if (it->second._localPosition.z + it->second._data[i].z >= CHUNK_WIDTH) {
+				if (it->second._origin == true && newDir.x == 0) {
+					WorldFeature	newFeature = it->second;
+					newFeature._localPosition.x -= CHUNK_WIDTH;
+					newFeature._origin = false;
+					g_pendingFeatures.push_back(std::pair<glm::ivec3, WorldFeature>({it->first.x + 1, it->first.y, it->first.z}, newFeature));
+					newDir.x = 1;
+				}
 				continue ;
 			}
-			else if (it->second._localPosition.x + it->second._data[i].x < 0) {
-			// 	if (it->second._origin == true && newDir.x == 0) {
-			// 		WorldFeature	newFeature = it->second;
-			// 		newFeature._localPosition.x += CHUNK_WIDTH;
-			// 		newFeature._origin = false;
-			// 		g_pendingFeatures.push_back(std::pair<glm::ivec3, WorldFeature>({it->first.x - 1, it->first.y, it->first.z}, newFeature));
-			// 		newDir.x = -1;
-			// 	}
+			else if (it->second._localPosition.z + it->second._data[i].z < 0) {
+				if (it->second._origin == true && newDir.x == 0) {
+					WorldFeature	newFeature = it->second;
+					newFeature._localPosition.x += CHUNK_WIDTH;
+					newFeature._origin = false;
+					g_pendingFeatures.push_back(std::pair<glm::ivec3, WorldFeature>({it->first.x - 1, it->first.y, it->first.z}, newFeature));
+					newDir.x = -1;
+				}
 				continue ;
 			}
 
 			if (it->second._localPosition.x + it->second._data[i].x >= CHUNK_WIDTH) {
-				// if (it->second._origin == true && newDir.z == 0) {
-				// 	WorldFeature	newFeature = it->second;
-				// 	newFeature._localPosition.z -= CHUNK_WIDTH;
-				// 	newFeature._origin = false;
-				// 	g_pendingFeatures.push_back(std::pair<glm::ivec3, WorldFeature>({it->first.x, it->first.y, it->first.z + 1}, newFeature));
-				// 	newDir.z = 1;
-				// }
+				if (it->second._origin == true && newDir.z == 0) {
+					WorldFeature	newFeature = it->second;
+					newFeature._localPosition.z -= CHUNK_WIDTH;
+					newFeature._origin = false;
+					g_pendingFeatures.push_back(std::pair<glm::ivec3, WorldFeature>({it->first.x, it->first.y, it->first.z + 1}, newFeature));
+					newDir.z = 1;
+				}
 				continue ;
 			}
 			else if (it->second._localPosition.x + it->second._data[i].x < 0) {
-				// if (it->second._origin == true && newDir.z == 0) {
-				// 	WorldFeature	newFeature = it->second;
-				// 	newFeature._localPosition.z += CHUNK_WIDTH;
-				// 	newFeature._origin = false;
-				// 	g_pendingFeatures.push_back(std::pair<glm::ivec3, WorldFeature>({it->first.x, it->first.y, it->first.z - 1}, newFeature));
-				// 	newDir.z = -1;
-				// }
+				if (it->second._origin == true && newDir.z == 0) {
+					WorldFeature	newFeature = it->second;
+					newFeature._localPosition.z += CHUNK_WIDTH;
+					newFeature._origin = false;
+					g_pendingFeatures.push_back(std::pair<glm::ivec3, WorldFeature>({it->first.x, it->first.y, it->first.z - 1}, newFeature));
+					newDir.z = -1;
+				}
 				continue ;
 			}
 

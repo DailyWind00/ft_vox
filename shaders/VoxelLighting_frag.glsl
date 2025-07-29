@@ -89,7 +89,7 @@ void	main()
 	float	clampedSunHeight = clamp(sunPos.y, 0.15, 0.85);
 	vec3	Color = pow(clampedSunHeight, 0.7) * texCol + (1.0f - pow(clampedSunHeight, 0.7)) * skyCol;
 
-	vec3	ambColor = Color.rgb * 0.3;
+	vec3	ambColor = Color.rgb * 0.4;
 
 	float	diffuseSun = max(dot(Normal.rgb, sunPos), 0.0) * pow(sunPos.y, 1.2);
 	float	diffuseMoon = max(dot(Normal.rgb, -sunPos), 0.0) * pow(-sunPos.y, 3);

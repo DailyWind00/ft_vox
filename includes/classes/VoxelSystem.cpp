@@ -328,6 +328,55 @@ void	VoxelSystem::_updateBuffers() {
 
 /// Public functions
 
+/// @brief Try to destroy a block on where the currently set camera is looking at.
+/// @details Raycast a ray from the camera position to the lookAt position, until it hits a block or PLAYER_REACH is reached.
+/// @return The position of the destroyed block if successful, nullptr otherwise.
+void VoxelSystem::tryDestroyBlock()
+{
+	const CameraInfo &camInfo = _camera.getCameraInfo();
+	vec3 currentPos = vec3(
+		camInfo.position.z,
+		camInfo.position.y,
+		camInfo.position.x
+	);
+	
+	do
+	{
+		// Get the chunk at the current position
+		ivec3 chunkPos = ivec3(currentPos.x / CHUNK_SIZE,
+							   currentPos.y / CHUNK_SIZE,
+							   currentPos.z / CHUNK_SIZE);
+
+		ChunkData &chunkData = _chunks.find(chunkPos)->second;
+		if (!chunkData.chunk || !chunkData.hasMesh())
+			return ;
+
+		// Get the position of the current block in the chunk
+		ivec3 localPos = ivec3(currentPos.x - chunkPos.x * CHUNK_SIZE,
+							   currentPos.y - chunkPos.y * CHUNK_SIZE,
+							   currentPos.z - chunkPos.z * CHUNK_SIZE);
+
+		// Check if there is a block at the current position
+		uint8_t blockID = BLOCK_AT(chunkData.chunk, localPos.x, localPos.y, localPos.z);
+		if (blockID) {
+			SET_BLOCK(chunkData.chunk, localPos.x, localPos.y, localPos.z, 0);
+			requestMesh({{chunkPos, ChunkAction::CREATE_UPDATE}});
+
+			if (VERBOSE)
+				cout << BGreen << "Block destroyed at " << currentPos.x << ", " << currentPos.y << ", " << currentPos.z << ResetColor << endl;
+
+			return ;
+		}
+
+		// Move to the next position in the direction of the lookAt vector
+		currentPos += glm::normalize(camInfo.lookAt - camInfo.position);
+	}
+	while (distance(currentPos, camInfo.lookAt) < PLAYER_REACH);
+
+	if (VERBOSE)
+		cout << BRed << "No block found" << ResetColor << endl;
+}
+
 // Draw all chunks using batched rendering
 const GeoFrameBuffers	&VoxelSystem::draw() {
 	_updateBuffers();

@@ -1,5 +1,41 @@
 #include "config.hpp"
 
+#pragma region Keys Pressed Once
+
+// Check if a key is pressed once
+// Handle multiple keys
+// Returns true a single time if the key has been pressed, false otherwise
+static inline bool keyPressedOnce(GLFWwindow *window, int key) {
+	static unordered_map<int, bool> pressed;
+
+	if (glfwGetKey(window, key) == GLFW_PRESS && !pressed[key]) {
+		pressed[key] = true;
+		return true;
+	}
+	else if (glfwGetKey(window, key) == GLFW_RELEASE)
+		pressed[key] = false;
+
+	return false;
+}
+
+// Check if a mouse button is pressed once
+// Handle multiple buttons
+// Returns true a single time if the button has been pressed, false otherwise
+static inline bool MouseButtonPressedOnce(GLFWwindow *window, int button) {
+	static unordered_map<int, bool> pressed;
+
+	if (glfwGetMouseButton(window, button) == GLFW_PRESS && !pressed[button]) {
+		pressed[button] = true;
+		return true;
+	}
+	else if (glfwGetMouseButton(window, button) == GLFW_RELEASE)
+		pressed[button] = false;
+
+	return false;
+}
+
+#pragma endregion
+
 // Handle the camera movements/interactions
 static void	cameraMovement(Window &window, Camera &camera) {
 	CameraInfo	cameraInfo = camera.getCameraInfo();
@@ -50,30 +86,44 @@ static void	cameraMovement(Window &window, Camera &camera) {
 	camera.setCameraInfo(cameraInfo);
 }
 
+// Handle the inputs for the game
+static void inputs(GameData &gameData) {
+	VoxelSystem &voxelSystem = gameData.voxelSystem;
+	Window 		&window 	 = gameData.window;
+	Camera 		&camera 	 = gameData.camera;
+
+	// Delete a chunk, F key
+	if (keyPressedOnce(window, GLFW_KEY_F)) {
+		vec3 camPos = camera.getCameraInfo().position;
+		ivec3 chunkPos = ivec3(
+			camPos.z / CHUNK_SIZE,
+			camPos.y / CHUNK_SIZE,
+			camPos.x / CHUNK_SIZE
+		);
+		voxelSystem.requestChunk({ChunkRequest{chunkPos, ChunkAction::DELETE}});
+		if (VERBOSE)
+			cout << "Deleting chunk at worldPos : " << chunkPos.x << " " << chunkPos.y << " " << chunkPos.z << endl;
+	}
+
+	// Destroy a block, left click
+	if (MouseButtonPressedOnce(window, GLFW_MOUSE_BUTTON_LEFT)) {
+		voxelSystem.tryDestroyBlock();
+	}
+}
+
 // Handle all keyboard & other events
 void	handleEvents(GameData &gameData) {
 	Window			&window  = gameData.window;
 	ShaderHandler	&shaders = gameData.shaders;
 	Camera			&camera  = gameData.camera;
 
-	static float time = 0; time += 0.01;
+	static float time = 20; time += 0.001 * window.getFrameTime(); // Start at early daytime
 
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
 
-	static bool pressed = false;
-	if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS && !pressed) {
-		pressed = true;
-		ivec3 camPos = (ivec3)camera.getCameraInfo().position / CHUNK_SIZE;
-
-		gameData.voxelSystem.requestChunk({ChunkRequest{camPos, ChunkAction::DELETE}}); // todo : fix inverted and shifted position
-		if (VERBOSE)
-			cout << "Deleting chunk at worldPos : " << camPos.x << " " << camPos.y << " " << camPos.z << endl;
-	} else if (glfwGetKey(window, GLFW_KEY_F) == GLFW_RELEASE) {
-		pressed = false;
-	}
-
 	cameraMovement(window, camera);
+	inputs(gameData);
 
 	// Skybox Shader parameters
 	float		dayDuration = 200;

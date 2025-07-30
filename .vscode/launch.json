@@ -6,7 +6,7 @@
       "type": "cppdbg",
       "request": "launch",
       "program": "${workspaceFolder}/ft_vox",
-      "args": ["-t", "1234"],
+      "args": ["-v", "1234"],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
       "environment": [],

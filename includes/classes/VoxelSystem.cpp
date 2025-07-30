@@ -347,14 +347,17 @@ void VoxelSystem::tryDestroyBlock()
 							   currentPos.y / CHUNK_SIZE,
 							   currentPos.z / CHUNK_SIZE);
 
-		ChunkData &chunkData = _chunks.find(chunkPos)->second;
+		ChunkMap::iterator it = _chunks.find(chunkPos);
+		if (it == _chunks.end())
+			return ;
+		ChunkData &chunkData = it->second;
 		if (!chunkData.chunk || !chunkData.hasMesh())
 			return ;
 
 		// Get the position of the current block in the chunk
-		ivec3 localPos = ivec3(currentPos.x - chunkPos.x * CHUNK_SIZE,
+		ivec3 localPos = ivec3(currentPos.x - chunkPos.z * CHUNK_SIZE,
 							   currentPos.y - chunkPos.y * CHUNK_SIZE,
-							   currentPos.z - chunkPos.z * CHUNK_SIZE);
+							   currentPos.z - chunkPos.x * CHUNK_SIZE);
 
 		// Check if there is a block at the current position
 		uint8_t blockID = BLOCK_AT(chunkData.chunk, localPos.x, localPos.y, localPos.z);

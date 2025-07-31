@@ -100,6 +100,188 @@ static inline void updateArea(AreaType &area, size_t old_size, size_t current_si
 	// }
 }
 
+// function to quickly count the number of trailing zeros in a binary number representation
+static int	trailing_zeros(uint64_t x)
+{
+	int	n = 1;
+	
+	if (!x) return 64;
+	if ((x & 0x00000000FFFFFFFF) == 0) {
+		n = n + 32;
+		x = x >> 32;
+	}
+	if ((x & 0x000000000000FFFF) == 0) {
+		n = n + 16;
+		x = x >> 16;
+	}
+	if ((x & 0x00000000000000FF) == 0) {
+		n = n + 8;
+		x = x >> 8;
+	}
+	if ((x & 0x000000000000000F) == 0) {
+		n = n + 4;
+		x = x >> 4;
+	}
+	if ((x & 0x0000000000000003) == 0) {
+		n = n + 2;
+		x = x >> 2;
+	}
+	return n - (x & 1);
+}
+
+// function to quickly count the number of trailing ones in a binary number representation
+static int	trailing_ones(uint64_t x)
+{
+	return trailing_zeros(~x);
+}
+
+// Binary greedy meshing algorythme
+// Will quickly construte a mesh plane from a binary plane
+static void	binaryGreedyMeshing(std::vector<DATA_TYPE> *vertices, uint64_t plane[(CHUNK_WIDTH + 2) * (CHUNK_WIDTH + 2)], const uint8_t &blockID, const uint8_t &axis)
+{
+	for (int i = 0; i < CHUNK_WIDTH * CHUNK_WIDTH; i++) {
+		for (int j = 0; j < CHUNK_WIDTH; j++) {
+			if (!(1 & (plane[i] >> j)))
+				continue ;
+			glm::ivec3	pos = {j, i / CHUNK_WIDTH, i % CHUNK_WIDTH};
+			if (axis == 1)
+				pos = {i % CHUNK_WIDTH, j, i / CHUNK_WIDTH};
+			else if (axis == 2)
+				pos = {i % CHUNK_WIDTH, i / CHUNK_WIDTH, j};
+
+			DATA_TYPE	data = 0;
+			data |= (pos.x & 0x1F);		// X
+			data |= (pos.y & 0x1F) << 5;	// Y
+			data |= (pos.z & 0x1F) << 10;	// Z
+			data |= (blockID & 0x7F) << 15;	// Block ID
+			data |= (0 & 0x1F) << 22;	// Face length
+			data |= (0 & 0x1F) << 27;	// Face length
+			vertices->push_back(data);
+		}
+	}
+}
+
+static void	constructXAxisMesh(std::vector<DATA_TYPE> (&vertices)[6], uint64_t (&xAxisBitmask)[(CHUNK_WIDTH + 2) * (CHUNK_WIDTH + 2)], ChunkData &chunk, ChunkData *neightboursChunks[6])
+{
+	// Get the X axis neighbours data
+	for (uint64_t i = 0; i < CHUNK_HEIGHT * CHUNK_WIDTH; i++) {
+		uint64_t	y = i / CHUNK_WIDTH;
+		uint64_t	z = i % CHUNK_WIDTH;
+		if (isNeightbourLoaded(neightboursChunks[4]) && BLOCK_AT(neightboursChunks[4]->chunk, CHUNK_WIDTH - 1, y, z))
+			xAxisBitmask[i] |= (uint64_t)0x1 << 0;
+		if (isNeightbourLoaded(neightboursChunks[5]) && BLOCK_AT(neightboursChunks[5]->chunk, 0, y, z))
+			xAxisBitmask[i] |= (uint64_t)0x1 << (CHUNK_WIDTH + 1);
+	}
+	
+	std::map<uint8_t, uint64_t[(CHUNK_WIDTH + 2) * (CHUNK_HEIGHT + 2)]>	binaryPlaneHM[2];
+	for (int i = 0; i < CHUNK_WIDTH * CHUNK_WIDTH; i++) {
+		// Culling facing forwardX
+		uint64_t	forwardXCol = xAxisBitmask[i] & ~(xAxisBitmask[i] >> 1);
+		forwardXCol = forwardXCol >> 1;
+		forwardXCol = forwardXCol & ~((uint64_t)1 << CHUNK_WIDTH);
+
+		// Culling facing backwardX
+		uint64_t	backwardXCol = xAxisBitmask[i] & ~(xAxisBitmask[i] << 1);
+		backwardXCol = backwardXCol >> 1;
+		backwardXCol = backwardXCol & ~((uint64_t)1 << CHUNK_WIDTH);
+		
+		for (int j = 0; j < CHUNK_WIDTH; j++) {
+			uint8_t	id = BLOCK_AT(chunk.chunk, j, i / CHUNK_WIDTH, i % CHUNK_WIDTH);
+			
+			if (1 & (backwardXCol >> j))
+				binaryPlaneHM[0][id][i] |= (uint64_t)0x1 << j;
+
+			if (1 & (forwardXCol >> j))
+				binaryPlaneHM[1][id][i] |= (uint64_t)0x1 << j;
+		}
+	}
+
+	// Execute the binary greedy meshing algorythme for the X axis
+	for (int i = 0; i < 2; i++)
+		for (auto &[key, value] : binaryPlaneHM[i])
+			binaryGreedyMeshing(&vertices[i], value, key, 0);
+}
+
+static void	constructYAxisMesh(std::vector<DATA_TYPE> (&vertices)[6], uint64_t (&yAxisBitmask)[(CHUNK_WIDTH + 2) * (CHUNK_WIDTH + 2)], ChunkData &chunk, ChunkData *neightboursChunks[6])
+{
+	// Get the Y axis neighbours data
+	for (uint64_t i = 0; i < CHUNK_WIDTH * CHUNK_WIDTH; i++) {
+		uint64_t	x = i % CHUNK_WIDTH;
+		uint64_t	z = i / CHUNK_WIDTH;
+		if (isNeightbourLoaded(neightboursChunks[2]) && BLOCK_AT(neightboursChunks[2]->chunk, x, CHUNK_HEIGHT - 1, z))
+			yAxisBitmask[i] |= (uint64_t)0x1 << 0;
+		if (isNeightbourLoaded(neightboursChunks[3]) && BLOCK_AT(neightboursChunks[3]->chunk, x, 0, z))
+			yAxisBitmask[i] |= (uint64_t)0x1 << (CHUNK_HEIGHT + 1);
+	}
+
+	std::map<uint8_t, uint64_t[(CHUNK_WIDTH + 2) * (CHUNK_HEIGHT + 2)]>	binaryPlaneHM[2];
+	for (int i = 0; i < CHUNK_WIDTH * CHUNK_WIDTH; i++) {
+		// Culling facing forwardX
+		uint64_t	forwardYCol = yAxisBitmask[i] & ~(yAxisBitmask[i] >> 1);
+		forwardYCol = forwardYCol >> 1;
+		forwardYCol = forwardYCol & ~((uint64_t)1 << CHUNK_WIDTH);
+
+		// Culling facing backwardX
+		uint64_t	backwardYCol = yAxisBitmask[i] & ~(yAxisBitmask[i] << 1);
+		backwardYCol = backwardYCol >> 1;
+		backwardYCol = backwardYCol & ~((uint64_t)1 << CHUNK_WIDTH);
+
+		for (int j = 0; j < CHUNK_WIDTH; j++) {
+			uint8_t	id = BLOCK_AT(chunk.chunk, i % CHUNK_WIDTH, j, i / CHUNK_WIDTH);
+
+			if (1 & (backwardYCol >> j))
+				binaryPlaneHM[0][id][i] |= (uint64_t)0x1 << j;
+
+			if (1 & (forwardYCol >> j))
+				binaryPlaneHM[1][id][i] |= (uint64_t)0x1 << j;
+		}
+	}
+	// Execute the binary greedy meshing algorythme for the X axis
+	for (int i = 0; i < 2; i++)
+		for (auto &[key, value] : binaryPlaneHM[i])
+			binaryGreedyMeshing(&vertices[i + 2], value, key, 1);
+}
+
+static void	constructZAxisMesh(std::vector<DATA_TYPE> (&vertices)[6], uint64_t (&zAxisBitmask)[(CHUNK_WIDTH + 2) * (CHUNK_WIDTH + 2)], ChunkData &chunk, ChunkData *neightboursChunks[6])
+{
+	// Get the Z axis neighbours data
+	for (uint64_t i = 0; i < CHUNK_HEIGHT * CHUNK_WIDTH; i++) {
+		uint64_t	x = i % CHUNK_WIDTH;
+		uint64_t	y = i / CHUNK_HEIGHT;
+		if (isNeightbourLoaded(neightboursChunks[0]) && BLOCK_AT(neightboursChunks[0]->chunk, x, y, CHUNK_WIDTH - 1))
+			zAxisBitmask[i] |= (uint64_t)0x1 << 0;
+		if (isNeightbourLoaded(neightboursChunks[1]) && BLOCK_AT(neightboursChunks[1]->chunk, x, y, 0))
+			zAxisBitmask[i] |= (uint64_t)0x1 << (CHUNK_WIDTH + 1);
+	}
+	
+	std::map<uint8_t, uint64_t[(CHUNK_WIDTH + 2) * (CHUNK_HEIGHT + 2)]>	binaryPlaneHM[2];
+	for (int i = 0; i < CHUNK_WIDTH * CHUNK_WIDTH; i++) {
+		// Culling facing forwardX
+		uint64_t	forwardZCol = zAxisBitmask[i] & ~(zAxisBitmask[i] >> 1);
+		forwardZCol = forwardZCol >> 1;
+		forwardZCol = forwardZCol & ~((uint64_t)1 << CHUNK_WIDTH);
+
+		// Culling facing backwardX
+		uint64_t	backwardZCol = zAxisBitmask[i] & ~(zAxisBitmask[i] << 1);
+		backwardZCol = backwardZCol >> 1;
+		backwardZCol = backwardZCol & ~((uint64_t)1 << CHUNK_WIDTH);
+
+		for (int j = 0; j < CHUNK_WIDTH; j++) {
+			uint8_t	id = BLOCK_AT(chunk.chunk, i % CHUNK_WIDTH, i / CHUNK_WIDTH, j);
+
+			if (1 & (backwardZCol >> j))
+				binaryPlaneHM[0][id][i] |= (uint64_t)0x1 << j;
+
+			if (1 & (forwardZCol >> j))
+				binaryPlaneHM[1][id][i] |= (uint64_t)0x1 << j;
+		}
+	}
+	// Execute the binary greedy meshing algorythme for the X axis
+	for (int i = 0; i < 2; i++)
+		for (auto &[key, value] : binaryPlaneHM[i])
+			binaryGreedyMeshing(&vertices[i + 4], value, key, 2);
+}
+
 // Create/update the mesh of the given chunk
 // The data will be stored in the main thread at the end of OpenGL buffers
 void	VoxelSystem::_generateMesh(ChunkData &chunk, ChunkData *neightboursChunks[6]) {
@@ -131,142 +313,11 @@ void	VoxelSystem::_generateMesh(ChunkData &chunk, ChunkData *neightboursChunks[6
 		}
 	}
 
-	// Get the X axis neighbours data
-	for (uint64_t i = 0; i < CHUNK_HEIGHT * CHUNK_WIDTH; i++) {
-		uint64_t	y = i / CHUNK_WIDTH;
-		uint64_t	z = i % CHUNK_WIDTH;
-		if (isNeightbourLoaded(neightboursChunks[4]) && BLOCK_AT(neightboursChunks[4]->chunk, CHUNK_WIDTH - 1, y, z))
-			xAxisBitmask[i] |= (uint64_t)0x1 << 0;
-		if (isNeightbourLoaded(neightboursChunks[5]) && BLOCK_AT(neightboursChunks[5]->chunk, 0, y, z))
-			xAxisBitmask[i] |= (uint64_t)0x1 << (CHUNK_WIDTH + 1);
-	}
-
-	// Get the Y axis neighbours data
-	for (uint64_t i = 0; i < CHUNK_WIDTH * CHUNK_WIDTH; i++) {
-		uint64_t	x = i % CHUNK_WIDTH;
-		uint64_t	z = i / CHUNK_WIDTH;
-		if (isNeightbourLoaded(neightboursChunks[2]) && BLOCK_AT(neightboursChunks[2]->chunk, x, CHUNK_HEIGHT - 1, z))
-			yAxisBitmask[i] |= (uint64_t)0x1 << 0;
-		if (isNeightbourLoaded(neightboursChunks[3]) && BLOCK_AT(neightboursChunks[3]->chunk, x, 0, z))
-			yAxisBitmask[i] |= (uint64_t)0x1 << (CHUNK_HEIGHT + 1);
-	}
-
-	// Get the Z axis neighbours data
-	for (uint64_t i = 0; i < CHUNK_HEIGHT * CHUNK_WIDTH; i++) {
-		uint64_t	x = i % CHUNK_WIDTH;
-		uint64_t	y = i / CHUNK_HEIGHT;
-		if (isNeightbourLoaded(neightboursChunks[0]) && BLOCK_AT(neightboursChunks[0]->chunk, x, y, CHUNK_WIDTH - 1))
-			zAxisBitmask[i] |= (uint64_t)0x1 << 0;
-		if (isNeightbourLoaded(neightboursChunks[1]) && BLOCK_AT(neightboursChunks[1]->chunk, x, y, 0))
-			zAxisBitmask[i] |= (uint64_t)0x1 << (CHUNK_WIDTH + 1);
-	}
-
-	// Temporary hack to get basic meshing working with the new culling system (WILL GET REPLACED SOON !!)
 	vector<DATA_TYPE>	vertices[6];
-	for (uint64_t i = 0; i < CHUNK_WIDTH * CHUNK_WIDTH; i++) {
-		uint64_t	col = xAxisBitmask[i];
-		// Culling facing forwardX
-		uint64_t	forwardXCol = col & ~(col >> 1);
-		forwardXCol = forwardXCol >> 1;
-		forwardXCol = forwardXCol & ~((uint64_t)1 << CHUNK_WIDTH);
-		// Culling facing backwardX
-		uint64_t	backwardXCol = col & ~(col << 1);
-		backwardXCol = backwardXCol >> 1;
-		backwardXCol = backwardXCol & ~((uint64_t)1 << CHUNK_WIDTH);
-		for (int j = 0; j < CHUNK_WIDTH; j++) {
-			uint8_t	id = BLOCK_AT(chunk.chunk, j, i / CHUNK_WIDTH, i % CHUNK_WIDTH);
-			if (1 & (forwardXCol >> j)) {
-				DATA_TYPE	data = 0;
-				data |= ((j) & 0x1F);			// X
-				data |= ((i / CHUNK_WIDTH) & 0x1F) << 5;	// Y
-				data |= ((i % CHUNK_WIDTH) & 0x1F) << 10;	// Z
-				data  |= (id & 0x7F) << 15;			// Block ID
-				data |= (0 & 0x1F) << 22;			// Face length
-				data |= (0 & 0x1F) << 27;			// Face length
-				vertices[1].push_back(data);
-			}
-			if (1 & (backwardXCol >> j)) {
-				DATA_TYPE	data = 0;
-				data |= ((j) & 0x1F);			// X
-				data |= ((i / CHUNK_WIDTH) & 0x1F) << 5;	// Y
-				data |= ((i % CHUNK_WIDTH) & 0x1F) << 10;	// Z
-				data  |= (id & 0x7F) << 15;			// Block ID
-				data |= (0 & 0x1F) << 22;			// Face length
-				data |= (0 & 0x1F) << 27;			// Face length
-				vertices[0].push_back(data);
-			}
-		}
-	}
-	for (uint64_t i = 0; i < CHUNK_WIDTH * CHUNK_WIDTH; i++) {
-		uint64_t	col = yAxisBitmask[i];
-		// Culling facing forwardY
-		uint64_t	forwardYCol = col & ~(col >> 1);
-		forwardYCol = forwardYCol >> 1;
-		forwardYCol = forwardYCol & ~((uint64_t)1 << CHUNK_WIDTH);
-		// Culling facing backwardY
-		uint64_t	backwardYCol = col & ~(col << 1);
-		backwardYCol = backwardYCol >> 1;
-		backwardYCol = backwardYCol & ~((uint64_t)1 << CHUNK_WIDTH);
-		for (int j = 0; j < CHUNK_WIDTH; j++) {
-			uint8_t	id = BLOCK_AT(chunk.chunk, i % CHUNK_WIDTH, j, i / CHUNK_WIDTH);
-			if (1 & (forwardYCol >> j)) {
-				DATA_TYPE	data = 0;
-				data |= ((i % CHUNK_WIDTH) & 0x1F);	// X
-				data |= (j & 0x1F) << 5;		// Y
-				data |= ((i / CHUNK_WIDTH) & 0x1F) << 10;// Z
-				data  |= (id & 0x7F) << 15;		// Block ID
-				data |= (0 & 0x1F) << 22;		// Face length
-				data |= (0 & 0x1F) << 27;		// Face length
-				vertices[3].push_back(data);
-			}
-			if (1 & (backwardYCol >> j)) {
-				DATA_TYPE	data = 0;
-				data |= ((i % CHUNK_WIDTH) & 0x1F);	// X
-				data |= (j & 0x1F) << 5;		// Y
-				data |= ((i / CHUNK_WIDTH) & 0x1F) << 10;// Z
-				data |= (id & 0x7F) << 15;		// Block ID
-				data |= (0 & 0x1F) << 22;		// Face length
-				data |= (0 & 0x1F) << 27;		// Face length
-				vertices[2].push_back(data);
-			}
-		}
-	}
-	for (uint64_t i = 0; i < CHUNK_WIDTH * CHUNK_WIDTH; i++) {
-		uint64_t	col = zAxisBitmask[i];
-		// Culling facing forwardY
-		uint64_t	forwardZCol = col & ~(col >> 1);
-		forwardZCol = forwardZCol >> 1;
-		forwardZCol = forwardZCol & ~((uint64_t)1 << CHUNK_WIDTH);
-		// Culling facing backwardY
-		uint64_t	backwardZCol = col & ~(col << 1);
-		backwardZCol = backwardZCol >> 1;
-		backwardZCol = backwardZCol & ~((uint64_t)1 << CHUNK_WIDTH);
-		for (int j = 0; j < CHUNK_WIDTH; j++) {
-			uint8_t	id = BLOCK_AT(chunk.chunk, i % CHUNK_WIDTH, i / CHUNK_WIDTH, j);
-			if (1 & (forwardZCol >> j)) {
-				DATA_TYPE	data = 0;
-				data |= ((i % CHUNK_WIDTH) & 0x1F);	// X
-				data |= ((i / CHUNK_WIDTH) & 0x1F) << 5;// Y
-				data |= ((j) & 0x1F) << 10;		// Z
-				data |= (id & 0x7F) << 15;		// Block ID
-				data |= (0 & 0x1F) << 22;		// Face length
-				data |= (0 & 0x1F) << 27;		// Face length
-				vertices[5].push_back(data);
-			}
-			if (1 & (backwardZCol >> j)) {
-				DATA_TYPE	data = 0;
-				data |= ((i % CHUNK_WIDTH) & 0x1F);	// X
-				data |= ((i / CHUNK_WIDTH) & 0x1F) << 5;// Y
-				data |= ((j) & 0x1F) << 10;		// Z
-				data |= (id & 0x7F) << 15;		// Block ID
-				data |= (0 & 0x1F) << 22;		// Face length
-				data |= (0 & 0x1F) << 27;		// Face length
-				vertices[4].push_back(data);
-			}
-		}
-	}
 
-	// TODO : greedy meshing here
+	constructXAxisMesh(vertices, xAxisBitmask, chunk, neightboursChunks);
+	constructYAxisMesh(vertices, yAxisBitmask, chunk, neightboursChunks);
+	constructZAxisMesh(vertices, zAxisBitmask, chunk, neightboursChunks);
 
 	size_t old_VBO_data_size = _VBO_data.size() * sizeof(DATA_TYPE);
 	size_t old_IB_data_size = _IB_data.size() * sizeof(DrawCommand);

@@ -89,15 +89,20 @@ void	main()
 	float	clampedSunHeight = clamp(sunPos.y, 0.15, 0.85);
 	vec3	Color = pow(clampedSunHeight, 0.7) * texCol + (1.0f - pow(clampedSunHeight, 0.7)) * skyCol;
 
-	vec3	ambColor = Color.rgb * 0.3;
+	vec3	ambColor = Color.rgb * 0.4;
 
 	float	diffuseSun = max(dot(Normal.rgb, sunPos), 0.0) * pow(sunPos.y, 1.2);
 	float	diffuseMoon = max(dot(Normal.rgb, -sunPos), 0.0) * pow(-sunPos.y, 3);
 
-	vec3	diffColor = (diffuseMoon + diffuseSun) * Color.rgb;
+	vec3	diffColor = max(diffuseSun, diffuseMoon) * Color.rgb;
 
 	//-ScreenColor= vec4((face * 1.8) * (0.2 * vec3(randFactor)) + ivec3(fragPos) * 0.01, 1.0);
 	//-ScreenColor = vec4(vec3(0.3 * (face + 1) * (fragPos.y + 100) * 0.005), 1.0f);
 	//-ScreenColor = vec4(Color, 1.0f);
-	ScreenColor = vec4(diffColor + ambColor, 1.0f);
+	float	lerpFactor = -fragPos.z * 0.001;
+	lerpFactor = pow(lerpFactor, 1.2f);
+	if (lerpFactor > 1.0f)
+		lerpFactor = 1.0f;
+
+	ScreenColor = vec4(mix(diffColor + ambColor, getSkyGradient(vec3(0, 0, 0), sunPos.y), lerpFactor), 1.0f);
 }

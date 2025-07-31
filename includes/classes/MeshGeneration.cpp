@@ -90,6 +90,13 @@ static inline bool	isNeightbourLoaded(ChunkData *neightbour) {
 	return neightbour && neightbour->chunk && (neightbour->hasMesh() || neightbour->inCreation);
 }
 
+static bool	isOpac(const uint8_t &block)
+{
+	if (!block || block == 6)
+		return (false);
+	return (true);
+}
+
 // Check if the voxel at the given position is visible
 // Return a bitmask of the visible faces (6 bits : ZzYyXx)
 static uint8_t	isVoxelVisible(const ivec3 &Vpos, const ChunkData &chunk, ChunkData *neightboursChunks[6]) {
@@ -128,9 +135,9 @@ static uint8_t	isVoxelVisible(const ivec3 &Vpos, const ChunkData &chunk, ChunkDa
 				visibleFaces |= (1 << 1);
 		}
 		// Inside
-		else if (size_t(pos.x) < x && !BLOCK_AT(data, pos.x, pos.y, pos.z))
+		else if (size_t(pos.x) < x && !isOpac(BLOCK_AT(data, pos.x, pos.y, pos.z)))
 				visibleFaces |= (1 << 0);
-		else if (size_t(pos.x) > x && !BLOCK_AT(data, pos.x, pos.y, pos.z))
+		else if (size_t(pos.x) > x && !isOpac(BLOCK_AT(data, pos.x, pos.y, pos.z)))
 				visibleFaces |= (1 << 1);
 
 
@@ -145,9 +152,9 @@ static uint8_t	isVoxelVisible(const ivec3 &Vpos, const ChunkData &chunk, ChunkDa
 				visibleFaces |= (1 << 3);
 		}
 		// Inside
-		else if (size_t(pos.y) < y && !BLOCK_AT(data, pos.x, pos.y, pos.z))
+		else if (size_t(pos.y) < y && !isOpac(BLOCK_AT(data, pos.x, pos.y, pos.z)))
 				visibleFaces |= (1 << 2);
-		else if (size_t(pos.y) > y && !BLOCK_AT(data, pos.x, pos.y, pos.z))
+		else if (size_t(pos.y) > y && !isOpac(BLOCK_AT(data, pos.x, pos.y, pos.z)))
 				visibleFaces |= (1 << 3);
 
 
@@ -162,9 +169,9 @@ static uint8_t	isVoxelVisible(const ivec3 &Vpos, const ChunkData &chunk, ChunkDa
 				visibleFaces |= (1 << 5);
 		}
 		// Inside
-		else if (size_t(pos.z) < z && !BLOCK_AT(data, pos.x, pos.y, pos.z))
+		else if (size_t(pos.z) < z && !isOpac(BLOCK_AT(data, pos.x, pos.y, pos.z)))
 				visibleFaces |= (1 << 4);
-		else if (size_t(pos.z) > z && !BLOCK_AT(data, pos.x, pos.y, pos.z))
+		else if (size_t(pos.z) > z && !isOpac(BLOCK_AT(data, pos.x, pos.y, pos.z)))
 				visibleFaces |= (1 << 5);
 	}
 

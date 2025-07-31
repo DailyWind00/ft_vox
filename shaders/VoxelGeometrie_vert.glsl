@@ -11,7 +11,8 @@ layout (std430, binding = 0) buffer SSBO {
 	Chunk meshData[];
 };
 
-uniform mat4	transform;
+uniform mat4	view;
+uniform mat4	projection;
 uniform float	time;
 
 out vec2	uv;
@@ -30,8 +31,64 @@ const vec3	Normals[] = {
 	vec3( 0, 0, 1)
 };
 
-float rand(vec2 co) {
-	return (fract(sin(dot(co, vec2(12.9898, 78.233))) * 43758.5453));
+vec3	contructBlock(const vec2 len)
+{
+	vec3	finalQuad = vec3(0);
+
+	// x axis
+	if (face == 1) {
+		finalQuad = quad.yzx;
+		finalQuad.z *= len.x;
+		finalQuad.y *= len.y;
+
+		finalQuad.y -= len.y - 1;
+		finalQuad.x += len.y - 1;
+		uv = UVs;
+	}
+	else if (face == 0) {
+		finalQuad = quad.yxz;
+		finalQuad.z *= len.x;
+		finalQuad.y *= len.y;
+
+		finalQuad.y -= len.y - 1;
+		finalQuad.x = 0;
+		uv = UVs.yx;
+	}
+	
+	// y axis
+	if (face == 3) {
+		finalQuad = quad;
+		finalQuad.z *= len.x;
+		finalQuad.x *= len.y;
+		uv = UVs.yx;
+	}
+	else if (face == 2) {
+		finalQuad = quad.zyx;
+		finalQuad.z *= len.x;
+		finalQuad.x *= len.y;
+		finalQuad.y = 0;
+		uv = UVs;
+	}
+
+	// z axis
+	if (face == 5) {
+		finalQuad = quad.zxy;
+		finalQuad.x *= len.x;
+		finalQuad.y *= len.y;
+		finalQuad.y -= len.y - 1;
+		finalQuad.z += len.y - 1;
+		uv = UVs.yx;
+	}
+	else if (face == 4) {
+		finalQuad = quad.xzy;
+		finalQuad.x *= len.x;
+		finalQuad.y *= len.y;
+		finalQuad.y -= len.y - 1;
+		finalQuad.z += len.y - 1;
+		finalQuad.z = 0;
+		uv = UVs;
+	}
+	return (finalQuad);
 }
 
 void main() {
@@ -45,76 +102,19 @@ void main() {
 	pos.y = (blockData >> 5)   & 0x1F;
 	pos.z = (blockData >> 10)  & 0x1F;
 
-	texID = ((blockData >> 15) & 0x7F);
+	texID = ((blockData >> 15) & 0x7F) - 1;
+	face = meshData[gl_DrawID].data.w;
 
 	len.x = ((blockData >> 22) & 0x1F) + 1;
 	len.y = ((blockData >> 27) & 0x1F) + 1;
 
-	// Color modifiers for the fragment shader
-	fragPos = vec3(ivec3(pos) + worldOffset);
-
-	// Create the final face mesh
-	vec3	fQuad;
-
-	face = meshData[gl_DrawID].data.w;
-	
-	// x axis
-	if (face == 1) {
-		fQuad = quad.yzx;
-		fQuad.z *= len.x;
-		fQuad.y *= len.y;
-
-		fQuad.y -= len.y - 1;
-		fQuad.x += len.y - 1;
-		uv = UVs;
-	}
-	else if (face == 0) {
-		fQuad = quad.yxz;
-		fQuad.z *= len.x;
-		fQuad.y *= len.y;
-
-		fQuad.y -= len.y - 1;
-		fQuad.x = 0;
-		uv = UVs.yx;
-	}
-	
-	// y axis
-	if (face == 3) {
-		fQuad = quad;
-		fQuad.z *= len.x;
-		fQuad.x *= len.y;
-		uv = UVs.yx;
-	}
-	else if (face == 2) {
-		fQuad = quad.zyx;
-		fQuad.z *= len.x;
-		fQuad.x *= len.y;
-		fQuad.y = 0;
-		uv = UVs;
-	}
-
-	// z axis
-	if (face == 5) {
-		fQuad = quad.zxy;
-		fQuad.x *= len.x;
-		fQuad.y *= len.y;
-		fQuad.y -= len.y - 1;
-		fQuad.z += len.y - 1;
-		uv = UVs.yx;
-	}
-	else if (face == 4) {
-		fQuad = quad.xzy;
-		fQuad.x *= len.x;
-		fQuad.y *= len.y;
-		fQuad.y -= len.y - 1;
-		fQuad.z += len.y - 1;
-		fQuad.z = 0;
-		uv = UVs;
-	}
-
+	// Fragment shaders datas
+	fragPos = vec4(view * vec4(ivec3(pos) + worldOffset, 1.0f)).xyz;
 	Normal = Normals[meshData[gl_DrawID].data.w];
-
 	l = len;
 
-	gl_Position = transform * vec4((fQuad + ivec3(pos) + worldOffset), 1.0f);
+	// Create the final face mesh
+	vec3	fQuad = contructBlock(len);
+
+	gl_Position = projection * view * vec4((fQuad + ivec3(pos) + worldOffset), 1.0f);
 }

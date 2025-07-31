@@ -73,3 +73,17 @@ glm::vec2	Noise::_perlin2DRandomGradiant(const glm::ivec2 &v)
     
 	return  glm::vec2{sin(random), cos(random)};
 }
+
+float	Noise::perlin3D(const glm::vec3 &v)
+{
+	float	ab = perlin2D({v.x, v.y});
+	float	bc = perlin2D({v.y, v.z});
+	float	ac = perlin2D({v.x, v.z});
+
+	float	ba = perlin2D({v.y, v.x});
+	float	cb = perlin2D({v.z, v.y});
+	float	ca = perlin2D({v.z, v.x});
+
+	float	abc = ab + bc + ac + ba + cb + ca;
+	return (abc / 6.0f);
+}

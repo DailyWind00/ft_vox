@@ -25,11 +25,46 @@ static void	lightingPass(const GeoFrameBuffers &gBuffer, GLuint &renderQuadVAO) 
 
 // Keep the window alive, exiting this function should mean closing the window
 static void program_loop(GameData &gameData) {
-	Window			&window      = gameData.window;
-	ShaderHandler	&shaders     = gameData.shaders;
-	VoxelSystem		&voxelSystem = gameData.voxelSystem;
-	SkyBox			&skybox      = gameData.skybox;
-	RenderData		&renderDatas = gameData.renderDatas;
+	static Window		&window      = gameData.window;
+	static ShaderHandler	&shaders     = gameData.shaders;
+	static VoxelSystem	&voxelSystem = gameData.voxelSystem;
+	static SkyBox		&skybox      = gameData.skybox;
+	static RenderData	&renderDatas = gameData.renderDatas;
+
+	CameraInfo		camInfo = gameData.camera.getCameraInfo();
+
+	// Chunk Generation Calls
+	// glm::vec3		camPos = camInfo.position;
+	//
+	// static glm::ivec3	prevCamChunkPos = {camPos.x / CHUNK_SIZE, camPos.y / CHUNK_SIZE, camPos.z / CHUNK_SIZE};
+	// glm::ivec3		camChunkPos = {camPos.x / CHUNK_SIZE, camPos.y / CHUNK_SIZE, camPos.z / CHUNK_SIZE};
+	//
+	// vector<ChunkRequest>	chunks;
+	//
+	// if (camChunkPos.x < prevCamChunkPos.x) {
+	// 	for (int j = VERTICAL_RENDER_DISTANCE - 1; j >= -VERTICAL_RENDER_DISTANCE + 1; j--)
+	// 		for (int i = -HORIZONTAL_RENDER_DISTANCE + 1; i <= HORIZONTAL_RENDER_DISTANCE - 1; i++)
+	// 			chunks.push_back({ivec3{i + camChunkPos.z, j + camChunkPos.y, camChunkPos.x - HORIZONTAL_RENDER_DISTANCE + 1}, ChunkAction::CREATE_UPDATE});
+	// }
+	// else if (camChunkPos.x > prevCamChunkPos.x) { 
+	// 	for (int j = VERTICAL_RENDER_DISTANCE - 1; j >= -VERTICAL_RENDER_DISTANCE + 1; j--)
+	// 		for (int i = -HORIZONTAL_RENDER_DISTANCE + 1; i <= HORIZONTAL_RENDER_DISTANCE - 1; i++)
+	// 			chunks.push_back({ivec3{i + camChunkPos.z, j + camChunkPos.y, camChunkPos.x + HORIZONTAL_RENDER_DISTANCE - 1}, ChunkAction::CREATE_UPDATE});
+	// }
+	//
+	// if (camChunkPos.z < prevCamChunkPos.z) {
+	// 	for (int j = VERTICAL_RENDER_DISTANCE - 1; j >= -VERTICAL_RENDER_DISTANCE + 1; j--)
+	// 		for (int i = -HORIZONTAL_RENDER_DISTANCE + 1; i <= HORIZONTAL_RENDER_DISTANCE - 1; i++)
+	// 			chunks.push_back({ivec3{camChunkPos.z - HORIZONTAL_RENDER_DISTANCE + 1, j + camChunkPos.y, i + camChunkPos.x}, ChunkAction::CREATE_UPDATE});
+	// }
+	// else if (camChunkPos.z > prevCamChunkPos.z) { 
+	// 	for (int j = VERTICAL_RENDER_DISTANCE - 1; j >= -VERTICAL_RENDER_DISTANCE + 1; j--)
+	// 		for (int i = -HORIZONTAL_RENDER_DISTANCE + 1; i <= HORIZONTAL_RENDER_DISTANCE - 1; i++)
+	// 			chunks.push_back({ivec3{camChunkPos.z + HORIZONTAL_RENDER_DISTANCE - 1, j + camChunkPos.y, i + camChunkPos.x}, ChunkAction::CREATE_UPDATE});
+	// }
+	// voxelSystem.requestChunk(chunks);
+	//
+	// prevCamChunkPos = camChunkPos;
 
 	// Voxel Geometrie
 	shaders.use(shaders[1]);
@@ -52,7 +87,7 @@ void	Rendering(Window &window, const uint64_t &seed) {
 	// Mouse Parameters
 	if (glfwRawMouseMotionSupported())
 		glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
-	// glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); // Todo : Uncomment
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	glfwSetCursorPos(window, (float)WINDOW_WIDTH / 2, (float)WINDOW_HEIGHT / 2);
 
 	// OpenGL Parameters

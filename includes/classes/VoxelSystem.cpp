@@ -117,8 +117,8 @@ VoxelSystem::VoxelSystem(const uint64_t &seed, Camera &camera) : _camera(camera)
 	vector<ChunkRequest>	spawnChunks;
 	spawnChunks.reserve(pow(HORIZONTAL_RENDER_DISTANCE * 2 - 1, 2) * (VERTICAL_RENDER_DISTANCE * 2 - 1));
 
-	for (int i = -HORIZONTAL_RENDER_DISTANCE + 1; i <= HORIZONTAL_RENDER_DISTANCE - 1; i++)
-		for (int j = -VERTICAL_RENDER_DISTANCE + 1; j <= VERTICAL_RENDER_DISTANCE - 1; j++)
+	for (int j = -VERTICAL_RENDER_DISTANCE + 1; j <= VERTICAL_RENDER_DISTANCE - 1; j++)
+		for (int i = -HORIZONTAL_RENDER_DISTANCE + 1; i <= HORIZONTAL_RENDER_DISTANCE - 1; i++)
 			for (int k = -HORIZONTAL_RENDER_DISTANCE + 1; k <= HORIZONTAL_RENDER_DISTANCE - 1; k++)
 				spawnChunks.push_back({ivec3{i, j, k}, ChunkAction::CREATE_UPDATE});
 
@@ -170,7 +170,7 @@ void	VoxelSystem::_loadTextureAtlas() {
 		cout << "> Loading texture atlas -> ";
 
 	// Load the texture atlas
-	stbi_set_flip_vertically_on_load(true);
+	//-stbi_set_flip_vertically_on_load(true);
 	int width, height, nrChannels;
 	unsigned char *data = stbi_load("./assets/atlas.png", &width, &height, &nrChannels, 0);
 
@@ -193,14 +193,13 @@ void	VoxelSystem::_loadTextureAtlas() {
 	else if (nrChannels == 4)
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
 
-	glGenerateMipmap(GL_TEXTURE_2D);
-
 	// Set the texture parameters
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
+	glBindTexture(GL_TEXTURE_2D, 0);
 	stbi_image_free(data);
 
 	if (VERBOSE)
@@ -319,7 +318,6 @@ void	VoxelSystem::_updateBuffers() {
 
 		_buffersNeedUpdates = false;
 	}
-
 	_buffersMutex.unlock();
 }
 /// ---

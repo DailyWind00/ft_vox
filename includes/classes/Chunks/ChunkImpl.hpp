@@ -27,6 +27,8 @@ enum	BiomeID {
 	NONE
 };
 
+# define WORLDFEATURE_THRESHOLDS	(float[]){10000.0f, 30.0f, 1.0f, 2.0f}
+
 typedef struct WorldFeature {
 	glm::ivec3	_localPosition;
 	uint8_t		_type;
@@ -102,6 +104,7 @@ class	LayeredChunk : public AChunk {
 		uint8_t	_getBiomeID(const int &idx, const float *heatFactors, const float *wetFactors);
 		uint8_t	_getBlockFromBiome(const int &surface, const int &y, const uint8_t &biomeID);
 		WorldFeature	_getFeatureFromBiome(const uint8_t &biomeID, const glm::ivec3 pos);
+		void	_handleWorldFeatureOverflow(std::pair<glm::ivec3, WorldFeature> wf, glm::ivec3 newDir, const bool reset);
 		
 		ChunkLayer *		_blockToLayer(AChunkLayer *layer);
 		SingleBlockChunkLayer *	_layerToBlock(AChunkLayer *layer);

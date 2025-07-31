@@ -273,44 +273,82 @@ WorldFeature	LayeredChunk::_getFeatureFromBiome(const uint8_t &biomeID, const gl
 	}
 }
 
+void	LayeredChunk::_handleWorldFeatureOverflow(std::pair<glm::ivec3, WorldFeature> wf, glm::ivec3 newDir, const bool reset)
+{
+	static glm::ivec3	dir = {0, 0, 0};
+	WorldFeature		newFeature = wf.second;
+	newFeature._origin = false;
+
+	if (reset) {
+		dir = {0, 0, 0};
+		return ;
+	}
+	
+	if (!wf.second._origin)
+		return ;
+	if (newDir.x != 0 && dir.x == 0) {
+		newFeature._localPosition.z -= (CHUNK_WIDTH * newDir.z);
+		g_pendingFeatures.push_back(std::pair<glm::ivec3, WorldFeature>({wf.first.x, wf.first.y, wf.first.z + newDir.z}, newFeature));
+		dir.z = newDir.z;
+	}
+	else if (newDir.y != 0 && dir.y == 0) {
+		newFeature._localPosition.y -= (CHUNK_HEIGHT * newDir.y);
+		g_pendingFeatures.push_back(std::pair<glm::ivec3, WorldFeature>({wf.first.x, wf.first.y + newDir.y, wf.first.z}, newFeature));
+		dir.y = newDir.y;
+	}
+	else if (newDir.z != 0 && dir.z == 0) {
+		newFeature._localPosition.x -= (CHUNK_WIDTH * newDir.x);
+		g_pendingFeatures.push_back(std::pair<glm::ivec3, WorldFeature>({wf.first.x + newDir.x, wf.first.y, wf.first.z}, newFeature));
+		dir.x = newDir.x;
+	}
+}
+
 /// ---
 
 /// Public methods
 void	LayeredChunk::generate(const glm::ivec3 &pos)
 {
+	glm::ivec3	wPos = {pos.x / CHUNK_WIDTH, pos.y / CHUNK_HEIGHT, pos.z / CHUNK_WIDTH};
+
+	// Pre-compute the perlin noise factors
 	float *	heightFactors = _computeHeightMap(pos);
 	float *	heatFactors = _computeHeatMap(pos);
 	float *	humidityFactors = _computeHumidityMap(pos);
 	float *	featuresFactors = _computeFeatureMap(pos);
 	float **	caveFactors = _computeCaveNoise(pos, heightFactors);
 
-	glm::ivec3	wPos = {pos.x / CHUNK_WIDTH, pos.y / CHUNK_HEIGHT, pos.z / CHUNK_WIDTH};
-
 	// Store the first block of each layer to handle decompression
 	uint8_t	fstBlkPerLayer[CHUNK_HEIGHT] = {0};
-
 	for (int i = pos.y; i < CHUNK_HEIGHT + pos.y; i++)
 		fstBlkPerLayer[i - pos.y] = (i < heightFactors[0]);
 	
 	// Populate the chunk according to the pre-computed perlin noise factors
 	for (int i = pos.x; i < CHUNK_WIDTH + pos.x; i++) {
 		for (int j = pos.z; j < CHUNK_WIDTH + pos.z; j++) {
+			// Convert's the 2D coordinates to a 1D index
 			int	idx = (i - pos.x) * CHUNK_WIDTH + (j - pos.z);
 
+			// Get the current biome ID
 			uint8_t	biomeID = _getBiomeID(idx, heatFactors, humidityFactors);
 
 			for (int k = pos.y; k < CHUNK_HEIGHT + pos.y; k++) {
+				// Get the current blockID according to the pre-computed factors
 				uint8_t	id = _getBlockFromBiome(heightFactors[idx], k, biomeID) * ((k < heightFactors[idx] && caveFactors[idx][k - pos.y] < 0.01f));
 				
+				// Decompress the layer if needed
 				if (id != fstBlkPerLayer[k - pos.y] && dynamic_cast<SingleBlockChunkLayer *>(this->_layer[k - pos.y]))
 					this->_layer[k - pos.y] = _blockToLayer(this->_layer[k - pos.y]);
+
+				// Set the block
 				(*this->_layer[k - pos.y])[idx] = id;
-				if (k == (int)heightFactors[idx] && featuresFactors[idx] > 1.0f)
-					g_pendingFeatures.push_back(std::pair(wPos, _getFeatureFromBiome(biomeID, {i - pos.x, k - pos.y, j - pos.z})));
+
+				// Add new pending World features to be generated
+				WorldFeature	newFeature = _getFeatureFromBiome(biomeID, {i - pos.x, k - pos.y, j - pos.z});
+				if (k == (int)heightFactors[idx] && featuresFactors[idx] > WORLDFEATURE_THRESHOLDS[newFeature._type])
+					g_pendingFeatures.push_back(std::pair(wPos, newFeature));
 			}
 		}
 	}
-
 
 	for (auto it = g_pendingFeatures.begin(); it != g_pendingFeatures.end();) {
 		if (it->first != wPos || it->second._type == WF_NONE) {
@@ -318,79 +356,52 @@ void	LayeredChunk::generate(const glm::ivec3 &pos)
 			continue ;
 		}
 
-		glm::ivec3	newDir = {0, 0, 0};
+		// Iterate over all the block of the current feature to copy them in the current chunk
 		for (int i = 1; i <= it->second._data[0].x; i++) {
-			int	idx = (it->second._data[i].x + it->second._localPosition.x) * CHUNK_WIDTH + (it->second._data[i].z + it->second._localPosition.z);
-			
+			// Convert's the 2D coordinates to a 1D index
+			int		idx = (it->second._data[i].x + it->second._localPosition.x) * CHUNK_WIDTH + (it->second._data[i].z + it->second._localPosition.z);
+
+			// Handle World features overflow in the Y axix
 			if (it->second._localPosition.y + it->second._data[i].y >= CHUNK_HEIGHT) {
-				if (it->second._origin == true && newDir.y == 0) {
-					WorldFeature	newFeature = it->second;
-					newFeature._localPosition.y -= CHUNK_HEIGHT;
-					newFeature._origin = false;
-					g_pendingFeatures.push_back(std::pair<glm::ivec3, WorldFeature>({it->first.x, it->first.y + 1, it->first.z}, newFeature));
-					newDir.y = 1;
-				}
+				_handleWorldFeatureOverflow(*it, {0, 1, 0}, false);
 				continue ;
 			}
 			else if (it->second._localPosition.y + it->second._data[i].y < 0) {
-				if (it->second._origin == true && newDir.y == 0) {
-					WorldFeature	newFeature = it->second;
-					newFeature._localPosition.y += CHUNK_HEIGHT;
-					newFeature._origin = false;
-					g_pendingFeatures.push_back(std::pair<glm::ivec3, WorldFeature>({it->first.x, it->first.y - 1, it->first.z}, newFeature));
-					newDir.y = -1;
-				}
+				_handleWorldFeatureOverflow(*it, {0, -1, 0}, false);
 				continue ;
 			}
 			
+			// Handle World features overflow in the Z axix
 			if (it->second._localPosition.z + it->second._data[i].z >= CHUNK_WIDTH) {
-				if (it->second._origin == true && newDir.x == 0) {
-					WorldFeature	newFeature = it->second;
-					newFeature._localPosition.x -= CHUNK_WIDTH;
-					newFeature._origin = false;
-					g_pendingFeatures.push_back(std::pair<glm::ivec3, WorldFeature>({it->first.x + 1, it->first.y, it->first.z}, newFeature));
-					newDir.x = 1;
-				}
+				_handleWorldFeatureOverflow(*it, {1, 0, 0}, false);
 				continue ;
 			}
 			else if (it->second._localPosition.z + it->second._data[i].z < 0) {
-				if (it->second._origin == true && newDir.x == 0) {
-					WorldFeature	newFeature = it->second;
-					newFeature._localPosition.x += CHUNK_WIDTH;
-					newFeature._origin = false;
-					g_pendingFeatures.push_back(std::pair<glm::ivec3, WorldFeature>({it->first.x - 1, it->first.y, it->first.z}, newFeature));
-					newDir.x = -1;
-				}
+				_handleWorldFeatureOverflow(*it, {-1, 0, 0}, false);
 				continue ;
 			}
 
+			// Handle World features overflow in the X axix
 			if (it->second._localPosition.x + it->second._data[i].x >= CHUNK_WIDTH) {
-				if (it->second._origin == true && newDir.z == 0) {
-					WorldFeature	newFeature = it->second;
-					newFeature._localPosition.z -= CHUNK_WIDTH;
-					newFeature._origin = false;
-					g_pendingFeatures.push_back(std::pair<glm::ivec3, WorldFeature>({it->first.x, it->first.y, it->first.z + 1}, newFeature));
-					newDir.z = 1;
-				}
+				_handleWorldFeatureOverflow(*it, {0, 0, 1}, false);
 				continue ;
 			}
 			else if (it->second._localPosition.x + it->second._data[i].x < 0) {
-				if (it->second._origin == true && newDir.z == 0) {
-					WorldFeature	newFeature = it->second;
-					newFeature._localPosition.z += CHUNK_WIDTH;
-					newFeature._origin = false;
-					g_pendingFeatures.push_back(std::pair<glm::ivec3, WorldFeature>({it->first.x, it->first.y, it->first.z - 1}, newFeature));
-					newDir.z = -1;
-				}
+				_handleWorldFeatureOverflow(*it, {0, 0, -1}, false);
 				continue ;
 			}
 
+			// Decompress the layer if needed
 			if (it->second._data[i].w != fstBlkPerLayer[it->second._localPosition.y + it->second._data[i].y] && dynamic_cast<SingleBlockChunkLayer *>(this->_layer[it->second._localPosition.y + it->second._data[i].y]))
 				this->_layer[it->second._localPosition.y + it->second._data[i].y] = _blockToLayer(this->_layer[it->second._localPosition.y + it->second._data[i].y]);
 			
+			// Set the block
 			(*this->_layer[it->second._localPosition.y + it->second._data[i].y])[idx] = it->second._data[i].w;
 		}
+		// Reset the function static variable for future usage
+		_handleWorldFeatureOverflow(*it, {0, 0, 0}, true);
 
+		// Remove the pending feature from the list
 		g_pendingFeatures.erase(it);
 		it = g_pendingFeatures.begin();
 	}

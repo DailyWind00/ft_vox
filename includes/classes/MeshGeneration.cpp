@@ -90,94 +90,6 @@ static inline bool	isNeightbourLoaded(ChunkData *neightbour) {
 	return neightbour && neightbour->chunk && (neightbour->hasMesh() || neightbour->inCreation);
 }
 
-static bool	isOpac(const uint8_t &block)
-{
-	if (!block || block == 6)
-		return (false);
-	return (true);
-}
-
-// Check if the voxel at the given position is visible
-// Return a bitmask of the visible faces (6 bits : ZzYyXx)
-static uint8_t	isVoxelVisible(const ivec3 &Vpos, const ChunkData &chunk, ChunkData *neightboursChunks[6]) {
-	AChunk *		data = chunk.chunk;
-	const size_t &	LOD = chunk.LOD;
-	const size_t &	x = Vpos.x;
-	const size_t &	y = Vpos.y;
-	const size_t &	z = Vpos.z;
-
-	// Check if the voxel is solid
-	if (!BLOCK_AT(data, x, y, z))
-		return 0;
-
-	// Define neightbouring blocks positions
-	ivec3	neightbours[6] = {
-		{x - 1 * LOD, y, z},
-		{x + 1 * LOD, y, z},
-		{x, y - 1 * LOD, z},
-		{x, y + 1 * LOD, z},
-		{x, y, z - 1 * LOD},
-		{x, y, z + 1 * LOD}
-	};
-
-	uint8_t	visibleFaces = 0;
-
-	// TODO : Compact & optimize this code
-	for (const ivec3 &pos : neightbours) {
-		/// X axis
-		// Border
-		if (pos.x < 0) {
-			if (!isNeightbourLoaded(neightboursChunks[4]) || (neightboursChunks[4]->chunk && !BLOCK_AT(neightboursChunks[4]->chunk, CHUNK_SIZE - LOD, pos.y, pos.z)))
-				visibleFaces |= (1 << 0);
-		}
-		else if (pos.x >= CHUNK_SIZE) {
-			if (!isNeightbourLoaded(neightboursChunks[5]) || (neightboursChunks[5]->chunk && !BLOCK_AT(neightboursChunks[5]->chunk, 0, pos.y, pos.z)))
-				visibleFaces |= (1 << 1);
-		}
-		// Inside
-		else if (size_t(pos.x) < x && !isOpac(BLOCK_AT(data, pos.x, pos.y, pos.z)))
-				visibleFaces |= (1 << 0);
-		else if (size_t(pos.x) > x && !isOpac(BLOCK_AT(data, pos.x, pos.y, pos.z)))
-				visibleFaces |= (1 << 1);
-
-
-		/// y axis
-		// Border
-		if (pos.y < 0) {
-			if (!isNeightbourLoaded(neightboursChunks[2]) || (neightboursChunks[2]->chunk && !BLOCK_AT(neightboursChunks[2]->chunk, pos.x, CHUNK_SIZE - LOD, pos.z)))
-				visibleFaces |= (1 << 2);
-		}
-		else if (pos.y >= CHUNK_SIZE) {
-			if (!isNeightbourLoaded(neightboursChunks[3]) || (neightboursChunks[3]->chunk && !BLOCK_AT(neightboursChunks[3]->chunk, pos.x, 0, pos.z)))
-				visibleFaces |= (1 << 3);
-		}
-		// Inside
-		else if (size_t(pos.y) < y && !isOpac(BLOCK_AT(data, pos.x, pos.y, pos.z)))
-				visibleFaces |= (1 << 2);
-		else if (size_t(pos.y) > y && !isOpac(BLOCK_AT(data, pos.x, pos.y, pos.z)))
-				visibleFaces |= (1 << 3);
-
-
-		/// z axis
-		// Border
-		if (pos.z < 0) {
-			if (!isNeightbourLoaded(neightboursChunks[0]) || (neightboursChunks[0]->chunk && !BLOCK_AT(neightboursChunks[0]->chunk, pos.x, pos.y, CHUNK_SIZE - LOD)))
-				visibleFaces |= (1 << 4);
-		}
-		else if (pos.z >= CHUNK_SIZE) {
-			if (!isNeightbourLoaded(neightboursChunks[1]) || (neightboursChunks[1]->chunk && !BLOCK_AT(neightboursChunks[1]->chunk, pos.x, pos.y, 0)))
-				visibleFaces |= (1 << 5);
-		}
-		// Inside
-		else if (size_t(pos.z) < z && !isOpac(BLOCK_AT(data, pos.x, pos.y, pos.z)))
-				visibleFaces |= (1 << 4);
-		else if (size_t(pos.z) > z && !isOpac(BLOCK_AT(data, pos.x, pos.y, pos.z)))
-				visibleFaces |= (1 << 5);
-	}
-
-	return visibleFaces;
-}
-
 // Update the area of the given buffer
 // Use of template to avoid issues with the different buffer types
 template<typename AreaType>
@@ -201,37 +113,155 @@ void	VoxelSystem::_generateMesh(ChunkData &chunk, ChunkData *neightboursChunks[6
 	if (!chunk.chunk || (IS_CHUNK_COMPRESSED(chunk.chunk) && !BLOCK_AT(chunk.chunk, 0, 0, 0)))
 		return;
 
-	vector<DATA_TYPE>	vertices[6];
+	uint64_t	xAxisBitmask[(CHUNK_WIDTH + 2) * (CHUNK_HEIGHT + 2)] = {0};
+	uint64_t	yAxisBitmask[(CHUNK_WIDTH + 2) * (CHUNK_WIDTH + 2)] = {0};
+	uint64_t	zAxisBitmask[(CHUNK_WIDTH + 2) * (CHUNK_HEIGHT + 2)] = {0};
 
-	// Generate vertices for visible faces
-	for (size_t x = 0; x < CHUNK_SIZE; x += chunk.LOD) {
-		for (size_t y = 0; y < CHUNK_SIZE; y += chunk.LOD) {
-			if (IS_LAYER_COMPRESSED(chunk.chunk, y) && !BLOCK_AT(chunk.chunk, x, y, 0))
-				continue; // Void layer
-
-			for (size_t z = 0; z < CHUNK_SIZE; z += chunk.LOD) {
-
-				uint8_t visibleFaces = isVoxelVisible({x, y, z}, chunk, neightboursChunks);
-				if (!visibleFaces)
-					continue;
-
-				for (int i = 0; i < 6; i++) {
-					if (visibleFaces & (1 << i)) {
-						DATA_TYPE data = 0;
-
-						// Encode data
-						data |= (x & 0x1F);     	// 5 bits for x
-						data |= (y & 0x1F) << 5;	// 5 bits for y
-						data |= (z & 0x1F) << 10;	// 5 bits for z
-
-						data |= (BLOCK_AT(chunk.chunk, x, y, z) & 0x7F) << 15;	// 7 bits for block ID
-
-						data |= ((1 - 1) & 0x1F) << 22;	// 5 bits for length (1 by default)
-						data |= ((1 - 1) & 0x1F) << 27;	// 5 bits for length (1 by default)
-
-						vertices[i].push_back(data);
-					}
+	// Set the bitmasks of all the axis
+	for (uint64_t y = 0; y < CHUNK_HEIGHT; y++) {
+		for (uint64_t z = 0; z < CHUNK_WIDTH; z++) {
+			for (uint64_t x = 0; x < CHUNK_WIDTH; x++) {
+				// For each axis, write a bit to represent a solid block
+				if (BLOCK_AT(chunk.chunk, x, y, z) != 0) {
+					xAxisBitmask[y * CHUNK_HEIGHT + z] |= (uint64_t)0x1 << (x + 1);	// Bit-shift is offset by one to allow for neighbour data
+					yAxisBitmask[z * CHUNK_WIDTH + x] |= (uint64_t)0x1 << (y + 1);	// Bit-shift is offset by one to allow for neighbour data
+					zAxisBitmask[y * CHUNK_HEIGHT + x] |= (uint64_t)0x1 << (z + 1);	// Bit-shift is offset by one to allow for neighbour data
 				}
+			}
+		}
+	}
+
+	// Get the X axis neighbours data
+	for (uint64_t i = 0; i < CHUNK_HEIGHT * CHUNK_WIDTH; i++) {
+		uint64_t	y = i / CHUNK_WIDTH;
+		uint64_t	z = i % CHUNK_WIDTH;
+		if (isNeightbourLoaded(neightboursChunks[4]) && BLOCK_AT(neightboursChunks[4]->chunk, CHUNK_WIDTH - 1, y, z))
+			xAxisBitmask[i] |= (uint64_t)0x1 << 0;
+		if (isNeightbourLoaded(neightboursChunks[5]) && BLOCK_AT(neightboursChunks[5]->chunk, 0, y, z))
+			xAxisBitmask[i] |= (uint64_t)0x1 << (CHUNK_WIDTH + 1);
+	}
+
+	// Get the Y axis neighbours data
+	for (uint64_t i = 0; i < CHUNK_WIDTH * CHUNK_WIDTH; i++) {
+		uint64_t	x = i % CHUNK_WIDTH;
+		uint64_t	z = i / CHUNK_WIDTH;
+		if (isNeightbourLoaded(neightboursChunks[2]) && BLOCK_AT(neightboursChunks[2]->chunk, x, CHUNK_HEIGHT - 1, z))
+			yAxisBitmask[i] |= (uint64_t)0x1 << 0;
+		if (isNeightbourLoaded(neightboursChunks[3]) && BLOCK_AT(neightboursChunks[3]->chunk, x, 0, z))
+			yAxisBitmask[i] |= (uint64_t)0x1 << (CHUNK_HEIGHT + 1);
+	}
+
+	// Get the Z axis neighbours data
+	for (uint64_t i = 0; i < CHUNK_HEIGHT * CHUNK_WIDTH; i++) {
+		uint64_t	x = i % CHUNK_WIDTH;
+		uint64_t	y = i / CHUNK_HEIGHT;
+		if (isNeightbourLoaded(neightboursChunks[0]) && BLOCK_AT(neightboursChunks[0]->chunk, x, y, CHUNK_WIDTH - 1))
+			zAxisBitmask[i] |= (uint64_t)0x1 << 0;
+		if (isNeightbourLoaded(neightboursChunks[1]) && BLOCK_AT(neightboursChunks[1]->chunk, x, y, 0))
+			zAxisBitmask[i] |= (uint64_t)0x1 << (CHUNK_WIDTH + 1);
+	}
+
+	// Temporary hack to get basic meshing working with the new culling system (WILL GET REPLACED SOON !!)
+	vector<DATA_TYPE>	vertices[6];
+	for (uint64_t i = 0; i < CHUNK_WIDTH * CHUNK_WIDTH; i++) {
+		uint64_t	col = xAxisBitmask[i];
+		// Culling facing forwardX
+		uint64_t	forwardXCol = col & ~(col >> 1);
+		forwardXCol = forwardXCol >> 1;
+		forwardXCol = forwardXCol & ~((uint64_t)1 << CHUNK_WIDTH);
+		// Culling facing backwardX
+		uint64_t	backwardXCol = col & ~(col << 1);
+		backwardXCol = backwardXCol >> 1;
+		backwardXCol = backwardXCol & ~((uint64_t)1 << CHUNK_WIDTH);
+		for (int j = 0; j < CHUNK_WIDTH; j++) {
+			uint8_t	id = BLOCK_AT(chunk.chunk, j, i / CHUNK_WIDTH, i % CHUNK_WIDTH);
+			if (1 & (forwardXCol >> j)) {
+				DATA_TYPE	data = 0;
+				data |= ((j) & 0x1F);			// X
+				data |= ((i / CHUNK_WIDTH) & 0x1F) << 5;	// Y
+				data |= ((i % CHUNK_WIDTH) & 0x1F) << 10;	// Z
+				data  |= (id & 0x7F) << 15;			// Block ID
+				data |= (0 & 0x1F) << 22;			// Face length
+				data |= (0 & 0x1F) << 27;			// Face length
+				vertices[1].push_back(data);
+			}
+			if (1 & (backwardXCol >> j)) {
+				DATA_TYPE	data = 0;
+				data |= ((j) & 0x1F);			// X
+				data |= ((i / CHUNK_WIDTH) & 0x1F) << 5;	// Y
+				data |= ((i % CHUNK_WIDTH) & 0x1F) << 10;	// Z
+				data  |= (id & 0x7F) << 15;			// Block ID
+				data |= (0 & 0x1F) << 22;			// Face length
+				data |= (0 & 0x1F) << 27;			// Face length
+				vertices[0].push_back(data);
+			}
+		}
+	}
+	for (uint64_t i = 0; i < CHUNK_WIDTH * CHUNK_WIDTH; i++) {
+		uint64_t	col = yAxisBitmask[i];
+		// Culling facing forwardY
+		uint64_t	forwardYCol = col & ~(col >> 1);
+		forwardYCol = forwardYCol >> 1;
+		forwardYCol = forwardYCol & ~((uint64_t)1 << CHUNK_WIDTH);
+		// Culling facing backwardY
+		uint64_t	backwardYCol = col & ~(col << 1);
+		backwardYCol = backwardYCol >> 1;
+		backwardYCol = backwardYCol & ~((uint64_t)1 << CHUNK_WIDTH);
+		for (int j = 0; j < CHUNK_WIDTH; j++) {
+			uint8_t	id = BLOCK_AT(chunk.chunk, i % CHUNK_WIDTH, j, i / CHUNK_WIDTH);
+			if (1 & (forwardYCol >> j)) {
+				DATA_TYPE	data = 0;
+				data |= ((i % CHUNK_WIDTH) & 0x1F);	// X
+				data |= (j & 0x1F) << 5;		// Y
+				data |= ((i / CHUNK_WIDTH) & 0x1F) << 10;// Z
+				data  |= (id & 0x7F) << 15;		// Block ID
+				data |= (0 & 0x1F) << 22;		// Face length
+				data |= (0 & 0x1F) << 27;		// Face length
+				vertices[3].push_back(data);
+			}
+			if (1 & (backwardYCol >> j)) {
+				DATA_TYPE	data = 0;
+				data |= ((i % CHUNK_WIDTH) & 0x1F);	// X
+				data |= (j & 0x1F) << 5;		// Y
+				data |= ((i / CHUNK_WIDTH) & 0x1F) << 10;// Z
+				data |= (id & 0x7F) << 15;		// Block ID
+				data |= (0 & 0x1F) << 22;		// Face length
+				data |= (0 & 0x1F) << 27;		// Face length
+				vertices[2].push_back(data);
+			}
+		}
+	}
+	for (uint64_t i = 0; i < CHUNK_WIDTH * CHUNK_WIDTH; i++) {
+		uint64_t	col = zAxisBitmask[i];
+		// Culling facing forwardY
+		uint64_t	forwardZCol = col & ~(col >> 1);
+		forwardZCol = forwardZCol >> 1;
+		forwardZCol = forwardZCol & ~((uint64_t)1 << CHUNK_WIDTH);
+		// Culling facing backwardY
+		uint64_t	backwardZCol = col & ~(col << 1);
+		backwardZCol = backwardZCol >> 1;
+		backwardZCol = backwardZCol & ~((uint64_t)1 << CHUNK_WIDTH);
+		for (int j = 0; j < CHUNK_WIDTH; j++) {
+			uint8_t	id = BLOCK_AT(chunk.chunk, i % CHUNK_WIDTH, i / CHUNK_WIDTH, j);
+			if (1 & (forwardZCol >> j)) {
+				DATA_TYPE	data = 0;
+				data |= ((i % CHUNK_WIDTH) & 0x1F);	// X
+				data |= ((i / CHUNK_WIDTH) & 0x1F) << 5;// Y
+				data |= ((j) & 0x1F) << 10;		// Z
+				data |= (id & 0x7F) << 15;		// Block ID
+				data |= (0 & 0x1F) << 22;		// Face length
+				data |= (0 & 0x1F) << 27;		// Face length
+				vertices[5].push_back(data);
+			}
+			if (1 & (backwardZCol >> j)) {
+				DATA_TYPE	data = 0;
+				data |= ((i % CHUNK_WIDTH) & 0x1F);	// X
+				data |= ((i / CHUNK_WIDTH) & 0x1F) << 5;// Y
+				data |= ((j) & 0x1F) << 10;		// Z
+				data |= (id & 0x7F) << 15;		// Block ID
+				data |= (0 & 0x1F) << 22;		// Face length
+				data |= (0 & 0x1F) << 27;		// Face length
+				vertices[4].push_back(data);
 			}
 		}
 	}

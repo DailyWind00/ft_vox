@@ -41,8 +41,8 @@ vec3	contructBlock(const vec2 len)
 		finalQuad.z *= len.x;
 		finalQuad.y *= len.y;
 
-		finalQuad.y -= len.y - 1;
-		finalQuad.x += len.y - 1;
+		// finalQuad.y -= len.y - 1;
+		// finalQuad.x += len.y - 1;
 		uv = UVs;
 	}
 	else if (face == 0) {
@@ -50,7 +50,7 @@ vec3	contructBlock(const vec2 len)
 		finalQuad.z *= len.x;
 		finalQuad.y *= len.y;
 
-		finalQuad.y -= len.y - 1;
+		// finalQuad.y -= len.y - 1;
 		finalQuad.x = 0;
 		uv = UVs.yx;
 	}
@@ -75,16 +75,12 @@ vec3	contructBlock(const vec2 len)
 		finalQuad = quad.zxy;
 		finalQuad.x *= len.x;
 		finalQuad.y *= len.y;
-		finalQuad.y -= len.y - 1;
-		finalQuad.z += len.y - 1;
 		uv = UVs.yx;
 	}
 	else if (face == 4) {
 		finalQuad = quad.xzy;
 		finalQuad.x *= len.x;
 		finalQuad.y *= len.y;
-		finalQuad.y -= len.y - 1;
-		finalQuad.z += len.y - 1;
 		finalQuad.z = 0;
 		uv = UVs;
 	}

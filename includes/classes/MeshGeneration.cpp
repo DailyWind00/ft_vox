@@ -100,8 +100,8 @@ static inline void updateArea(AreaType &area, size_t old_size, size_t current_si
 	// }
 }
 
-// function to quickly count the number of trailing zeros in a binary number representation
-static int	trailing_zeros(uint64_t x)
+// function to quickly count the number of trailing zeros in a 64-bit binary number representation
+static int	trailing_zeros64(uint64_t x)
 {
 	int	n = 1;
 	
@@ -129,34 +129,108 @@ static int	trailing_zeros(uint64_t x)
 	return n - (x & 1);
 }
 
-// function to quickly count the number of trailing ones in a binary number representation
-static int	trailing_ones(uint64_t x)
+// function to quickly count the number of trailing ones in a 64-bit binary number representation
+static int	trailing_ones64(uint64_t x)
 {
-	return trailing_zeros(~x);
+	return trailing_zeros64(~x);
+}
+
+// function to quickly count the number of trailing zeros in a 32-bit binary number representation
+static int	trailing_zeros32(uint64_t x)
+{
+	int	n = 1;
+	
+	if (!x) return 32;
+	if ((x & 0x0000FFFF) == 0) {
+		n = n + 16;
+		x = x >> 16;
+	}
+	if ((x & 0x000000FF) == 0) {
+		n = n + 8;
+		x = x >> 8;
+	}
+	if ((x & 0x0000000F) == 0) {
+		n = n + 4;
+		x = x >> 4;
+	}
+	if ((x & 0x00000003) == 0) {
+		n = n + 2;
+		x = x >> 2;
+	}
+	return n - (x & 1);
+}
+
+// function to quickly count the number of trailing ones in a 32-bit binary number representation
+static int	trailing_ones32(uint64_t x)
+{
+	return trailing_zeros32(~x);
+}
+static DATA_TYPE	constructFace(const glm::ivec3 &pos, const uint8_t &blockID, const glm::ivec2 &size)
+{
+	DATA_TYPE	data = 0;
+
+	data |= (pos.x & 0x1F);		// X
+	data |= (pos.y & 0x1F) << 5;	// Y
+	data |= (pos.z & 0x1F) << 10;	// Z
+	data |= (blockID & 0x7F) << 15;	// Block ID
+	data |= (size.x & 0x1F) << 22;	// Face length
+	data |= (size.y & 0x1F) << 27;	// Face length
+	return (data);
+}
+
+static uint64_t		binMap(const uint64_t &x, const uint64_t &count)
+{
+	int	res = 0;
+
+	for (uint64_t i = 0; i < count; i++)
+		res |= x << i;
+	return (res);
 }
 
 // Binary greedy meshing algorythme
 // Will quickly construte a mesh plane from a binary plane
-static void	binaryGreedyMeshing(std::vector<DATA_TYPE> *vertices, uint64_t plane[(CHUNK_WIDTH + 2) * (CHUNK_WIDTH + 2)], const uint8_t &blockID, const uint8_t &axis)
+static void	binaryGreedyMeshing(std::vector<DATA_TYPE> *vertices, uint32_t plane[CHUNK_WIDTH], const uint32_t &depth, const uint8_t &blockID, const uint8_t &axis)
 {
-	for (int i = 0; i < CHUNK_WIDTH * CHUNK_WIDTH; i++) {
-		for (int j = 0; j < CHUNK_WIDTH; j++) {
-			if (!(1 & (plane[i] >> j)))
-				continue ;
-			glm::ivec3	pos = {j, i / CHUNK_WIDTH, i % CHUNK_WIDTH};
-			if (axis == 1)
-				pos = {i % CHUNK_WIDTH, j, i / CHUNK_WIDTH};
-			else if (axis == 2)
-				pos = {i % CHUNK_WIDTH, i / CHUNK_WIDTH, j};
+	for (int i = 0; i < CHUNK_WIDTH; i++) {
+		int	col = 0;
 
-			DATA_TYPE	data = 0;
-			data |= (pos.x & 0x1F);		// X
-			data |= (pos.y & 0x1F) << 5;	// Y
-			data |= (pos.z & 0x1F) << 10;	// Z
-			data |= (blockID & 0x7F) << 15;	// Block ID
-			data |= (0 & 0x1F) << 22;	// Face length
-			data |= (0 & 0x1F) << 27;	// Face length
-			vertices->push_back(data);
+		while (col < CHUNK_WIDTH ) {
+			col += trailing_zeros32(plane[i] >> col);
+			if (col >= CHUNK_WIDTH)
+				continue ;
+
+			int	height = trailing_ones32(plane[i] >> col);
+			int	width = 1;
+
+			uint32_t	h = binMap(0x1, height);
+			uint32_t	heightMask = h << col;
+
+			while (i + width < CHUNK_WIDTH ) {
+				uint64_t	next = (plane[i + width] >> col) & h;
+				if (h != next)
+					break ;
+				plane[i + width] = plane[i + width] & ~heightMask;
+				width++;
+			}
+
+			glm::ivec3	pos = {0, 0, 0};
+			glm::ivec2	size = {0, 0};
+
+			if (axis == 0) {
+				pos = {depth, i, col};
+				size = {height - 1, width - 1};
+			}
+			else if (axis == 1){
+				pos = {col, depth, i};
+				size = {width - 1, height - 1};
+			}
+			else if (axis == 2) {
+				pos = {col, i, depth};
+				size = {height - 1, width - 1};
+			}
+
+			vertices->push_back(constructFace(pos, blockID, size));
+			col += height;
 		}
 	}
 }
@@ -173,7 +247,7 @@ static void	constructXAxisMesh(std::vector<DATA_TYPE> (&vertices)[6], uint64_t (
 			xAxisBitmask[i] |= (uint64_t)0x1 << (CHUNK_WIDTH + 1);
 	}
 	
-	std::map<uint8_t, uint64_t[(CHUNK_WIDTH + 2) * (CHUNK_HEIGHT + 2)]>	binaryPlaneHM[2];
+	std::map<uint8_t, uint32_t[CHUNK_WIDTH][CHUNK_WIDTH]>	binaryPlaneHM[2];
 	for (int i = 0; i < CHUNK_WIDTH * CHUNK_WIDTH; i++) {
 		// Culling facing forwardX
 		uint64_t	forwardXCol = xAxisBitmask[i] & ~(xAxisBitmask[i] >> 1);
@@ -189,17 +263,17 @@ static void	constructXAxisMesh(std::vector<DATA_TYPE> (&vertices)[6], uint64_t (
 			uint8_t	id = BLOCK_AT(chunk.chunk, j, i / CHUNK_WIDTH, i % CHUNK_WIDTH);
 			
 			if (1 & (backwardXCol >> j))
-				binaryPlaneHM[0][id][i] |= (uint64_t)0x1 << j;
+				binaryPlaneHM[0][id][j][i / CHUNK_WIDTH] |= (uint32_t)0x1 << (i % CHUNK_WIDTH);
 
 			if (1 & (forwardXCol >> j))
-				binaryPlaneHM[1][id][i] |= (uint64_t)0x1 << j;
+				binaryPlaneHM[1][id][j][i / CHUNK_WIDTH] |= (uint32_t)0x1 << (i % CHUNK_WIDTH);
 		}
 	}
-
 	// Execute the binary greedy meshing algorythme for the X axis
 	for (int i = 0; i < 2; i++)
 		for (auto &[key, value] : binaryPlaneHM[i])
-			binaryGreedyMeshing(&vertices[i], value, key, 0);
+			for (int j = 0; j < CHUNK_WIDTH; j++)
+				binaryGreedyMeshing(&vertices[i], value[j], j, key, 0);
 }
 
 static void	constructYAxisMesh(std::vector<DATA_TYPE> (&vertices)[6], uint64_t (&yAxisBitmask)[(CHUNK_WIDTH + 2) * (CHUNK_WIDTH + 2)], ChunkData &chunk, ChunkData *neightboursChunks[6])
@@ -214,7 +288,7 @@ static void	constructYAxisMesh(std::vector<DATA_TYPE> (&vertices)[6], uint64_t (
 			yAxisBitmask[i] |= (uint64_t)0x1 << (CHUNK_HEIGHT + 1);
 	}
 
-	std::map<uint8_t, uint64_t[(CHUNK_WIDTH + 2) * (CHUNK_HEIGHT + 2)]>	binaryPlaneHM[2];
+	std::map<uint8_t, uint32_t[CHUNK_WIDTH][CHUNK_HEIGHT]>	binaryPlaneHM[2];
 	for (int i = 0; i < CHUNK_WIDTH * CHUNK_WIDTH; i++) {
 		// Culling facing forwardX
 		uint64_t	forwardYCol = yAxisBitmask[i] & ~(yAxisBitmask[i] >> 1);
@@ -230,16 +304,17 @@ static void	constructYAxisMesh(std::vector<DATA_TYPE> (&vertices)[6], uint64_t (
 			uint8_t	id = BLOCK_AT(chunk.chunk, i % CHUNK_WIDTH, j, i / CHUNK_WIDTH);
 
 			if (1 & (backwardYCol >> j))
-				binaryPlaneHM[0][id][i] |= (uint64_t)0x1 << j;
+				binaryPlaneHM[0][id][j][i / CHUNK_WIDTH] |= (uint64_t)0x1 << (i % CHUNK_WIDTH);
 
 			if (1 & (forwardYCol >> j))
-				binaryPlaneHM[1][id][i] |= (uint64_t)0x1 << j;
+				binaryPlaneHM[1][id][j][i / CHUNK_WIDTH] |= (uint64_t)0x1 << (i % CHUNK_WIDTH);
 		}
 	}
 	// Execute the binary greedy meshing algorythme for the X axis
 	for (int i = 0; i < 2; i++)
 		for (auto &[key, value] : binaryPlaneHM[i])
-			binaryGreedyMeshing(&vertices[i + 2], value, key, 1);
+			for (int j = 0; j < CHUNK_WIDTH; j++)
+			binaryGreedyMeshing(&vertices[i + 2], value[j], j, key, 1);
 }
 
 static void	constructZAxisMesh(std::vector<DATA_TYPE> (&vertices)[6], uint64_t (&zAxisBitmask)[(CHUNK_WIDTH + 2) * (CHUNK_WIDTH + 2)], ChunkData &chunk, ChunkData *neightboursChunks[6])
@@ -253,8 +328,8 @@ static void	constructZAxisMesh(std::vector<DATA_TYPE> (&vertices)[6], uint64_t (
 		if (isNeightbourLoaded(neightboursChunks[1]) && BLOCK_AT(neightboursChunks[1]->chunk, x, y, 0))
 			zAxisBitmask[i] |= (uint64_t)0x1 << (CHUNK_WIDTH + 1);
 	}
-	
-	std::map<uint8_t, uint64_t[(CHUNK_WIDTH + 2) * (CHUNK_HEIGHT + 2)]>	binaryPlaneHM[2];
+
+	std::map<uint8_t, uint32_t[CHUNK_WIDTH][CHUNK_HEIGHT]>	binaryPlaneHM[2];
 	for (int i = 0; i < CHUNK_WIDTH * CHUNK_WIDTH; i++) {
 		// Culling facing forwardX
 		uint64_t	forwardZCol = zAxisBitmask[i] & ~(zAxisBitmask[i] >> 1);
@@ -270,16 +345,17 @@ static void	constructZAxisMesh(std::vector<DATA_TYPE> (&vertices)[6], uint64_t (
 			uint8_t	id = BLOCK_AT(chunk.chunk, i % CHUNK_WIDTH, i / CHUNK_WIDTH, j);
 
 			if (1 & (backwardZCol >> j))
-				binaryPlaneHM[0][id][i] |= (uint64_t)0x1 << j;
+				binaryPlaneHM[0][id][j][i / CHUNK_WIDTH] |= (uint64_t)0x1 << (i % CHUNK_WIDTH);
 
 			if (1 & (forwardZCol >> j))
-				binaryPlaneHM[1][id][i] |= (uint64_t)0x1 << j;
+				binaryPlaneHM[1][id][j][i / CHUNK_WIDTH] |= (uint64_t)0x1 << (i % CHUNK_WIDTH);
 		}
 	}
 	// Execute the binary greedy meshing algorythme for the X axis
 	for (int i = 0; i < 2; i++)
 		for (auto &[key, value] : binaryPlaneHM[i])
-			binaryGreedyMeshing(&vertices[i + 4], value, key, 2);
+			for (int j = 0; j < CHUNK_WIDTH; j++)
+				binaryGreedyMeshing(&vertices[i + 4], value[j], j, key, 2);
 }
 
 // Create/update the mesh of the given chunk

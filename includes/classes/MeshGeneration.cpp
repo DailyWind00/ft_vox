@@ -24,7 +24,7 @@ void	VoxelSystem::_meshGenerationRoutine() {
 		_buffersMutex.lock();
 
 		for (ChunkRequest request : localRequestedMeshes) {
-			if (batchCount >= BATCH_LIMIT)
+			if (batchCount >= MESH_BATCH_LIMIT)
 				break;
 
 			batchCount++;

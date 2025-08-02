@@ -4,10 +4,11 @@
 # define GLM_ENABLE_EXPERIMENTAL
 # define DATA_TYPE uint32_t
 # define CHUNK_SIZE 32
-# define HORIZONTAL_RENDER_DISTANCE 10
-# define VERTICAL_RENDER_DISTANCE 4
+# define HORIZONTAL_RENDER_DISTANCE 14
+# define VERTICAL_RENDER_DISTANCE 6
 # define BUFFER_GROWTH_FACTOR 2
-# define BATCH_LIMIT (size_t)512
+# define MESH_BATCH_LIMIT (size_t)2048
+# define CHUNK_BATCH_LIMIT (size_t)512
 # define THREAD_SLEEP_DURATION 10 // in ms
 # define MIN_LOD (size_t)4
 # define MAX_LOD (size_t)1
@@ -121,9 +122,10 @@ class VoxelSystem {
 		mutex	_buffersMutex;
 
 		// Multi-threading
-		thread	_chunkGenerationThread;
-		thread	_meshGenerationThread;
-		bool	_quitting = false;
+		thread *	_chunkGenerationThreads;
+		thread		_meshGenerationThread;
+		bool		_quitting = false;
+		uint32_t	_cpuCoreCount;
 
 		deque<ChunkRequest>	_requestedChunks;
 		deque<ChunkRequest>	_requestedMeshes;

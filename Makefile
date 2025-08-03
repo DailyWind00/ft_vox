@@ -3,6 +3,14 @@ NAME = ft_vox
 VALGRIND_ARGS =  # Default empty value
 VALGRIND_OUTFILE = valgrind.log
 
+# Output color definition
+EC_DEFAULT = \033[0m
+EC_RED = \033[1;31m
+EC_BLUE = \033[1;34m
+EC_WHITE = \033[1;37m
+EC_ORANGE = \033[1;33m
+EC_GRAY1 = \033[1;38;5;250m
+
 all: release
 
 release:
@@ -11,7 +19,7 @@ release:
 	@cmake -B build -DCMAKE_BUILD_TYPE=Release
 	@make -C build -j $(MAKEFLAGS)
 	@mv build/$(NAME) .
-	@echo "\033[1;34m> Start playing with : \033[1;37m./$(NAME) \033[1;38;5;250m[\033[1;33mflags\033[1;37m\033[1;38;5;250m] \033[1;38;5;250m[\033[1;33mseed\033[1;37m\033[1;38;5;250m]\033[0m"
+	@echo -e "$(EC_BLUE)> Start playing with : $(EC_WHITE)./$(NAME) $(EC_GRAY1)[$(EC_ORANGE)flags$(EC_GRAY1)] [$(EC_ORANGE)seed$(EC_GRAY1)]$(EC_DEFAULT)"
 
 debug:
 	@chmod +x fetch-dependencies.sh
@@ -19,7 +27,7 @@ debug:
 	@cmake -B build -DCMAKE_BUILD_TYPE=Debug
 	@make -C build -j $(MAKEFLAGS)
 	@mv build/$(NAME) .
-	@echo "\033[1;34m> Debug binary ready: \033[1;37m./$(NAME) \033[1;38;5;250m[\033[1;33mflags\033[1;37m\033[1;38;5;250m] \033[1;38;5;250m[\033[1;33mseed\033[1;37m\033[1;38;5;250m]\033[0m"
+	@echo -e "$(EC_BLUE)> Debug binary ready: $(EC_WHITE)./$(NAME) $(EC_GRAY1)[$(EC_ORANGE)flags$(EC_GRAY1)] [$(EC_ORANGE)seed$(EC_GRAY1)]$(EC_DEFAULT)"
 
 clean:
 	@rm -rf build
@@ -36,9 +44,9 @@ re: fclean all
 valgrind:
 	@if [ -f $(NAME) ]; then \
 		valgrind --suppressions=suppresion.supp ./$(NAME) $(VALGRIND_ARGS) 2>&1 | tee $(VALGRIND_OUTFILE); \
-		echo "\033[1;34m> Valgrind log saved to: \033[1;37m$(VALGRIND_OUTFILE)\033[0m"; \
+		echo -e "$(EC_BLUE)> Valgrind log saved to: $(EC_WHITE)$(VALGRIND_OUTFILE)$(EC_DEFAULT)"; \
 	else \
-		echo "\033[1;31mError: Executable not found. Please build first.\033[0m"; \
+		echo -e "$(EC_RED)Error: Executable not found. Please build first.$(EC_DEFAULT)"; \
 	fi
 
 .PHONY: all release debug clean fclean wipe re valgrind

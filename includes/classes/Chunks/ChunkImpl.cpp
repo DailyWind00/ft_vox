@@ -6,6 +6,7 @@
 # include "features_declaration.h"
 
 std::list<std::pair<glm::ivec3, WorldFeature> >	g_pendingFeatures;
+std::unordered_map<glm::ivec2, WorldNoises>	g_worldData;
 
 //// LayeredChunk class
 
@@ -312,16 +313,27 @@ void	LayeredChunk::generate(const glm::ivec3 &pos)
 	glm::ivec3	wPos = {pos.x / CHUNK_WIDTH, pos.y / CHUNK_HEIGHT, pos.z / CHUNK_WIDTH};
 
 	// Pre-compute the perlin noise factors
-	float *	heightFactors = _computeHeightMap(pos);
-	float *	heatFactors = _computeHeatMap(pos);
-	float *	humidityFactors = _computeHumidityMap(pos);
-	float *	featuresFactors = _computeFeatureMap(pos);
-	float **	caveFactors = _computeCaveNoise(pos, heightFactors);
+	
+	WorldNoises	noises;
+	float **	caveFactors;
+
+	if (g_worldData.count({wPos.x, wPos.z})) 
+		noises = g_worldData[{wPos.x, wPos.z}];
+	else {
+		noises = {
+			_computeHeightMap(pos),
+			_computeHeatMap(pos),
+			_computeHumidityMap(pos),
+			_computeFeatureMap(pos),
+		};
+		g_worldData[{wPos.x, wPos.z}] = noises;
+	}
+	caveFactors = _computeCaveNoise(pos, noises.heightMap);
 
 	// Store the first block of each layer to handle decompression
 	uint8_t	fstBlkPerLayer[CHUNK_HEIGHT] = {0};
 	for (int i = pos.y; i < CHUNK_HEIGHT + pos.y; i++)
-		fstBlkPerLayer[i - pos.y] = (i < heightFactors[0]);
+		fstBlkPerLayer[i - pos.y] = (i < noises.heightMap[0]);
 	
 	// Populate the chunk according to the pre-computed perlin noise factors
 	for (int i = pos.x; i < CHUNK_WIDTH + pos.x; i++) {
@@ -330,13 +342,13 @@ void	LayeredChunk::generate(const glm::ivec3 &pos)
 			int	idx = (i - pos.x) * CHUNK_WIDTH + (j - pos.z);
 
 			// Get the current biome ID
-			uint8_t	biomeID = _getBiomeID(idx, heatFactors, humidityFactors);
+			uint8_t	biomeID = _getBiomeID(idx, noises.heatMap, noises.humidityMap);
 
 			for (int k = pos.y; k < CHUNK_HEIGHT + pos.y; k++) {
 				// Get the current blockID according to the pre-computed factors
-				uint8_t	id = _getBlockFromBiome(heightFactors[idx], k, biomeID) * ((k < heightFactors[idx] && caveFactors[idx][k - pos.y] < 0.01f));
+				uint8_t	id = _getBlockFromBiome(noises.heightMap[idx], k, biomeID) * ((k < noises.heightMap[idx] && caveFactors[idx][k - pos.y] < 0.01f));
 
-				if (k >= (int)heightFactors[idx] && k <= 0) {
+				if (k >= (int)noises.heightMap[idx] && k <= 0) {
 					if (id == 0)
 						id = 9;
 					else if (id == 1 || id == 2)
@@ -352,7 +364,7 @@ void	LayeredChunk::generate(const glm::ivec3 &pos)
 
 				// Add new pending World features to be generated
 				WorldFeature	newFeature = _getFeatureFromBiome(biomeID, {i - pos.x, k - pos.y, j - pos.z});
-				if (k == (int)heightFactors[idx] && featuresFactors[idx] > WORLDFEATURE_THRESHOLDS[newFeature._type] && id != 0 && k > 0)
+				if (k == (int)noises.heightMap[idx] && noises.featuresMap[idx] > WORLDFEATURE_THRESHOLDS[newFeature._type] && id != 0 && k > 0)
 					g_pendingFeatures.push_back(std::pair(wPos, newFeature));
 			}
 		}
@@ -413,11 +425,6 @@ void	LayeredChunk::generate(const glm::ivec3 &pos)
 		g_pendingFeatures.erase(it);
 		it = g_pendingFeatures.begin();
 	}
-
-	delete [] heightFactors;
-	delete [] heatFactors;
-	delete [] humidityFactors;
-	delete [] featuresFactors;
 }
 
 void	LayeredChunk::print()

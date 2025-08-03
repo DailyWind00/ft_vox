@@ -113,10 +113,10 @@ VoxelSystem::VoxelSystem(const uint64_t &seed, Camera &camera) : _camera(camera)
 	_cpuCoreCount = std::thread::hardware_concurrency();
 
 	if (VERBOSE)
-		cout << "System has: " << _cpuCoreCount << " CPU cores available.\n Allocating: " << (_cpuCoreCount / 1.5) - 1 << " for chunk generation" << endl;
+		cout << "System has: " << _cpuCoreCount << " CPU cores available.\n Allocating: " << _cpuCoreCount / 2 << " for chunk generation" << endl;
 
-	_chunkGenerationThreads = new thread[(int)(_cpuCoreCount / 1.5)];
-	for (uint32_t i = 0; i < (_cpuCoreCount / 1.5); i++)
+	_chunkGenerationThreads = new thread[_cpuCoreCount / 2];
+	for (uint32_t i = 0; i < _cpuCoreCount / 2; i++)
 		_chunkGenerationThreads[i] = thread(&VoxelSystem::_chunkGenerationRoutine, this);
 	_meshGenerationThread = thread(&VoxelSystem::_meshGenerationRoutine, this);
 
@@ -151,7 +151,7 @@ VoxelSystem::~VoxelSystem() {
 
 	// waiting for threads to finish
 	_quitting = true;
-	for (uint32_t i = 0; i < _cpuCoreCount / 1.5; i++)
+	for (uint32_t i = 0; i < _cpuCoreCount / 2; i++)
 		_chunkGenerationThreads[i].join();
 	_meshGenerationThread.join();
 

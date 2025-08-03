@@ -263,7 +263,8 @@ WorldFeature	LayeredChunk::_getFeatureFromBiome(const uint8_t &biomeID, const gl
 		variation = rand() % CACTIE_VARIATION_COUNT;
 		return (WorldFeature){pos, WF_CACTUS, g_featureCactus[variation], true};
 	case FOREST:
-		return (WorldFeature){pos, WF_TREE, g_featureTree[0], true};
+		variation = rand() % TREE_VARIATION_COUNT;
+		return (WorldFeature){pos, WF_TREE, g_featureTree[variation], true};
 	case SNOW_PLAIN:
 		return (WorldFeature){pos, WF_NONE, NULL, true};
 	case SNOW_FOREST:
@@ -334,6 +335,13 @@ void	LayeredChunk::generate(const glm::ivec3 &pos)
 			for (int k = pos.y; k < CHUNK_HEIGHT + pos.y; k++) {
 				// Get the current blockID according to the pre-computed factors
 				uint8_t	id = _getBlockFromBiome(heightFactors[idx], k, biomeID) * ((k < heightFactors[idx] && caveFactors[idx][k - pos.y] < 0.01f));
+
+				if (k >= (int)heightFactors[idx] && k <= 0) {
+					if (id == 0)
+						id = 9;
+					else if (id == 1 || id == 2)
+						id = 4;
+				}
 				
 				// Decompress the layer if needed
 				if (id != fstBlkPerLayer[k - pos.y] && dynamic_cast<SingleBlockChunkLayer *>(this->_layer[k - pos.y]))
@@ -344,7 +352,7 @@ void	LayeredChunk::generate(const glm::ivec3 &pos)
 
 				// Add new pending World features to be generated
 				WorldFeature	newFeature = _getFeatureFromBiome(biomeID, {i - pos.x, k - pos.y, j - pos.z});
-				if (k == (int)heightFactors[idx] && featuresFactors[idx] > WORLDFEATURE_THRESHOLDS[newFeature._type])
+				if (k == (int)heightFactors[idx] && featuresFactors[idx] > WORLDFEATURE_THRESHOLDS[newFeature._type] && id != 0 && k > 0)
 					g_pendingFeatures.push_back(std::pair(wPos, newFeature));
 			}
 		}

@@ -21,5 +21,7 @@ void	main()
 	uint	xOff = texID % 16;
 	uint	yOff = texID / 16;
 
-	gColor = texture(atlas, vec2((fract(uv.x * l.x) + xOff) / 16, (fract(uv.y * l.y) + yOff) / 16));
+	float	d = smoothstep(uv.x, uv.x + 0.1, -0.1);
+
+	gColor = texture(atlas, vec2((fract(uv.x * l.x) + xOff) / 16, (fract(uv.y * l.y) + yOff) / 16)) + vec4(d, 0.0, 0.0, 1.0);
 }

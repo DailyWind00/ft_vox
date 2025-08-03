@@ -27,7 +27,7 @@ enum	BiomeID {
 	NONE
 };
 
-# define WORLDFEATURE_THRESHOLDS	(float[]){10000.0f, 30.0f, 1.0f, 2.0f}
+# define WORLDFEATURE_THRESHOLDS	(float[]){10000.0f, 30.0f, 0.2f, 2.0f}
 
 typedef struct WorldFeature {
 	glm::ivec3	_localPosition;

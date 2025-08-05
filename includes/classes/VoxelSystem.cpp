@@ -44,8 +44,11 @@ VoxelSystem::VoxelSystem(const uint64_t &seed, Camera &camera) : _camera(camera)
 	// Create and allocate the OpenGL buffers with persistent mapping
 	GLenum buffersUsage = PERSISTENT_BUFFER_USAGE | GL_MAP_FLUSH_EXPLICIT_BIT;
 
-	size_t maxVerticesPerChunk = pow(CHUNK_SIZE, 3) * 6; // Worst case scenario
-	size_t VBOcapacity = VERTICAL_RENDER_DISTANCE * pow(HORIZONTAL_RENDER_DISTANCE, 2) * maxVerticesPerChunk * sizeof(DATA_TYPE);
+	size_t	maxDataSizePerChunk = (pow(CHUNK_SIZE, 3) / 2) * 6 * sizeof(DATA_TYPE);
+	size_t	chunkCount = pow(HORIZONTAL_RENDER_DISTANCE, 2) - ((pow(HORIZONTAL_RENDER_DISTANCE, 2) - 1) / 2);
+	chunkCount *= VERTICAL_RENDER_DISTANCE;
+
+	size_t VBOcapacity = chunkCount * maxDataSizePerChunk;
 
 	if (VERBOSE) { cout << "> VBO  : "; }
 	_VBO = new PMapBufferGL(GL_ARRAY_BUFFER, VBOcapacity, buffersUsage);
@@ -115,20 +118,18 @@ VoxelSystem::VoxelSystem(const uint64_t &seed, Camera &camera) : _camera(camera)
 	if (VERBOSE)
 		cout << "System has: " << _cpuCoreCount << " CPU cores available.\n Allocating: " << (_cpuCoreCount / 1.5) - 1 << " for chunk generation" << endl;
 
-	_chunkGenerationThreads = new thread[(int)(_cpuCoreCount / 1.5)];
-	for (uint32_t i = 0; i < (_cpuCoreCount / 1.5); i++)
+	_chunkGenerationThreads = new thread[_cpuCoreCount / 4];
+	for (uint32_t i = 0; i < _cpuCoreCount / 4; i++)
 		_chunkGenerationThreads[i] = thread(&VoxelSystem::_chunkGenerationRoutine, this);
 	_meshGenerationThread = thread(&VoxelSystem::_meshGenerationRoutine, this);
 
 	// Request the chunks around the camera
 	vector<ChunkRequest>	spawnChunks;
 	spawnChunks.reserve(pow(HORIZONTAL_RENDER_DISTANCE * 2 - 1, 2) * (VERTICAL_RENDER_DISTANCE * 2 - 1));
-
-	for (int j = -VERTICAL_RENDER_DISTANCE + 1; j <= VERTICAL_RENDER_DISTANCE - 1; j++)
-		for (int i = -HORIZONTAL_RENDER_DISTANCE + 1; i <= HORIZONTAL_RENDER_DISTANCE - 1; i++)
-			for (int k = -HORIZONTAL_RENDER_DISTANCE + 1; k <= HORIZONTAL_RENDER_DISTANCE - 1; k++)
-				spawnChunks.push_back({ivec3{i, j, k}, ChunkAction::CREATE_UPDATE});
-
+	for (int i = 0; i < VERTICAL_RENDER_DISTANCE; i++) {
+		_chunkFloodFill({0, i, 0}, {0, i, 0},  ChunkAction::CREATE_UPDATE, &spawnChunks);
+		_chunkFloodFill({0, -i, 0}, {0, -i, 0},  ChunkAction::CREATE_UPDATE, &spawnChunks);
+	}
 	requestChunk(spawnChunks);
 
 	if (VERBOSE)
@@ -151,7 +152,7 @@ VoxelSystem::~VoxelSystem() {
 
 	// waiting for threads to finish
 	_quitting = true;
-	for (uint32_t i = 0; i < _cpuCoreCount / 1.5; i++)
+	for (uint32_t i = 0; i < _cpuCoreCount / 4; i++)
 		_chunkGenerationThreads[i].join();
 	_meshGenerationThread.join();
 

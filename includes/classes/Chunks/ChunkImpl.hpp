@@ -1,13 +1,16 @@
 # pragma once
 
 /// Defines
+# define GLM_ENABLE_EXPERIMENTAL
 
 /// System includes
 # include <cstdint>
 # include <cstring>
 # include <list>
+# include <unordered_map>
 
 /// Dependencies
+# include "glm/gtx/hash.hpp"
 # include "AChunk.hpp"
 
 enum	EnvParams {
@@ -43,8 +46,16 @@ enum e_worldFeatures {
 	WF_SNOW_TREE
 };
 
+typedef struct WorldNoises {
+	float *	heightMap;
+	float * heatMap;
+	float *	humidityMap;
+	float * featuresMap;
+}	WorldNoises;
+
 /// Global variables
 extern std::list<std::pair<glm::ivec3, WorldFeature> >	g_pendingFeatures;
+extern std::unordered_map<glm::ivec2, WorldNoises>	g_worldData;
 
 // Chunk layer interface.
 class	AChunkLayer {

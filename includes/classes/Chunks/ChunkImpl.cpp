@@ -471,7 +471,6 @@ void	LayeredChunk::setBlock(const glm::ivec3 &pos, const uint8_t &blockID)
 
 	if (dynamic_cast<SingleBlockChunkLayer *>(this->_layer[pos.y]))
 		this->_layer[pos.y] = _blockToLayer(this->_layer[pos.y]);
-	std::cout << "placing block at " << pos.x << " " << pos.z << std::endl;
 	(*this->_layer[pos.y])[idx] = blockID;
 }
 

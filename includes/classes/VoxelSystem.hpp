@@ -12,7 +12,7 @@
 # define THREAD_SLEEP_DURATION 10 // in ms
 # define MIN_LOD (size_t)4
 # define MAX_LOD (size_t)1
-# define PLAYER_REACH 4 // in blocks
+# define PLAYER_REACH 40 // in blocks
 
 /// System includes
 # include <iostream>

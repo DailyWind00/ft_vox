@@ -337,25 +337,29 @@ void	VoxelSystem::_updateBuffers() {
 
 /// @brief Try to destroy a block on where the currently set camera is looking at.
 /// @details Raycast a ray from the camera position to the lookAt position, until it hits a block or PLAYER_REACH is reached.
-/// @return The position of the destroyed block if successful, nullptr otherwise.
 void VoxelSystem::tryDestroyBlock()
 {
 	const CameraInfo &camInfo = _camera.getCameraInfo();
-	vec3 currentPos = vec3(
+	vec3 worldCamPos = vec3(
 		camInfo.position.z,
 		camInfo.position.y,
 		camInfo.position.x
+	);
+	vec3 currentPos = worldCamPos;
+	vec3 lookAt = vec3(
+		camInfo.lookAt.z,
+		camInfo.lookAt.y,
+		camInfo.lookAt.x
 	);
 	
 	do
 	{
 		// Get the chunk at the current position
-		ivec3	chunkPos = {
-			currentPos.x / CHUNK_SIZE,
-			currentPos.y / CHUNK_SIZE,
-			currentPos.z / CHUNK_SIZE
+		ivec3 chunkPos = {
+			floor(currentPos.x / (float)CHUNK_SIZE),
+			floor(currentPos.y / (float)CHUNK_SIZE),
+			floor(currentPos.z / (float)CHUNK_SIZE)
 		};
-
 		ChunkMap::iterator it = _chunks.find(chunkPos);
 		if (it == _chunks.end())
 			return ;
@@ -364,15 +368,11 @@ void VoxelSystem::tryDestroyBlock()
 			return ;
 
 		// Get the position of the current block in the chunk
-		ivec3	localPos = {
-			currentPos.z - chunkPos.z * CHUNK_SIZE,
-			currentPos.y - chunkPos.y * CHUNK_SIZE,
-			currentPos.x - chunkPos.x * CHUNK_SIZE
+		ivec3 localPos = {
+			(int)mod(currentPos.z, (float)CHUNK_SIZE),
+			(int)mod(currentPos.y, (float)CHUNK_SIZE),
+			(int)mod(currentPos.x, (float)CHUNK_SIZE)
 		};
-
-		if (localPos.x < 0)	localPos.x = CHUNK_SIZE + localPos.x;
-		if (localPos.y < 0)	localPos.y = CHUNK_SIZE + localPos.y;
-		if (localPos.z < 0)	localPos.z = CHUNK_SIZE + localPos.z;
 
 		// Check if there is a block at the current position
 		uint8_t blockID = BLOCK_AT(chunkData.chunk, localPos.x, localPos.y, localPos.z);
@@ -381,15 +381,18 @@ void VoxelSystem::tryDestroyBlock()
 			requestMesh({{chunkPos, ChunkAction::CREATE_UPDATE}});
 
 			if (VERBOSE)
-				cout << BGreen << "Block destroyed at " << currentPos.x << ", " << currentPos.y << ", " << currentPos.z << ResetColor << endl;
+				cout << BGreen << "Block destroyed at " << (int)currentPos.x << ", " << (int)currentPos.y << ", " << (int)currentPos.z << ResetColor << endl;
 
 			return ;
 		}
 
 		// Move to the next position in the direction of the lookAt vector
-		currentPos += glm::normalize(camInfo.lookAt - camInfo.position);
+		currentPos -= glm::normalize(worldCamPos - lookAt) * 0.1f;
+
+		cout << "Current distance: " << distance(currentPos, worldCamPos) << endl;
+		cout << "Current position: " << currentPos.x << ", " << currentPos.y << ", " << currentPos.z << endl;
 	}
-	while (distance(currentPos, camInfo.lookAt) < PLAYER_REACH);
+	while (distance(currentPos, worldCamPos) < PLAYER_REACH);
 
 	if (VERBOSE)
 		cout << BRed << "No block found" << ResetColor << endl;

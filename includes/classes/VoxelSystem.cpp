@@ -388,9 +388,6 @@ void VoxelSystem::tryDestroyBlock()
 
 		// Move to the next position in the direction of the lookAt vector
 		currentPos -= glm::normalize(worldCamPos - lookAt) * 0.1f;
-
-		cout << "Current distance: " << distance(currentPos, worldCamPos) << endl;
-		cout << "Current position: " << currentPos.x << ", " << currentPos.y << ", " << currentPos.z << endl;
 	}
 	while (distance(currentPos, worldCamPos) < PLAYER_REACH);
 

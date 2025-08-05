@@ -19,7 +19,7 @@ release:
 	@cmake -B build -DCMAKE_BUILD_TYPE=Release
 	@make -C build -j $(MAKEFLAGS)
 	@mv build/$(NAME) .
-	@echo -e "$(EC_BLUE)> Start playing with : $(EC_WHITE)./$(NAME) $(EC_GRAY1)[$(EC_ORANGE)flags$(EC_GRAY1)] [$(EC_ORANGE)seed$(EC_GRAY1)]$(EC_DEFAULT)"
+	@printf "$(EC_BLUE)> Start playing with : $(EC_WHITE)./$(NAME) $(EC_GRAY1)[$(EC_ORANGE)flags$(EC_GRAY1)] [$(EC_ORANGE)seed$(EC_GRAY1)]$(EC_DEFAULT)\n"
 
 debug:
 	@chmod +x fetch-dependencies.sh
@@ -27,7 +27,7 @@ debug:
 	@cmake -B build -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=g++
 	@make -C build -j $(MAKEFLAGS)
 	@mv build/$(NAME) .
-	@echo -e "$(EC_BLUE)> Debug binary ready: $(EC_WHITE)./$(NAME) $(EC_GRAY1)[$(EC_ORANGE)flags$(EC_GRAY1)] [$(EC_ORANGE)seed$(EC_GRAY1)]$(EC_DEFAULT)"
+	@printf "$(EC_BLUE)> Debug binary ready: $(EC_WHITE)./$(NAME) $(EC_GRAY1)[$(EC_ORANGE)flags$(EC_GRAY1)] [$(EC_ORANGE)seed$(EC_GRAY1)]$(EC_DEFAULT)\n"
 
 clean:
 	@rm -rf build
@@ -44,9 +44,9 @@ re: fclean all
 valgrind:
 	@if [ -f $(NAME) ]; then \
 		valgrind --suppressions=suppresion.supp ./$(NAME) $(VALGRIND_ARGS) 2>&1 | tee $(VALGRIND_OUTFILE); \
-		echo -e "$(EC_BLUE)> Valgrind log saved to: $(EC_WHITE)$(VALGRIND_OUTFILE)$(EC_DEFAULT)"; \
+		printf "$(EC_BLUE)> Valgrind log saved to: $(EC_WHITE)$(VALGRIND_OUTFILE)$(EC_DEFAULT)\n"; \
 	else \
-		echo -e "$(EC_RED)Error: Executable not found. Please build first.$(EC_DEFAULT)"; \
+		printf "$(EC_RED)Error: Executable not found. Please build first.$(EC_DEFAULT)\n"; \
 	fi
 
 .PHONY: all release debug clean fclean wipe re valgrind

@@ -9,6 +9,10 @@ uniform sampler2D	gColor;
 
 uniform vec3	sunPos;
 
+uniform vec2	screenSize;
+const float		crossThickness = 1.0f;
+const float 	crossLength = 10.0f;
+
 // Function to compute the sun's brightness and color
 vec3 getSunColor(vec3 direction, vec3 sunPos) {
 	vec3	sunColor = vec3(1.0, 0.9, 0.6);
@@ -104,5 +108,14 @@ void	main()
 	if (lerpFactor > 1.0f)
 		lerpFactor = 1.0f;
 
-	ScreenColor = vec4(mix(diffColor + ambColor, getSkyGradient(vec3(0, 0, 0), sunPos.y), lerpFactor), 1.0f);
+	// Crosshair
+	vec2 pixelCoord = uv * screenSize;
+	vec2 center = screenSize * 0.5;
+	vec2 deltaFromCenter = abs(pixelCoord - center);
+	bool isVerticalLine = deltaFromCenter.x < crossThickness && deltaFromCenter.y < crossLength;
+	bool isHorizontalLine = deltaFromCenter.y < crossThickness && deltaFromCenter.x < crossLength;
+	if (isVerticalLine || isHorizontalLine)
+		ScreenColor = vec4(1.0f, 1.0f, 1.0f, 0.75f);
+	else
+		ScreenColor = vec4(mix(diffColor + ambColor, getSkyGradient(vec3(0, 0, 0), sunPos.y), lerpFactor), 1.0f);
 }

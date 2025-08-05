@@ -329,6 +329,14 @@ void	VoxelSystem::_updateBuffers() {
 	}
 	_buffersMutex.unlock();
 }
+
+static inline vec3 toVoxelCoords(const vec3 &vector) {
+	return vec3 (
+		vector.z,
+		vector.y,
+		vector.x
+	);
+}
 /// ---
 
 
@@ -340,17 +348,9 @@ void	VoxelSystem::_updateBuffers() {
 void VoxelSystem::tryDestroyBlock()
 {
 	const CameraInfo &camInfo = _camera.getCameraInfo();
-	vec3 worldCamPos = vec3(
-		camInfo.position.z,
-		camInfo.position.y,
-		camInfo.position.x
-	);
-	vec3 currentPos = worldCamPos;
-	vec3 lookAt = vec3(
-		camInfo.lookAt.z,
-		camInfo.lookAt.y,
-		camInfo.lookAt.x
-	);
+	vec3 worldCamPos = toVoxelCoords(camInfo.position);
+	vec3 currentPos = toVoxelCoords(camInfo.position);
+	vec3 lookAt = toVoxelCoords(camInfo.lookAt);
 	
 	do
 	{

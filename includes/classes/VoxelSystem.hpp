@@ -4,14 +4,15 @@
 # define GLM_ENABLE_EXPERIMENTAL
 # define DATA_TYPE uint32_t
 # define CHUNK_SIZE 32
-# define HORIZONTAL_RENDER_DISTANCE 64
-# define VERTICAL_RENDER_DISTANCE 4
+# define HORIZONTAL_RENDER_DISTANCE 4
+# define VERTICAL_RENDER_DISTANCE 2
 # define BUFFER_GROWTH_FACTOR 2
 # define MESH_BATCH_LIMIT (size_t)2048
 # define CHUNK_BATCH_LIMIT (size_t)128
 # define THREAD_SLEEP_DURATION 10 // in ms
 # define MIN_LOD (size_t)4
 # define MAX_LOD (size_t)1
+# define PLAYER_REACH 8 // in blocks
 
 /// System includes
 # include <iostream>
@@ -160,6 +161,7 @@ class VoxelSystem {
 		void	requestMesh (const vector<ChunkRequest> &requests);
 		void	_chunkFloodFill(const glm::ivec3 &pos, const glm::ivec3 &oldPos, const ChunkAction &reqType, vector<ChunkRequest> *requests);
 
+		void	tryDestroyBlock();
 		const GeoFrameBuffers &	draw();
 
 		/// Setters

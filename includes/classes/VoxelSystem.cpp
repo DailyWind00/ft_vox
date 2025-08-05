@@ -329,11 +329,71 @@ void	VoxelSystem::_updateBuffers() {
 	}
 	_buffersMutex.unlock();
 }
+
+static inline vec3 toVoxelCoords(const vec3 &vector) {
+	return vec3 (
+		vector.z,
+		vector.y,
+		vector.x
+	);
+}
 /// ---
 
 
 
 /// Public functions
+
+/// @brief Try to destroy a block on where the currently set camera is looking at.
+/// @details Raycast a ray from the camera position to the lookAt position, until it hits a block or PLAYER_REACH is reached.
+void VoxelSystem::tryDestroyBlock()
+{
+	const CameraInfo &camInfo = _camera.getCameraInfo();
+	vec3 worldCamPos = toVoxelCoords(camInfo.position);
+	vec3 currentPos = toVoxelCoords(camInfo.position);
+	vec3 lookAt = toVoxelCoords(camInfo.lookAt);
+	
+	do
+	{
+		// Get the chunk at the current position
+		ivec3 chunkPos = {
+			floor(currentPos.x / (float)CHUNK_SIZE),
+			floor(currentPos.y / (float)CHUNK_SIZE),
+			floor(currentPos.z / (float)CHUNK_SIZE)
+		};
+		ChunkMap::iterator it = _chunks.find(chunkPos);
+		if (it == _chunks.end())
+			return ;
+		ChunkData &chunkData = it->second;
+		if (!chunkData.chunk || !chunkData.hasMesh())
+			return ;
+
+		// Get the position of the current block in the chunk
+		ivec3 localPos = {
+			(int)mod(currentPos.z, (float)CHUNK_SIZE),
+			(int)mod(currentPos.y, (float)CHUNK_SIZE),
+			(int)mod(currentPos.x, (float)CHUNK_SIZE)
+		};
+
+		// Check if there is a block at the current position
+		uint8_t blockID = BLOCK_AT(chunkData.chunk, localPos.x, localPos.y, localPos.z);
+		if (blockID) {
+			ChunkHandler::setBlock(chunkData.chunk, localPos, 0);
+			requestMesh({{chunkPos, ChunkAction::CREATE_UPDATE}});
+
+			if (VERBOSE)
+				cout << BGreen << "Block destroyed at " << (int)currentPos.x << ", " << (int)currentPos.y << ", " << (int)currentPos.z << ResetColor << endl;
+
+			return ;
+		}
+
+		// Move to the next position in the direction of the lookAt vector
+		currentPos -= glm::normalize(worldCamPos - lookAt) * 0.1f;
+	}
+	while (distance(currentPos, worldCamPos) < PLAYER_REACH);
+
+	if (VERBOSE)
+		cout << BRed << "No block found" << ResetColor << endl;
+}
 
 // Draw all chunks using batched rendering
 const GeoFrameBuffers	&VoxelSystem::draw() {

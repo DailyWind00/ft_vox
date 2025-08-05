@@ -26,6 +26,13 @@ AChunk	* ChunkHandler::createChunk(const glm::ivec3 &chunkPos)
 		chunk = _chunkToBlock(chunk);
 	return (chunk);
 }
+
+void	ChunkHandler::setBlock(AChunk *chunk, const glm::ivec3 &pos, const uint8_t &blockID)
+{
+	if (IS_CHUNK_COMPRESSED(chunk))
+		chunk = _blockToChunk(chunk);
+	chunk->setBlock(pos, blockID);
+}
 /// ---
 
 /// private methods

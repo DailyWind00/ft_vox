@@ -5,7 +5,7 @@
 # define CHUNK_HEIGHT	32
 # define MAX_WORLD_SIZE	500
 
-# define BLOCK_AT(chunk, x, y, z) (*(*chunk)[y])[x * CHUNK_WIDTH + z] 
+# define BLOCK_AT(chunk, x, y, z) (*(*chunk)[y])[x * CHUNK_WIDTH + z]
 # define IS_LAYER_COMPRESSED(chunk, y)	dynamic_cast<SingleBlockChunkLayer *>((*chunk)[y])
 # define IS_CHUNK_COMPRESSED(chunk)	dynamic_cast<SingleBlockChunk *>(chunk)
 
@@ -33,4 +33,5 @@ class	AChunk {
 		virtual	~AChunk() = 0;
 		virtual void	print() = 0;
 		virtual void	generate(const glm::ivec3 &pos) = 0;
+		virtual void	setBlock(const glm::ivec3 &pos, const uint8_t &blockID) = 0;
 };

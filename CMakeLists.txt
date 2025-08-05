@@ -55,7 +55,7 @@ target_link_libraries(ft_vox PRIVATE
 	glfw
 )
 
-set(CMAKE_CXX_FLAGS_DEBUG "-g -O0" CACHE STRING "Debug build flags" FORCE)
+set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 -fsanitize=address -lasan" CACHE STRING "Debug build flags" FORCE)
 set(CMAKE_CXX_FLAGS_RELEASE "-O3" CACHE STRING "Release build flags" FORCE)
 target_compile_options(ft_vox PRIVATE -Wall -Wextra -fPIE)
 

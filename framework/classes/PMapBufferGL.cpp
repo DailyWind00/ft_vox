@@ -63,9 +63,10 @@ size_t PMapBufferGL::resize(size_t newCapacity, bool keepData) {
 		return _capacity;
 
 	// Copy current data
-	void *copy = nullptr;
+	uint8_t *	copy = nullptr;
 	if (keepData) {
-		copy = new uint8_t[_capacity];
+		copy = new uint8_t[newCapacity];
+		std::memset(copy, 0, newCapacity);
 		std::memcpy(copy, _data, _capacity);
 	}
 
@@ -77,7 +78,7 @@ size_t PMapBufferGL::resize(size_t newCapacity, bool keepData) {
 	glGenBuffers(1, &_id);
 	glBindBuffer(_type, _id);
 	glBufferStorage(_type, newCapacity, copy, PERSISTENT_BUFFER_USAGE);
-    _data = glMapBufferRange(_type, 0, newCapacity, _usage);
+	_data = glMapBufferRange(_type, 0, newCapacity, _usage);
 
 	delete[] static_cast<uint8_t*>(copy);
 

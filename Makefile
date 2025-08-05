@@ -16,7 +16,7 @@ release:
 debug:
 	@chmod +x fetch-dependencies.sh
 	@./fetch-dependencies.sh
-	@cmake -B build -DCMAKE_BUILD_TYPE=Debug
+	@cmake -B build -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=g++
 	@make -C build -j $(MAKEFLAGS)
 	@mv build/$(NAME) .
 	@echo "\033[1;34m> Debug binary ready: \033[1;37m./$(NAME) \033[1;38;5;250m[\033[1;33mflags\033[1;37m\033[1;38;5;250m] \033[1;38;5;250m[\033[1;33mseed\033[1;37m\033[1;38;5;250m]\033[0m"

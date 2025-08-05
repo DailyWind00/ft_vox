@@ -34,37 +34,18 @@ static void program_loop(GameData &gameData) {
 	CameraInfo		camInfo = gameData.camera.getCameraInfo();
 
 	// Chunk Generation Calls
-	// glm::vec3		camPos = camInfo.position;
-	//
-	// static glm::ivec3	prevCamChunkPos = {camPos.x / CHUNK_SIZE, camPos.y / CHUNK_SIZE, camPos.z / CHUNK_SIZE};
-	// glm::ivec3		camChunkPos = {camPos.x / CHUNK_SIZE, camPos.y / CHUNK_SIZE, camPos.z / CHUNK_SIZE};
-	//
-	// vector<ChunkRequest>	chunks;
-	//
-	// if (camChunkPos.x < prevCamChunkPos.x) {
-	// 	for (int j = VERTICAL_RENDER_DISTANCE - 1; j >= -VERTICAL_RENDER_DISTANCE + 1; j--)
-	// 		for (int i = -HORIZONTAL_RENDER_DISTANCE + 1; i <= HORIZONTAL_RENDER_DISTANCE - 1; i++)
-	// 			chunks.push_back({ivec3{i + camChunkPos.z, j + camChunkPos.y, camChunkPos.x - HORIZONTAL_RENDER_DISTANCE + 1}, ChunkAction::CREATE_UPDATE});
-	// }
-	// else if (camChunkPos.x > prevCamChunkPos.x) { 
-	// 	for (int j = VERTICAL_RENDER_DISTANCE - 1; j >= -VERTICAL_RENDER_DISTANCE + 1; j--)
-	// 		for (int i = -HORIZONTAL_RENDER_DISTANCE + 1; i <= HORIZONTAL_RENDER_DISTANCE - 1; i++)
-	// 			chunks.push_back({ivec3{i + camChunkPos.z, j + camChunkPos.y, camChunkPos.x + HORIZONTAL_RENDER_DISTANCE - 1}, ChunkAction::CREATE_UPDATE});
-	// }
-	//
-	// if (camChunkPos.z < prevCamChunkPos.z) {
-	// 	for (int j = VERTICAL_RENDER_DISTANCE - 1; j >= -VERTICAL_RENDER_DISTANCE + 1; j--)
-	// 		for (int i = -HORIZONTAL_RENDER_DISTANCE + 1; i <= HORIZONTAL_RENDER_DISTANCE - 1; i++)
-	// 			chunks.push_back({ivec3{camChunkPos.z - HORIZONTAL_RENDER_DISTANCE + 1, j + camChunkPos.y, i + camChunkPos.x}, ChunkAction::CREATE_UPDATE});
-	// }
-	// else if (camChunkPos.z > prevCamChunkPos.z) { 
-	// 	for (int j = VERTICAL_RENDER_DISTANCE - 1; j >= -VERTICAL_RENDER_DISTANCE + 1; j--)
-	// 		for (int i = -HORIZONTAL_RENDER_DISTANCE + 1; i <= HORIZONTAL_RENDER_DISTANCE - 1; i++)
-	// 			chunks.push_back({ivec3{camChunkPos.z + HORIZONTAL_RENDER_DISTANCE - 1, j + camChunkPos.y, i + camChunkPos.x}, ChunkAction::CREATE_UPDATE});
-	// }
+	glm::vec3		camPos = camInfo.position;
+
+	static glm::ivec3	prevCamChunkPos = {camPos.x / CHUNK_SIZE, camPos.y / CHUNK_SIZE, camPos.z / CHUNK_SIZE};
+	glm::ivec3		camChunkPos = {camPos.x / CHUNK_SIZE, camPos.y / CHUNK_SIZE, camPos.z / CHUNK_SIZE};
+
+	vector<ChunkRequest>	chunks;
+
+	// chunks.reserve(pow(HORIZONTAL_RENDER_DISTANCE * 2 - 1, 2) * (VERTICAL_RENDER_DISTANCE * 2 - 1));
+	// if (camChunkPos != prevCamChunkPos)
+	// 	voxelSystem._chunkFloodFill({camChunkPos.z, camChunkPos.y, camChunkPos.x}, {camChunkPos.z, camChunkPos.y, camChunkPos.x}, ChunkAction::CREATE_UPDATE, &chunks);
 	// voxelSystem.requestChunk(chunks);
-	//
-	// prevCamChunkPos = camChunkPos;
+	prevCamChunkPos = camChunkPos;
 
 	// Voxel Geometrie
 	shaders.use(shaders[1]);

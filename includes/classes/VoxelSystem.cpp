@@ -375,10 +375,9 @@ void VoxelSystem::tryDestroyBlock()
 		if (localPos.z < 0)	localPos.z = CHUNK_SIZE + localPos.z;
 
 		// Check if there is a block at the current position
-		uint8_t blockID = 1;
+		uint8_t blockID = BLOCK_AT(chunkData.chunk, localPos.x, localPos.y, localPos.z);
 		if (blockID) {
 			ChunkHandler::setBlock(chunkData.chunk, localPos, 0);
-			// SET_BLOCK(chunkData.chunk, localPos.z, localPos.y, localPos.x, 0);
 			requestMesh({{chunkPos, ChunkAction::CREATE_UPDATE}});
 
 			if (VERBOSE)

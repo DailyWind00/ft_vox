@@ -30,6 +30,9 @@ add_executable(ft_vox
 	includes/classes/Chunks/ChunkImpl.cpp
 	includes/classes/Chunks/ChunkHandler.cpp
 
+	# Structure Definitions
+	assets/structures/features_definitions.cpp
+
 	# Dependencies
 	dependencies/glad/glad.c
 	dependencies/glfw/libglfw3.a
@@ -44,6 +47,7 @@ target_include_directories(ft_vox PRIVATE
 	${CMAKE_SOURCE_DIR}/includes
 	${CMAKE_SOURCE_DIR}/includes/classes
 	${CMAKE_SOURCE_DIR}/includes/classes/Chunks
+	assets/structures/
 )
 
 target_link_libraries(ft_vox PRIVATE
@@ -51,7 +55,7 @@ target_link_libraries(ft_vox PRIVATE
 	glfw
 )
 
-set(CMAKE_CXX_FLAGS_DEBUG "-g -O0" CACHE STRING "Debug build flags" FORCE)
+set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 -fsanitize=address -lasan" CACHE STRING "Debug build flags" FORCE)
 set(CMAKE_CXX_FLAGS_RELEASE "-O3" CACHE STRING "Release build flags" FORCE)
 target_compile_options(ft_vox PRIVATE -Wall -Wextra -fPIE)
 

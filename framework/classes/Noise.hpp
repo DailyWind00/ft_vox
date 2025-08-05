@@ -21,6 +21,7 @@ class	Noise {
 	public:
 		static void	setSeed(void *arg);
 		static void	setSeed(const uint64_t &seed);
+
 		static float	perlin2D(const glm::vec2 &v);
-		static float	perlin3D();
+		static float	perlin3D(const glm::vec3 &v);
 };

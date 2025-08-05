@@ -4,6 +4,7 @@
 
 /// System includes
 # include <cstdlib>
+# include <map>
 
 /// Dependencies
 # include "glm/glm.hpp"

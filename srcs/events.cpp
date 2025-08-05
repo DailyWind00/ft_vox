@@ -126,7 +126,7 @@ void	handleEvents(GameData &gameData) {
 	inputs(gameData);
 
 	// Skybox Shader parameters
-	float		dayDuration = 200;
+	float		dayDuration = 360;
 	float		angle = (time / dayDuration) * M_PI;
 	vec3		sunPos = normalize(vec3(cos(angle), sin(angle), 0.0f));
 	mat4		skyboxView = camera.getProjectionMatrix() * mat4(mat3(camera.getViewMatrix())); // Get rid of the translation part
@@ -136,7 +136,8 @@ void	handleEvents(GameData &gameData) {
 	shaders.setUniform((*shaders[0])->getID(), "sunPos", sunPos);
 
 	// Geometrie Pass Shader parameters
-	shaders.setUniform((*shaders[1])->getID(), "transform", camera);
+	shaders.setUniform((*shaders[1])->getID(), "projection", camera.getProjectionMatrix());
+	shaders.setUniform((*shaders[1])->getID(), "view", camera.getViewMatrix());
 	shaders.setUniform((*shaders[1])->getID(), "time", time);
 
 	// Lighting Pass Shader Parameters

@@ -2,7 +2,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Debug ft_vox",
+      "name": "Run ft_vox",
       "type": "cppdbg",
       "request": "launch",
       "program": "${workspaceFolder}/ft_vox",
@@ -19,7 +19,7 @@
           "ignoreFailures": true
         }
       ],
-      "preLaunchTask": "build-debug"
+      "preLaunchTask": "build"
     }
   ]
 }

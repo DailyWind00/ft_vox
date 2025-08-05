@@ -1,15 +1,61 @@
 # pragma once
 
 /// Defines
+# define GLM_ENABLE_EXPERIMENTAL
 
 /// System includes
 # include <cstdint>
 # include <cstring>
+# include <list>
+# include <unordered_map>
 
 /// Dependencies
+# include "glm/gtx/hash.hpp"
 # include "AChunk.hpp"
 
+enum	EnvParams {
+	DRY = 0,
+	DRENCHED,
+	COLD,
+	TEMPERATE,
+	HOT
+};
+
+enum	BiomeID {
+	PLAIN = 0,
+	DESERT,
+	FOREST,
+	SNOW_PLAIN,
+	SNOW_FOREST,
+	NONE
+};
+
+# define WORLDFEATURE_THRESHOLDS	(float[]){10000.0f, 30.0f, 0.2f, 2.0f}
+
+typedef struct WorldFeature {
+	glm::ivec3	_localPosition;
+	uint8_t		_type;
+	glm::ivec4 *	_data;
+	bool		_origin;
+} WorldFeature;
+
+enum e_worldFeatures {
+	WF_NONE = 0,
+	WF_CACTUS,
+	WF_TREE,
+	WF_SNOW_TREE
+};
+
+typedef struct WorldNoises {
+	float *	heightMap;
+	float * heatMap;
+	float *	humidityMap;
+	float * featuresMap;
+}	WorldNoises;
+
 /// Global variables
+extern std::list<std::pair<glm::ivec3, WorldFeature> >	g_pendingFeatures;
+extern std::unordered_map<glm::ivec2, WorldNoises>	g_worldData;
 
 // Chunk layer interface.
 class	AChunkLayer {
@@ -58,10 +104,21 @@ class	ChunkLayer : public AChunkLayer {
 // Contain a abstract type that stores a layer of block.
 class	LayeredChunk : public AChunk {
 	private:
-		AChunkLayer	**_layer;
+		AChunkLayer **	_layer;
 
-		ChunkLayer		* _blockToLayer(AChunkLayer *layer);
-		SingleBlockChunkLayer	* _layerToBlock(AChunkLayer *layer);
+		float *		_computeHeatMap(const glm::ivec3 &pos);
+		float *		_computeHeightMap(const glm::ivec3 &pos);
+		float *		_computeHumidityMap(const glm::ivec3 &pos);
+		float *		_computeFeatureMap(const glm::ivec3 &pos);
+		float **	_computeCaveNoise(const glm::ivec3 &pos, float *heightMap);
+
+		uint8_t	_getBiomeID(const int &idx, const float *heatFactors, const float *wetFactors);
+		uint8_t	_getBlockFromBiome(const int &surface, const int &y, const uint8_t &biomeID);
+		WorldFeature	_getFeatureFromBiome(const uint8_t &biomeID, const glm::ivec3 pos);
+		void	_handleWorldFeatureOverflow(std::pair<glm::ivec3, WorldFeature> wf, glm::ivec3 newDir, const bool reset);
+		
+		ChunkLayer *		_blockToLayer(AChunkLayer *layer);
+		SingleBlockChunkLayer *	_layerToBlock(AChunkLayer *layer);
 	public:
 		LayeredChunk(const uint8_t &id);
 		~LayeredChunk();

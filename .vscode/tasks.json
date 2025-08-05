@@ -2,9 +2,9 @@
 	"version": "2.0.0",
 	"tasks": [
 		{
-			"label": "build-debug",
+			"label": "build",
 			"type": "shell",
-			"command": "make debug",
+			"command": "make",
 			"problemMatcher": [],
 			"group": {
 				"kind": "build",

@@ -15,21 +15,29 @@ void VoxelSystem::_chunkGenerationRoutine() {
 			continue;
 		}
 
-		deque<ChunkRequest> localRequestedChunks = _requestedChunks;
+		// duplicate requested chunks up to the batch limit
+		deque<ChunkRequest>	localRequestedChunks;
+		size_t			batchCount = 0;
+		
+		for (; batchCount < CHUNK_BATCH_LIMIT / (_cpuCoreCount / 4) && _requestedChunks.size(); batchCount++) {
+			auto	tmp = _requestedChunks.begin();
+
+			if (tmp == _requestedChunks.end())
+				break ;
+
+			ChunkRequest	newReq = *tmp;
+			_requestedChunks.pop_front();
+			localRequestedChunks.push_back(newReq);
+		}
+
 		_requestedChunksMutex.unlock();
 
 
-		// Generate/delete chunks up to the batch limit
-		size_t			batchCount = 0;
+		// Generate/delete chunks that have been duplicated locally
 		ChunkMap 		generatedChunks;
 		deque<ivec3>	chunksToDelete;
 
 		for (const ChunkRequest &req : localRequestedChunks) {
-			if (batchCount >= BATCH_LIMIT)
-				break;
-
-			batchCount++;
-
 			ivec3 pos = req.first;
 
 			// Execute the requested action on the chunk in local memory
@@ -63,13 +71,6 @@ void VoxelSystem::_chunkGenerationRoutine() {
 
 		_chunksMutex.unlock();
 
-
-		// Remove the generated chunks from the requested list
-		_requestedChunksMutex.lock();
-		_requestedChunks.erase(_requestedChunks.begin(), _requestedChunks.begin() + batchCount);
-		_requestedChunksMutex.unlock();
-
-
 		// Request the mesh generation
 		requestMesh(meshRequests);
 	}
@@ -94,6 +95,21 @@ void VoxelSystem::_deleteChunk(const ivec3 &pos) {
 
 	delete _chunks[pos].chunk;
 	_chunks[pos].chunk = nullptr;
+}
+
+void	VoxelSystem::_chunkFloodFill(const glm::ivec3 &pos, const glm::ivec3 &oldPos, const ChunkAction &reqType, vector<ChunkRequest> *requests)
+{
+	if (abs(pos.x - oldPos.x) + abs(pos.z - oldPos.z) > HORIZONTAL_RENDER_DISTANCE || abs(pos.y - oldPos.y) >= VERTICAL_RENDER_DISTANCE)
+		return ;
+	if (std::find(requests->begin(), requests->end(), std::pair(pos, reqType)) == requests->end()) {
+		requests->push_back(std::pair(pos, reqType));
+		_chunkFloodFill({pos.x + 1, pos.y, pos.z}, oldPos, reqType, requests);
+		_chunkFloodFill({pos.x - 1, pos.y, pos.z}, oldPos, reqType, requests);
+		_chunkFloodFill({pos.x, pos.y, pos.z + 1}, oldPos, reqType, requests);
+		_chunkFloodFill({pos.x, pos.y, pos.z - 1}, oldPos, reqType, requests);
+		// _chunkFloodFill({pos.x, pos.y + 1, pos.z}, oldPos, reqType, requests);
+		// _chunkFloodFill({pos.x, pos.y - 1, pos.z}, oldPos, reqType, requests);
+	}
 }
 /// ---
 

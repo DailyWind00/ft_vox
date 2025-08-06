@@ -41,10 +41,10 @@ static void program_loop(GameData &gameData) {
 
 	vector<ChunkRequest>	chunks;
 
-	// chunks.reserve(pow(HORIZONTAL_RENDER_DISTANCE * 2 - 1, 2) * (VERTICAL_RENDER_DISTANCE * 2 - 1));
-	// if (camChunkPos != prevCamChunkPos)
-	// 	voxelSystem._chunkFloodFill({camChunkPos.z, camChunkPos.y, camChunkPos.x}, {camChunkPos.z, camChunkPos.y, camChunkPos.x}, ChunkAction::CREATE_UPDATE, &chunks);
-	// voxelSystem.requestChunk(chunks);
+	chunks.reserve(pow(HORIZONTAL_RENDER_DISTANCE * 2 - 1, 2) * (VERTICAL_RENDER_DISTANCE * 2 - 1));
+	if (camChunkPos != prevCamChunkPos)
+		voxelSystem._chunkFloodFill({camChunkPos.z, camChunkPos.y - VERTICAL_RENDER_DISTANCE / 2, camChunkPos.x}, {camChunkPos.z, camChunkPos.y - VERTICAL_RENDER_DISTANCE / 2, camChunkPos.x}, ChunkAction::DELETE, &chunks);
+	voxelSystem.requestChunk(chunks);
 	prevCamChunkPos = camChunkPos;
 
 	// Voxel Geometrie

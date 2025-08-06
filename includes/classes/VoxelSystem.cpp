@@ -261,41 +261,43 @@ void	VoxelSystem::_updateBuffers() {
 			static size_t	deletedCount = 0;
 
 			for (const ivec3 &WPos : _chunksToDelete) {
-				ChunkData &chunk = _chunks.find(WPos)->second;
-				BufferArea &IB_area   = chunk.IB_area.back();
-				BufferArea &SSBO_area = chunk.SSBO_area.back();
+				auto	chunk = _chunks.find(WPos);
+				if (chunk == _chunks.end())
+					continue ;
+				BufferArea &IB_area   = chunk->second.IB_area.back();
+				BufferArea &SSBO_area = chunk->second.SSBO_area.back();
 
 				// We loose pointer to the chunk data so VBO cleanup is not needed
 				_writeInBuffer(_IB, nullptr, IB_area.size, IB_area.offset);
 				_writeInBuffer(_SSBO, nullptr, SSBO_area.size, SSBO_area.offset);
 
 				// Reset the chunk data
-				if (!chunk.hasMesh()) {
-					chunk.VBO_area.clear();
-					chunk.IB_area.clear();
-					chunk.SSBO_area.clear();
+				if (!chunk->second.hasMesh()) {
+					chunk->second.VBO_area.clear();
+					chunk->second.IB_area.clear();
+					chunk->second.SSBO_area.clear();
 				}
 
 				// Remove previous areas
- 				while (chunk.VBO_area.size() > 1)
+ 				while (chunk->second.VBO_area.size() > 1)
 				{
-					_writeInBuffer(_VBO, nullptr, chunk.VBO_area.front().size, chunk.VBO_area.front().offset);
-					chunk.VBO_area.pop_front();
+					_writeInBuffer(_VBO, nullptr, chunk->second.VBO_area.front().size, chunk->second.VBO_area.front().offset);
+					chunk->second.VBO_area.pop_front();
 				}
-				while (chunk.IB_area.size() > 1)
+				while (chunk->second.IB_area.size() > 1)
 				{
-					_writeInBuffer(_IB, nullptr, chunk.IB_area.front().size, chunk.IB_area.front().offset);
-					chunk.IB_area.pop_front();
+					_writeInBuffer(_IB, nullptr, chunk->second.IB_area.front().size, chunk->second.IB_area.front().offset);
+					chunk->second.IB_area.pop_front();
 				}
-				while (chunk.SSBO_area.size() > 1)
+				while (chunk->second.SSBO_area.size() > 1)
 				{
-					_writeInBuffer(_SSBO, nullptr, chunk.SSBO_area.front().size, chunk.SSBO_area.front().offset);
-					chunk.SSBO_area.pop_front();
+					_writeInBuffer(_SSBO, nullptr, chunk->second.SSBO_area.front().size, chunk->second.SSBO_area.front().offset);
+					chunk->second.SSBO_area.pop_front();
 				}
 
 				// Delete the chunk from the map if asked by ChunkGeneration
-				if (!chunk.chunk)
-					_chunks.erase(chunk.Wpos);
+				if (!chunk->second.chunk)
+					_chunks.erase(chunk->second.Wpos);
 
 				deletedCount++;
 			}

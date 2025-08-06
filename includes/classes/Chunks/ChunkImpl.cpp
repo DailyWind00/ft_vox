@@ -362,7 +362,7 @@ void	LayeredChunk::generate(const glm::ivec3 &pos)
 
 			for (int k = pos.y; k < CHUNK_HEIGHT + pos.y; k++) {
 				// Get the current blockID according to the pre-computed factors
-				uint8_t	id = _getBlockFromBiome(noises.heightMap[idx], k, biomeID) * ((k < noises.heightMap[idx] && caveFactors[idx][k - pos.y] < 0.01f));
+				uint8_t	id = _getBlockFromBiome(noises.heightMap[idx], k, biomeID) * ((k < noises.heightMap[idx]));
 
 				if (k >= (int)noises.heightMap[idx] && k <= 0) {
 					if (id == 0)
@@ -465,6 +465,15 @@ void	LayeredChunk::print()
 	}
 }
 
+void	LayeredChunk::setBlock(const glm::ivec3 &pos, const uint8_t &blockID)
+{
+	uint32_t	idx = pos.x * CHUNK_WIDTH + pos.z;
+
+	if (dynamic_cast<SingleBlockChunkLayer *>(this->_layer[pos.y]))
+		this->_layer[pos.y] = _blockToLayer(this->_layer[pos.y]);
+	(*this->_layer[pos.y])[idx] = blockID;
+}
+
 /// ---
 
 /// Private methods
@@ -513,6 +522,8 @@ void	SingleBlockChunk::print()
 }
 
 void	SingleBlockChunk::generate(const glm::ivec3 &pos) { (void)pos; }
+
+void	SingleBlockChunk::setBlock(const glm::ivec3 &pos, const uint8_t &blockID) { (void)pos; (void)blockID; }
 
 /// ---
 

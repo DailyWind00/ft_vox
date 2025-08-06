@@ -19,4 +19,5 @@ class	ChunkHandler {
 
 	public:
 		static class AChunk	* createChunk(const glm::ivec3 &chunkPos);
+		static void		setBlock(AChunk *chunk, const glm::ivec3 &pos, const uint8_t &blockID);
 };

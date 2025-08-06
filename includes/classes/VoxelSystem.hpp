@@ -12,6 +12,7 @@
 # define THREAD_SLEEP_DURATION 10 // in ms
 # define MIN_LOD (size_t)4
 # define MAX_LOD (size_t)1
+# define PLAYER_REACH 8 // in blocks
 
 /// System includes
 # include <iostream>
@@ -160,6 +161,7 @@ class VoxelSystem {
 		void	requestMesh (const vector<ChunkRequest> &requests);
 		void	_chunkFloodFill(const glm::ivec3 &pos, const glm::ivec3 &oldPos, const ChunkAction &reqType, vector<ChunkRequest> *requests);
 
+		void	tryDestroyBlock();
 		const GeoFrameBuffers &	draw();
 
 		/// Setters

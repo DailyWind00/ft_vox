@@ -98,7 +98,8 @@ VoxelSystem::~VoxelSystem() {
 			delete chunk.second.chunk;
 
 	_chunks.clear();
-	
+	g_pendingFeatures.clear();
+
 	if (VERBOSE)
 		cout << "VoxelSystem destroyed\n";
 }

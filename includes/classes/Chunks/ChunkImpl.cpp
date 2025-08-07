@@ -7,10 +7,8 @@
 # include "features_declaration.h"
 
 std::list<std::pair<glm::ivec3, WorldFeature> >	g_pendingFeatures;
-std::unordered_map<glm::ivec2, WorldNoises>	g_worldData;
 
 std::mutex	g_pendingFeaturesMutex;
-std::mutex	g_worldDataMutex;
 
 //// LayeredChunk class
 
@@ -322,30 +320,17 @@ void	LayeredChunk::generate(const glm::ivec3 &pos)
 {
 	glm::ivec3	wPos = {pos.x / CHUNK_WIDTH, pos.y / CHUNK_HEIGHT, pos.z / CHUNK_WIDTH};
 
-	// Pre-compute the perlin noise factors
 	std::list<std::pair<glm::ivec3, WorldFeature> >	localPendingFeatures;
-	WorldNoises	noises;
-	float **	caveFactors;
-	
-	g_worldDataMutex.lock();
-	if (g_worldData.count({wPos.x, wPos.z})) {
-		noises = g_worldData[{wPos.x, wPos.z}];
-		g_worldDataMutex.unlock();
-	}
-	else {
-		g_worldDataMutex.unlock();
-		noises = {
-			_computeHeightMap(pos),
-			_computeHeatMap(pos),
-			_computeHumidityMap(pos),
-			_computeFeatureMap(pos),
-		};
-		g_worldDataMutex.lock();
-		g_worldData[{wPos.x, wPos.z}] = noises;
-		g_worldDataMutex.unlock();
-	}
-	caveFactors = _computeCaveNoise(pos, noises.heightMap);
 
+	WorldNoises	noises = {
+		_computeHeightMap(pos),
+		_computeHeatMap(pos),
+		_computeHumidityMap(pos),
+		_computeFeatureMap(pos),
+
+	};
+	float **	caveFactors = _computeCaveNoise(pos, noises.heightMap);
+	
 	// Store the first block of each layer to handle decompression
 	uint8_t	fstBlkPerLayer[CHUNK_HEIGHT] = {0};
 	for (int i = pos.y; i < CHUNK_HEIGHT + pos.y; i++)
@@ -386,6 +371,14 @@ void	LayeredChunk::generate(const glm::ivec3 &pos)
 			}
 		}
 	}
+
+	for (int i = 0; i < CHUNK_WIDTH * CHUNK_WIDTH; i++)
+		delete [] caveFactors[i];
+	delete [] caveFactors;
+	delete [] noises.featuresMap;
+	delete [] noises.heatMap;
+	delete [] noises.humidityMap;
+	delete [] noises.heightMap;
 
 	// Recover pending features from other bioms in global feature list
 	g_pendingFeaturesMutex.lock();

@@ -183,7 +183,7 @@ void	handleEvents(GameData &gameData) {
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
 
-	// chunkRequests(gameData.voxelSystem, gameData.camera.getCameraInfo());
+	chunkRequests(gameData.voxelSystem, gameData.camera.getCameraInfo());
 	cameraMovement(window, camera);
 	inputs(gameData);
 

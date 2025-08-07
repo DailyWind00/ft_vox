@@ -125,11 +125,13 @@ VoxelSystem::VoxelSystem(const uint64_t &seed, Camera &camera) : _camera(camera)
 
 	// Request the chunks around the camera
 	vector<ChunkRequest>	spawnChunks;
-	spawnChunks.reserve(pow(HORIZONTAL_RENDER_DISTANCE * 2 - 1, 2) * (VERTICAL_RENDER_DISTANCE * 2 - 1));
-	for (int i = 0; i < VERTICAL_RENDER_DISTANCE; i++) {
-		_chunkFloodFill({0, i, 0}, {0, i, 0},  ChunkAction::CREATE_UPDATE, &spawnChunks);
-		_chunkFloodFill({0, -i, 0}, {0, -i, 0},  ChunkAction::CREATE_UPDATE, &spawnChunks);
-	}
+
+	const int	horizontalSpawnSize = glm::min(SPAWN_LOCATION_SIZE, HORIZONTAL_RENDER_DISTANCE);
+
+	for (int i = VERTICAL_RENDER_DISTANCE; i >= -VERTICAL_RENDER_DISTANCE; i--)
+		for (int j = -horizontalSpawnSize; j <= horizontalSpawnSize; j++)
+			for (int k = -horizontalSpawnSize; k <= horizontalSpawnSize; k++)
+				spawnChunks.push_back({{k, i, j}, ChunkAction::CREATE_UPDATE});
 	requestChunk(spawnChunks);
 
 	if (VERBOSE)
@@ -431,4 +433,20 @@ const GeoFrameBuffers	&VoxelSystem::draw() {
 void	VoxelSystem::setCamera(Camera &camera) {
 	_camera = camera;
 }
+/// ---
+
+
+
+/// Getters
+
+size_t	VoxelSystem::getChunkRequestCount()
+{
+	return _requestedChunks.size();
+}
+
+size_t	VoxelSystem::getMeshRequestCount()
+{
+	return _requestedMeshes.size();
+}
+
 /// ---

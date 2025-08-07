@@ -4,8 +4,9 @@
 # define GLM_ENABLE_EXPERIMENTAL
 # define DATA_TYPE uint32_t
 # define CHUNK_SIZE 32
-# define HORIZONTAL_RENDER_DISTANCE 4
+# define HORIZONTAL_RENDER_DISTANCE 14
 # define VERTICAL_RENDER_DISTANCE 4
+# define SPAWN_LOCATION_SIZE	3
 # define BUFFER_GROWTH_FACTOR 2
 # define MESH_BATCH_LIMIT (size_t)2048
 # define CHUNK_BATCH_LIMIT (size_t)128
@@ -167,4 +168,9 @@ class VoxelSystem {
 		/// Setters
 
 		void	setCamera(Camera &cam);
+
+		/// Getters
+
+		size_t	getChunkRequestCount();
+		size_t	getMeshRequestCount();
 };

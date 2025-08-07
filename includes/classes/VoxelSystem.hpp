@@ -11,6 +11,7 @@
 # define MESH_BATCH_LIMIT (size_t)2048
 # define CHUNK_BATCH_LIMIT (size_t)128
 # define THREAD_SLEEP_DURATION 10 // in ms
+# define CHUNKGEN_CORE_RATIO	2
 # define MIN_LOD (size_t)4
 # define MAX_LOD (size_t)1
 # define PLAYER_REACH 8 // in blocks

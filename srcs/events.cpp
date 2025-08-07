@@ -92,18 +92,6 @@ static void	chunkRequests(VoxelSystem &voxelSystem, const CameraInfo &cameraInfo
 			}
 		}
 	}
-	// else {	// If the player is moving in between chunks, the chunks toward the player direction are loaded and the chunks opposite to the player direction are deleted
-	// 	int	xTravel = camChunkPos.x - prevCamChunkPos.x;
-	// 	int	zTravel = camChunkPos.z - prevCamChunkPos.z;
-	//
-	// 	// currentRequestDistanceX -= xTravel;
-	// 	// currentRequestDistanceZ -= camChunkPos.z - prevCamChunkPos.z;
-	// 	for (int i = VERTICAL_RENDER_DISTANCE; i >= -VERTICAL_RENDER_DISTANCE; i--) {
-	// 		for (int j = -currentRequestDistanceX; j <= currentRequestDistanceX; j++)
-	// 			chunks.push_back({{j, i, -currentRequestDistanceX }, ChunkAction::DELETE});
-	//
-	// 	}
-	// }
 
 	voxelSystem.requestChunk(chunks);
 	prevCamChunkPos = camChunkPos;
@@ -195,7 +183,7 @@ void	handleEvents(GameData &gameData) {
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
 
-	chunkRequests(gameData.voxelSystem, gameData.camera.getCameraInfo());
+	// chunkRequests(gameData.voxelSystem, gameData.camera.getCameraInfo());
 	cameraMovement(window, camera);
 	inputs(gameData);
 

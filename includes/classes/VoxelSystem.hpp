@@ -139,8 +139,14 @@ class VoxelSystem {
 
 		/// Private functions
 
+		// Initialization functions
+		void	_genWorldSpawn();
+		void	_initThreads();
+		void	_initDefferedRenderingPipeline();
+		void	_defineDefaultQuad();
 		void	_loadTextureAtlas();
 
+		// Thread routines
 		void	_chunkGenerationRoutine();
 		void	_meshGenerationRoutine();
 

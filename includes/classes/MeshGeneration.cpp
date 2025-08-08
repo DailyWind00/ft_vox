@@ -34,9 +34,18 @@ void	VoxelSystem::_meshGenerationRoutine() {
 				continue;
 
 			// Calculate the LOD of the chunk (cause crashes for now)
-			// const vec3 &	camPos = _camera.getCameraInfo().position;
-			// const size_t	dist   = glm::distance(camPos, (vec3)Wpos);
-			// _chunks[Wpos].LOD   = glm::min(((dist >> 5) + MAX_LOD), MIN_LOD); // +1 LOD every 32 chunks
+			glm::ivec3	pos = _camera.getCameraInfo().position;
+			glm::vec3	chunkPos = {
+				pos.z / CHUNK_SIZE,
+				pos.y / CHUNK_SIZE,
+				pos.x / CHUNK_SIZE,
+			};
+			const size_t	dist   = glm::distance(chunkPos, (vec3)Wpos);
+			_chunks[Wpos].LOD = (dist >= 0 && dist <= 4)
+				+ 2 * (dist >= 5 && dist <= 9)
+				+ 4 * (dist >= 10 && dist <= 14)
+				+ 8 * (dist >= 15 && dist <= 19)
+				+ 16 * (dist >= 20);
 
 			ChunkData &data = _chunks[Wpos];
 
@@ -59,7 +68,7 @@ void	VoxelSystem::_meshGenerationRoutine() {
 			// Execute the requested action on the chunk mesh
 			switch (request.second) {
 				case ChunkAction::CREATE_UPDATE:
-					_generateMesh(data, neightboursChunks);
+					_generateMesh(data, neightboursChunks, data.LOD);
 					break;
 
 				case ChunkAction::DELETE:
@@ -178,39 +187,52 @@ static DATA_TYPE	constructFace(const glm::ivec3 &pos, const uint8_t &blockID, co
 	return (data);
 }
 
-static uint64_t		binMap(const uint64_t &x, const uint64_t &count)
+static uint64_t		binMap(const uint64_t &x, const uint64_t &count, const uint64_t &stride)
 {
 	int	res = 0;
 
-	for (uint64_t i = 0; i < count; i++)
-		res |= x << i;
+	for (uint64_t i = 0; i < count * stride; i++) {
+		if (i % stride == 0)
+			res |= (x & 0x01) << i;
+		else
+			res |= (~x & 0x01) << i;
+	}
 	return (res);
 }
 
 // Binary greedy meshing algorythme
 // Will quickly construte a mesh plane from a binary plane
-static void	binaryGreedyMeshing(std::vector<DATA_TYPE> *vertices, uint32_t plane[CHUNK_WIDTH], const uint32_t &depth, const uint8_t &blockID, const uint8_t &axis)
+static void	binaryGreedyMeshing(std::vector<DATA_TYPE> *vertices, uint32_t plane[CHUNK_WIDTH], const uint32_t &depth, const uint8_t &blockID, const uint8_t &axis, const uint8_t &LOD)
 {
-	for (int i = 0; i < CHUNK_WIDTH; i++) {
+	for (int i = 0; i < CHUNK_WIDTH; i += LOD) {
 		int	col = 0;
 
 		while (col < CHUNK_WIDTH ) {
 			col += trailing_zeros32(plane[i] >> col);
+			if (col % LOD != 0)
+				col += LOD - (col % LOD);
 			if (col >= CHUNK_WIDTH)
 				continue ;
 
 			int	height = trailing_ones32(plane[i] >> col);
-			int	width = 1;
+			if (height % LOD != 0)
+				height += LOD - (height % LOD);
 
-			uint32_t	h = binMap(0x1, height);
+			while (1 & (plane[i] >> (col + height)) && col + height < CHUNK_WIDTH)
+				height += LOD;
+
+			int	width = LOD;
+
+			uint32_t	h = binMap(0x1, height / LOD, LOD);
 			uint32_t	heightMask = h << col;
 
-			while (i + width < CHUNK_WIDTH ) {
-				uint64_t	next = (plane[i + width] >> col) & h;
+			while (i + width < CHUNK_WIDTH) {
+				uint32_t	next = (plane[i + width] >> col);
+
 				if (h != next)
 					break ;
 				plane[i + width] = plane[i + width] & ~heightMask;
-				width++;
+				width += LOD;
 			}
 
 			glm::ivec3	pos = {0, 0, 0};
@@ -235,7 +257,7 @@ static void	binaryGreedyMeshing(std::vector<DATA_TYPE> *vertices, uint32_t plane
 	}
 }
 
-static void	constructXAxisMesh(std::vector<DATA_TYPE> (&vertices)[6], uint64_t (&xAxisBitmask)[(CHUNK_WIDTH + 2) * (CHUNK_WIDTH + 2)], ChunkData &chunk, ChunkData *neightboursChunks[6])
+static void	constructXAxisMesh(std::vector<DATA_TYPE> (&vertices)[6], uint64_t (&xAxisBitmask)[(CHUNK_WIDTH + 2) * (CHUNK_WIDTH + 2)], ChunkData &chunk, ChunkData *neightboursChunks[6], const uint8_t &LOD)
 {
 	// Get the X axis neighbours data
 	for (uint64_t i = 0; i < CHUNK_HEIGHT * CHUNK_WIDTH; i++) {
@@ -251,7 +273,7 @@ static void	constructXAxisMesh(std::vector<DATA_TYPE> (&vertices)[6], uint64_t (
 	for (int i = 0; i < CHUNK_WIDTH * CHUNK_WIDTH; i++) {
 		// Culling facing forwardX
 		uint64_t	forwardXCol = xAxisBitmask[i] & ~(xAxisBitmask[i] >> 1);
-		forwardXCol = forwardXCol >> 1;
+		forwardXCol = forwardXCol >> LOD;
 		forwardXCol = forwardXCol & ~((uint64_t)1 << CHUNK_WIDTH);
 
 		// Culling facing backwardX
@@ -272,11 +294,11 @@ static void	constructXAxisMesh(std::vector<DATA_TYPE> (&vertices)[6], uint64_t (
 	// Execute the binary greedy meshing algorythme for the X axis
 	for (int i = 0; i < 2; i++)
 		for (auto &[key, value] : binaryPlaneHM[i])
-			for (int j = 0; j < CHUNK_WIDTH; j++)
-				binaryGreedyMeshing(&vertices[i], value[j], j, key, 0);
+			for (int j = 0; j < CHUNK_WIDTH; j += LOD)
+				binaryGreedyMeshing(&vertices[i], value[j], j, key, 0, LOD);
 }
 
-static void	constructYAxisMesh(std::vector<DATA_TYPE> (&vertices)[6], uint64_t (&yAxisBitmask)[(CHUNK_WIDTH + 2) * (CHUNK_WIDTH + 2)], ChunkData &chunk, ChunkData *neightboursChunks[6])
+static void	constructYAxisMesh(std::vector<DATA_TYPE> (&vertices)[6], uint64_t (&yAxisBitmask)[(CHUNK_WIDTH + 2) * (CHUNK_WIDTH + 2)], ChunkData &chunk, ChunkData *neightboursChunks[6], const uint8_t &LOD)
 {
 	// Get the Y axis neighbours data
 	for (uint64_t i = 0; i < CHUNK_WIDTH * CHUNK_WIDTH; i++) {
@@ -292,7 +314,7 @@ static void	constructYAxisMesh(std::vector<DATA_TYPE> (&vertices)[6], uint64_t (
 	for (int i = 0; i < CHUNK_WIDTH * CHUNK_WIDTH; i++) {
 		// Culling facing forwardX
 		uint64_t	forwardYCol = yAxisBitmask[i] & ~(yAxisBitmask[i] >> 1);
-		forwardYCol = forwardYCol >> 1;
+		forwardYCol = forwardYCol >> LOD;
 		forwardYCol = forwardYCol & ~((uint64_t)1 << CHUNK_WIDTH);
 
 		// Culling facing backwardX
@@ -313,11 +335,11 @@ static void	constructYAxisMesh(std::vector<DATA_TYPE> (&vertices)[6], uint64_t (
 	// Execute the binary greedy meshing algorythme for the X axis
 	for (int i = 0; i < 2; i++)
 		for (auto &[key, value] : binaryPlaneHM[i])
-			for (int j = 0; j < CHUNK_WIDTH; j++)
-			binaryGreedyMeshing(&vertices[i + 2], value[j], j, key, 1);
+			for (int j = 0; j < CHUNK_WIDTH; j += LOD)
+				binaryGreedyMeshing(&vertices[i + 2], value[j], j, key, 1, LOD);
 }
 
-static void	constructZAxisMesh(std::vector<DATA_TYPE> (&vertices)[6], uint64_t (&zAxisBitmask)[(CHUNK_WIDTH + 2) * (CHUNK_WIDTH + 2)], ChunkData &chunk, ChunkData *neightboursChunks[6])
+static void	constructZAxisMesh(std::vector<DATA_TYPE> (&vertices)[6], uint64_t (&zAxisBitmask)[(CHUNK_WIDTH + 2) * (CHUNK_WIDTH + 2)], ChunkData &chunk, ChunkData *neightboursChunks[6], const uint8_t &LOD)
 {
 	// Get the Z axis neighbours data
 	for (uint64_t i = 0; i < CHUNK_HEIGHT * CHUNK_WIDTH; i++) {
@@ -333,7 +355,7 @@ static void	constructZAxisMesh(std::vector<DATA_TYPE> (&vertices)[6], uint64_t (
 	for (int i = 0; i < CHUNK_WIDTH * CHUNK_WIDTH; i++) {
 		// Culling facing forwardX
 		uint64_t	forwardZCol = zAxisBitmask[i] & ~(zAxisBitmask[i] >> 1);
-		forwardZCol = forwardZCol >> 1;
+		forwardZCol = forwardZCol >> LOD;
 		forwardZCol = forwardZCol & ~((uint64_t)1 << CHUNK_WIDTH);
 
 		// Culling facing backwardX
@@ -354,13 +376,13 @@ static void	constructZAxisMesh(std::vector<DATA_TYPE> (&vertices)[6], uint64_t (
 	// Execute the binary greedy meshing algorythme for the X axis
 	for (int i = 0; i < 2; i++)
 		for (auto &[key, value] : binaryPlaneHM[i])
-			for (int j = 0; j < CHUNK_WIDTH; j++)
-				binaryGreedyMeshing(&vertices[i + 4], value[j], j, key, 2);
+			for (int j = 0; j < CHUNK_WIDTH; j += LOD)
+				binaryGreedyMeshing(&vertices[i + 4], value[j], j, key, 2, LOD);
 }
 
 // Create/update the mesh of the given chunk
 // The data will be stored in the main thread at the end of OpenGL buffers
-void	VoxelSystem::_generateMesh(ChunkData &chunk, ChunkData *neightboursChunks[6]) {
+void	VoxelSystem::_generateMesh(ChunkData &chunk, ChunkData *neightboursChunks[6], const uint8_t &LOD) {
 	// Check if the chunk already have a mesh (in case of update)
 	if (chunk.hasMesh())
 		_deleteMesh(chunk, neightboursChunks);
@@ -376,14 +398,14 @@ void	VoxelSystem::_generateMesh(ChunkData &chunk, ChunkData *neightboursChunks[6
 	uint64_t	zAxisBitmask[(CHUNK_WIDTH + 2) * (CHUNK_HEIGHT + 2)] = {0};
 
 	// Set the bitmasks of all the axis
-	for (uint64_t y = 0; y < CHUNK_HEIGHT; y++) {
-		for (uint64_t z = 0; z < CHUNK_WIDTH; z++) {
-			for (uint64_t x = 0; x < CHUNK_WIDTH; x++) {
+	for (uint64_t y = 0; y < CHUNK_HEIGHT; y += LOD) {
+		for (uint64_t z = 0; z < CHUNK_WIDTH; z += LOD) {
+			for (uint64_t x = 0; x < CHUNK_WIDTH; x += LOD) {
 				// For each axis, write a bit to represent a solid block
 				if (BLOCK_AT(chunk.chunk, x, y, z) != 0) {
-					xAxisBitmask[y * CHUNK_HEIGHT + z] |= (uint64_t)0x1 << (x + 1);	// Bit-shift is offset by one to allow for neighbour data
-					yAxisBitmask[z * CHUNK_WIDTH + x] |= (uint64_t)0x1 << (y + 1);	// Bit-shift is offset by one to allow for neighbour data
-					zAxisBitmask[y * CHUNK_HEIGHT + x] |= (uint64_t)0x1 << (z + 1);	// Bit-shift is offset by one to allow for neighbour data
+					xAxisBitmask[y * CHUNK_HEIGHT + z] |= binMap(0x1, LOD, 1) << (x + 1);	// Bit-shift is offset by one to allow for neighbour data
+					yAxisBitmask[z * CHUNK_WIDTH + x] |= binMap(0x1, LOD, 1) << (y + 1);	// Bit-shift is offset by one to allow for neighbour data
+					zAxisBitmask[y * CHUNK_HEIGHT + x] |= binMap(0x1, LOD, 1) << (z + 1);	// Bit-shift is offset by one to allow for neighbour data
 				}
 			}
 		}
@@ -391,16 +413,16 @@ void	VoxelSystem::_generateMesh(ChunkData &chunk, ChunkData *neightboursChunks[6
 
 	vector<DATA_TYPE>	vertices[6];
 
-	constructXAxisMesh(vertices, xAxisBitmask, chunk, neightboursChunks);
-	constructYAxisMesh(vertices, yAxisBitmask, chunk, neightboursChunks);
-	constructZAxisMesh(vertices, zAxisBitmask, chunk, neightboursChunks);
+	constructXAxisMesh(vertices, xAxisBitmask, chunk, neightboursChunks, LOD);
+	constructYAxisMesh(vertices, yAxisBitmask, chunk, neightboursChunks, LOD);
+	constructZAxisMesh(vertices, zAxisBitmask, chunk, neightboursChunks, LOD);
 
 	size_t old_VBO_data_size = _VBO_data.size() * sizeof(DATA_TYPE);
 	size_t old_IB_data_size = _IB_data.size() * sizeof(DrawCommand);
 	size_t old_SSBO_data_size = _SSBO_data.size() * sizeof(SSBOData);
 
 	// Write the mesh in OpenGL buffers
-	for (int i = 0; i < 6; i++) {
+	for (uint32_t i = 0; i < 6; i++) {
 		if (!vertices[i].size())
 			continue;
 
@@ -412,7 +434,11 @@ void	VoxelSystem::_generateMesh(ChunkData &chunk, ChunkData *neightboursChunks[6
 		_VBO_data.insert(_VBO_data.end(), vertices[i].begin(), vertices[i].end());
 
 		// SSBO
-		SSBOData data = {ivec4{chunk.Wpos, i}};
+		uint32_t	faceLODMask = 0;
+
+		faceLODMask |= (i & 0x0F);
+		faceLODMask |= (LOD & 0xFF) << 4;
+		SSBOData data = {ivec4{chunk.Wpos, faceLODMask}};
 		_SSBO_data.push_back(data);
 	}
 

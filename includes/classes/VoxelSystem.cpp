@@ -9,7 +9,12 @@ VoxelSystem::VoxelSystem(const uint64_t &seed, Camera &camera) : _camera(camera)
 	// Set the seed of the noise generator
 	if (!seed) {
 		srand(time(nullptr));
-		Noise::setSeed(rand());
+
+		int	rSeed = rand();
+
+		std::cout << "Loading ft_vox with the random seed: " << rSeed << std::endl;
+
+		Noise::setSeed(rSeed);
 	}
 	else
 		Noise::setSeed(seed);
@@ -22,24 +27,8 @@ VoxelSystem::VoxelSystem(const uint64_t &seed, Camera &camera) : _camera(camera)
 	glGenVertexArrays(1, &_VAO);
 	glBindVertexArray(_VAO);
 
-	// Default QuadVBO
-	GLuint	quadVBO = 0;
-	GLfloat	quadVert[] = {
-	//  positions   textures
-		0, 1, 0,    0, 0,
-		0, 1, 1,    0, 1,
-		1, 1, 0,    1, 0,
-		1, 1, 1,    1, 1
-	};
-
-	glGenBuffers(1, &quadVBO);
-	glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(quadVert), quadVert, GL_STATIC_DRAW);
-	
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), nullptr);
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)(3 * sizeof(float)));
-	glEnableVertexAttribArray(2);
+	// Define the default Voxel's quad
+	_defineDefaultQuad();
 
 	// Create and allocate the OpenGL buffers with persistent mapping
 	GLenum buffersUsage = PERSISTENT_BUFFER_USAGE | GL_MAP_FLUSH_EXPLICIT_BIT;
@@ -70,6 +59,87 @@ VoxelSystem::VoxelSystem(const uint64_t &seed, Camera &camera) : _camera(camera)
 	_SSBO = new PMapBufferGL(GL_SHADER_STORAGE_BUFFER, SSBOcapacity, buffersUsage);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _SSBO->getID());
 
+	// Initialize the rendering pipeline
+	_initDefferedRenderingPipeline();
+
+	// Initialize the threads
+	_initThreads();
+
+	// Generate chunks around the spawn location
+	_genWorldSpawn();
+
+	if (VERBOSE)
+		cout << "VoxelSystem initialized\n";
+}
+
+VoxelSystem::~VoxelSystem() {
+	delete _VBO;
+	delete _IB;
+	delete _SSBO;
+	glDeleteVertexArrays(1, &_VAO);
+
+	glDeleteTextures(1, &_gBuffer.gPosition);
+	glDeleteTextures(1, &_gBuffer.gNormal);
+	glDeleteTextures(1, &_gBuffer.gColor);
+	glDeleteFramebuffers(1, &_gBuffer.gBuffer);
+
+	if (_textureAtlas)
+		glDeleteTextures(1, &_textureAtlas);
+
+	// waiting for threads to finish
+	_quitting = true;
+	for (uint32_t i = 0; i < _cpuCoreCount / CHUNKGEN_CORE_RATIO; i++)
+		_chunkGenerationThreads[i].join();
+	_meshGenerationThread.join();
+
+	// Delete all chunks
+	for (const ChunkMap::value_type &chunk : _chunks)
+		if (chunk.second.chunk)
+			delete chunk.second.chunk;
+
+	_chunks.clear();
+	g_pendingFeatures.clear();
+
+	if (VERBOSE)
+		cout << "VoxelSystem destroyed\n";
+}
+/// ---
+
+
+
+/// Private functions
+
+// Generate chunks around the spawn location in a 3 or less chunk radius
+void	VoxelSystem::_genWorldSpawn() {
+	vector<ChunkRequest>	spawnChunks;
+	const int		horizontalSpawnSize = glm::min(SPAWN_LOCATION_SIZE, HORIZONTAL_RENDER_DISTANCE);
+
+	for (int i = VERTICAL_RENDER_DISTANCE; i >= -VERTICAL_RENDER_DISTANCE; i--)
+		for (int j = -horizontalSpawnSize; j <= horizontalSpawnSize; j++)
+			for (int k = -horizontalSpawnSize; k <= horizontalSpawnSize; k++)
+				spawnChunks.push_back({{k, i, j}, ChunkAction::CREATE_UPDATE});
+	requestChunk(spawnChunks);
+}
+
+// Will initialize and start all the multi-threading related systems
+void	VoxelSystem::_initThreads() {
+	// Get the CPU core count of the system
+	_cpuCoreCount = std::thread::hardware_concurrency();
+
+	if (VERBOSE)
+		cout << "System has: " << _cpuCoreCount << " CPU cores available.\n Allocating: " << _cpuCoreCount / CHUNKGEN_CORE_RATIO << " for chunk generation" << endl;
+
+	// Allocate and start chunk generation threads
+	_chunkGenerationThreads = new thread[_cpuCoreCount / CHUNKGEN_CORE_RATIO];
+	for (uint32_t i = 0; i < _cpuCoreCount / CHUNKGEN_CORE_RATIO; i++)
+		_chunkGenerationThreads[i] = thread(&VoxelSystem::_chunkGenerationRoutine, this);
+
+	// Start mesh generation thread
+	_meshGenerationThread = thread(&VoxelSystem::_meshGenerationRoutine, this);
+}
+
+// Will create and setup all the framebuffer and render texture necessary for rendering
+void	VoxelSystem::_initDefferedRenderingPipeline() {
 	// Create the G-Buffer
 	glGenFramebuffers(1, &_gBuffer.gBuffer);
 	glBindFramebuffer(GL_FRAMEBUFFER, _gBuffer.gBuffer);
@@ -111,67 +181,29 @@ VoxelSystem::VoxelSystem(const uint64_t &seed, Camera &camera) : _camera(camera)
 	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rboDepth);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-	// Create the threads
-	_cpuCoreCount = std::thread::hardware_concurrency();
-
-	if (VERBOSE)
-		cout << "System has: " << _cpuCoreCount << " CPU cores available.\n Allocating: " << (_cpuCoreCount / 1.5) - 1 << " for chunk generation" << endl;
-
-	_chunkGenerationThreads = new thread[_cpuCoreCount / 4];
-	for (uint32_t i = 0; i < _cpuCoreCount / 4; i++)
-		_chunkGenerationThreads[i] = thread(&VoxelSystem::_chunkGenerationRoutine, this);
-	_meshGenerationThread = thread(&VoxelSystem::_meshGenerationRoutine, this);
-
-	// Request the chunks around the camera
-	vector<ChunkRequest>	spawnChunks;
-	spawnChunks.reserve(pow(HORIZONTAL_RENDER_DISTANCE * 2 - 1, 2) * (VERTICAL_RENDER_DISTANCE * 2 - 1));
-	for (int i = 0; i < VERTICAL_RENDER_DISTANCE; i++) {
-		_chunkFloodFill({0, i, 0}, {0, i, 0},  ChunkAction::CREATE_UPDATE, &spawnChunks);
-		_chunkFloodFill({0, -i, 0}, {0, -i, 0},  ChunkAction::CREATE_UPDATE, &spawnChunks);
-	}
-	requestChunk(spawnChunks);
-
-	if (VERBOSE)
-		cout << "VoxelSystem initialized\n";
 }
 
-VoxelSystem::~VoxelSystem() {
-	delete _VBO;
-	delete _IB;
-	delete _SSBO;
-	glDeleteVertexArrays(1, &_VAO);
+// Define the default quad used to render the voxels
+void	VoxelSystem::_defineDefaultQuad() {
+	GLfloat	quadVert[] = {
+	//  positions   textures
+		0, 1, 0,    0, 0,
+		0, 1, 1,    0, 1,
+		1, 1, 0,    1, 0,
+		1, 1, 1,    1, 1
+	};
 
-	glDeleteTextures(1, &_gBuffer.gPosition);
-	glDeleteTextures(1, &_gBuffer.gNormal);
-	glDeleteTextures(1, &_gBuffer.gColor);
-	glDeleteFramebuffers(1, &_gBuffer.gBuffer);
+	GLuint	quadVBO = 0;
 
-	if (_textureAtlas)
-		glDeleteTextures(1, &_textureAtlas);
-
-	// waiting for threads to finish
-	_quitting = true;
-	for (uint32_t i = 0; i < _cpuCoreCount / 4; i++)
-		_chunkGenerationThreads[i].join();
-	_meshGenerationThread.join();
-
-	// Delete all chunks
-	for (const ChunkMap::value_type &chunk : _chunks) {
-		if (chunk.second.chunk)
-			delete chunk.second.chunk;
-	}
-
-	_chunks.clear();
+	glGenBuffers(1, &quadVBO);
+	glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(quadVert), quadVert, GL_STATIC_DRAW);
 	
-	if (VERBOSE)
-		cout << "VoxelSystem destroyed\n";
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), nullptr);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)(3 * sizeof(float)));
+	glEnableVertexAttribArray(2);
 }
-/// ---
-
-
-
-/// Private functions
 
 // Load/reload the texture atlas
 void	VoxelSystem::_loadTextureAtlas() {
@@ -261,41 +293,43 @@ void	VoxelSystem::_updateBuffers() {
 			static size_t	deletedCount = 0;
 
 			for (const ivec3 &WPos : _chunksToDelete) {
-				ChunkData &chunk = _chunks.find(WPos)->second;
-				BufferArea &IB_area   = chunk.IB_area.back();
-				BufferArea &SSBO_area = chunk.SSBO_area.back();
+				auto	chunk = _chunks.find(WPos);
+				if (chunk == _chunks.end())
+					continue ;
+				BufferArea &IB_area   = chunk->second.IB_area.back();
+				BufferArea &SSBO_area = chunk->second.SSBO_area.back();
 
 				// We loose pointer to the chunk data so VBO cleanup is not needed
 				_writeInBuffer(_IB, nullptr, IB_area.size, IB_area.offset);
 				_writeInBuffer(_SSBO, nullptr, SSBO_area.size, SSBO_area.offset);
 
 				// Reset the chunk data
-				if (!chunk.hasMesh()) {
-					chunk.VBO_area.clear();
-					chunk.IB_area.clear();
-					chunk.SSBO_area.clear();
+				if (!chunk->second.hasMesh()) {
+					chunk->second.VBO_area.clear();
+					chunk->second.IB_area.clear();
+					chunk->second.SSBO_area.clear();
 				}
 
 				// Remove previous areas
- 				while (chunk.VBO_area.size() > 1)
+ 				while (chunk->second.VBO_area.size() > 1)
 				{
-					_writeInBuffer(_VBO, nullptr, chunk.VBO_area.front().size, chunk.VBO_area.front().offset);
-					chunk.VBO_area.pop_front();
+					_writeInBuffer(_VBO, nullptr, chunk->second.VBO_area.front().size, chunk->second.VBO_area.front().offset);
+					chunk->second.VBO_area.pop_front();
 				}
-				while (chunk.IB_area.size() > 1)
+				while (chunk->second.IB_area.size() > 1)
 				{
-					_writeInBuffer(_IB, nullptr, chunk.IB_area.front().size, chunk.IB_area.front().offset);
-					chunk.IB_area.pop_front();
+					_writeInBuffer(_IB, nullptr, chunk->second.IB_area.front().size, chunk->second.IB_area.front().offset);
+					chunk->second.IB_area.pop_front();
 				}
-				while (chunk.SSBO_area.size() > 1)
+				while (chunk->second.SSBO_area.size() > 1)
 				{
-					_writeInBuffer(_SSBO, nullptr, chunk.SSBO_area.front().size, chunk.SSBO_area.front().offset);
-					chunk.SSBO_area.pop_front();
+					_writeInBuffer(_SSBO, nullptr, chunk->second.SSBO_area.front().size, chunk->second.SSBO_area.front().offset);
+					chunk->second.SSBO_area.pop_front();
 				}
 
 				// Delete the chunk from the map if asked by ChunkGeneration
-				if (!chunk.chunk)
-					_chunks.erase(chunk.Wpos);
+				if (!chunk->second.chunk)
+					_chunks.erase(chunk->second.Wpos);
 
 				deletedCount++;
 			}
@@ -429,4 +463,20 @@ const GeoFrameBuffers	&VoxelSystem::draw() {
 void	VoxelSystem::setCamera(Camera &camera) {
 	_camera = camera;
 }
+/// ---
+
+
+
+/// Getters
+
+size_t	VoxelSystem::getChunkRequestCount()
+{
+	return _requestedChunks.size();
+}
+
+size_t	VoxelSystem::getMeshRequestCount()
+{
+	return _requestedMeshes.size();
+}
+
 /// ---

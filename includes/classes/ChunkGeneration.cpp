@@ -19,7 +19,7 @@ void VoxelSystem::_chunkGenerationRoutine() {
 		deque<ChunkRequest>	localRequestedChunks;
 		size_t			batchCount = 0;
 		
-		for (; batchCount < CHUNK_BATCH_LIMIT / (_cpuCoreCount / 4) && _requestedChunks.size(); batchCount++) {
+		for (; batchCount < CHUNK_BATCH_LIMIT / (_cpuCoreCount / CHUNKGEN_CORE_RATIO) && _requestedChunks.size(); batchCount++) {
 			auto	tmp = _requestedChunks.begin();
 
 			if (tmp == _requestedChunks.end())

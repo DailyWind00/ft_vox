@@ -31,7 +31,7 @@ const vec3	Normals[] = {
 	vec3( 0, 0, 1)
 };
 
-vec3	contructBlock(const vec2 len)
+vec3	contructBlock(const vec2 len, const uint LOD)
 {
 	vec3	finalQuad = vec3(0);
 
@@ -41,16 +41,13 @@ vec3	contructBlock(const vec2 len)
 		finalQuad.z *= len.x;
 		finalQuad.y *= len.y;
 
-		// finalQuad.y -= len.y - 1;
-		// finalQuad.x += len.y - 1;
+		finalQuad.x += LOD - 1;
 		uv = UVs;
 	}
 	else if (face == 0) {
 		finalQuad = quad.yxz;
 		finalQuad.z *= len.x;
 		finalQuad.y *= len.y;
-
-		// finalQuad.y -= len.y - 1;
 		finalQuad.x = 0;
 		uv = UVs.yx;
 	}
@@ -60,6 +57,7 @@ vec3	contructBlock(const vec2 len)
 		finalQuad = quad;
 		finalQuad.z *= len.x;
 		finalQuad.x *= len.y;
+		finalQuad.y += LOD - 1;
 		uv = UVs.yx;
 	}
 	else if (face == 2) {
@@ -75,6 +73,7 @@ vec3	contructBlock(const vec2 len)
 		finalQuad = quad.zxy;
 		finalQuad.x *= len.x;
 		finalQuad.y *= len.y;
+		finalQuad.z += LOD - 1;
 		uv = UVs.yx;
 	}
 	else if (face == 4) {
@@ -99,18 +98,20 @@ void main() {
 	pos.z = (blockData >> 10)  & 0x1F;
 
 	texID = ((blockData >> 15) & 0x7F) - 1;
-	face = meshData[gl_DrawID].data.w;
+	face = meshData[gl_DrawID].data.w & 0x0F;
+	uint	LOD = (meshData[gl_DrawID].data.w >> 4) & 0xFF;
 
 	len.x = ((blockData >> 22) & 0x1F) + 1;
 	len.y = ((blockData >> 27) & 0x1F) + 1;
 
 	// Fragment shaders datas
 	fragPos = vec4(view * vec4(ivec3(pos) + worldOffset, 1.0f)).xyz;
-	Normal = Normals[meshData[gl_DrawID].data.w];
+	Normal = Normals[face];
 	l = len;
 
 	// Create the final face mesh
-	vec3	fQuad = contructBlock(len);
+	vec3	fQuad = contructBlock(len, LOD);
+	fQuad.y -= LOD - 1;
 
 	gl_Position = projection * view * vec4((fQuad + ivec3(pos) + worldOffset), 1.0f);
 }

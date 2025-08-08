@@ -31,22 +31,6 @@ static void program_loop(GameData &gameData) {
 	static SkyBox		&skybox      = gameData.skybox;
 	static RenderData	&renderDatas = gameData.renderDatas;
 
-	CameraInfo		camInfo = gameData.camera.getCameraInfo();
-
-	// Chunk Generation Calls
-	glm::vec3		camPos = camInfo.position;
-
-	static glm::ivec3	prevCamChunkPos = {camPos.x / CHUNK_SIZE, camPos.y / CHUNK_SIZE, camPos.z / CHUNK_SIZE};
-	glm::ivec3		camChunkPos = {camPos.x / CHUNK_SIZE, camPos.y / CHUNK_SIZE, camPos.z / CHUNK_SIZE};
-
-	vector<ChunkRequest>	chunks;
-
-	// chunks.reserve(pow(HORIZONTAL_RENDER_DISTANCE * 2 - 1, 2) * (VERTICAL_RENDER_DISTANCE * 2 - 1));
-	// if (camChunkPos != prevCamChunkPos)
-	// 	voxelSystem._chunkFloodFill({camChunkPos.z, camChunkPos.y, camChunkPos.x}, {camChunkPos.z, camChunkPos.y, camChunkPos.x}, ChunkAction::CREATE_UPDATE, &chunks);
-	// voxelSystem.requestChunk(chunks);
-	prevCamChunkPos = camChunkPos;
-
 	// Voxel Geometrie
 	shaders.use(shaders[1]);
 	GeoFrameBuffers	gBuffer = voxelSystem.draw();

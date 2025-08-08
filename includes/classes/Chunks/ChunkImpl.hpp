@@ -55,7 +55,6 @@ typedef struct WorldNoises {
 
 /// Global variables
 extern std::list<std::pair<glm::ivec3, WorldFeature> >	g_pendingFeatures;
-extern std::unordered_map<glm::ivec2, WorldNoises>	g_worldData;
 
 // Chunk layer interface.
 class	AChunkLayer {

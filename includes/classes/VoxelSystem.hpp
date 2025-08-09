@@ -43,34 +43,34 @@ using namespace glm;
 
 // Data structure of a OpenGL draw command
 // Used for indirect rendering
-typedef struct DrawCommand {
+struct DrawCommand {
 	GLuint	verticeCount  = 0;
 	GLuint	instanceCount = 0;
 	GLuint	offset        = 0;
  	GLuint	baseInstance  = 0;
-} DrawCommand;
+};
 
 // Data structure for the SSBO (Shader Storage Buffer Object)
-typedef struct SSBOData {
+struct SSBOData {
 	ivec4	worldPos; // Wpos x y z, face orientation + LOD
-} SSBOData;
+};
 
 // Data structure for the G-Buffer (Geometry pass)
-typedef struct GeoFrameBuffers {
+struct GeoFrameBuffers {
 	GLuint	gBuffer;
 	GLuint	gPosition;
 	GLuint	gNormal;
 	GLuint	gColor;
-} GeoFrameBuffers;
+};
 
 // Data structure for CPU-side chunk data management
-typedef struct BufferArea {
+struct BufferArea {
 	size_t	offset;
 	size_t	size;
-} BufferArea;
+};
 
 // Data structure for a chunk and its metadata
-typedef struct ChunkData {
+struct ChunkData {
 	AChunk *	chunk;
 	ivec3		Wpos;
 	size_t		LOD = 0;
@@ -86,7 +86,7 @@ typedef struct ChunkData {
 			&& IB_area.size() && IB_area.back().size
 			&& SSBO_area.size() && SSBO_area.back().size;
 	}
-} ChunkData;
+};
 typedef unordered_map<ivec3, ChunkData> ChunkMap; // Wpos -> ChunkData ptr
 
 // Interface for chunk & mesh modifications

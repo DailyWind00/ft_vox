@@ -403,9 +403,10 @@ void	VoxelSystem::_generateMesh(ChunkData &chunk, ChunkData *neightboursChunks[6
 			for (uint64_t x = 0; x < CHUNK_WIDTH; x += LOD) {
 				// For each axis, write a bit to represent a solid block
 				if (BLOCK_AT(chunk.chunk, x, y, z) != 0) {
-					xAxisBitmask[y * CHUNK_HEIGHT + z] |= binMap(0x1, LOD, 1) << (x + 1);	// Bit-shift is offset by one to allow for neighbour data
-					yAxisBitmask[z * CHUNK_WIDTH + x] |= binMap(0x1, LOD, 1) << (y + 1);	// Bit-shift is offset by one to allow for neighbour data
-					zAxisBitmask[y * CHUNK_HEIGHT + x] |= binMap(0x1, LOD, 1) << (z + 1);	// Bit-shift is offset by one to allow for neighbour data
+					// Bit-shift is offset by one to allow for neighbour data
+					xAxisBitmask[y * CHUNK_HEIGHT + z] |= binMap(0x1, LOD, 1) << (x + 1);
+					yAxisBitmask[z * CHUNK_WIDTH + x]  |= binMap(0x1, LOD, 1) << (y + 1);
+					zAxisBitmask[y * CHUNK_HEIGHT + x] |= binMap(0x1, LOD, 1) << (z + 1);
 				}
 			}
 		}

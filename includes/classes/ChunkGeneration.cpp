@@ -96,21 +96,6 @@ void VoxelSystem::_deleteChunk(const ivec3 &pos) {
 	delete _chunks[pos].chunk;
 	_chunks[pos].chunk = nullptr;
 }
-
-void	VoxelSystem::_chunkFloodFill(const glm::ivec3 &pos, const glm::ivec3 &oldPos, const ChunkAction &reqType, vector<ChunkRequest> *requests)
-{
-	if (abs(pos.x - oldPos.x) + abs(pos.z - oldPos.z) > HORIZONTAL_RENDER_DISTANCE || abs(pos.y - oldPos.y) >= VERTICAL_RENDER_DISTANCE)
-		return ;
-	if (std::find(requests->begin(), requests->end(), std::pair(pos, reqType)) == requests->end()) {
-		requests->push_back(std::pair(pos, reqType));
-		_chunkFloodFill({pos.x + 1, pos.y, pos.z}, oldPos, reqType, requests);
-		_chunkFloodFill({pos.x - 1, pos.y, pos.z}, oldPos, reqType, requests);
-		_chunkFloodFill({pos.x, pos.y, pos.z + 1}, oldPos, reqType, requests);
-		_chunkFloodFill({pos.x, pos.y, pos.z - 1}, oldPos, reqType, requests);
-		// _chunkFloodFill({pos.x, pos.y + 1, pos.z}, oldPos, reqType, requests);
-		// _chunkFloodFill({pos.x, pos.y - 1, pos.z}, oldPos, reqType, requests);
-	}
-}
 /// ---
 
 

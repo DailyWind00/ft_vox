@@ -55,7 +55,7 @@ static void	chunkRequests(VoxelSystem &voxelSystem, const CameraInfo &cameraInfo
 	static int		currentRequestDistanceZ = glm::min(SPAWN_LOCATION_SIZE, HORIZONTAL_RENDER_DISTANCE) + 1;
 
 	if (camChunkPos == prevCamChunkPos) {	// If the player is staying in the same chunk, the world load until the render distance is reached
-		if (currentRequestDistanceX >= HORIZONTAL_RENDER_DISTANCE || currentRequestDistanceZ >= HORIZONTAL_RENDER_DISTANCE)
+		if (currentRequestDistanceX > HORIZONTAL_RENDER_DISTANCE || currentRequestDistanceZ > HORIZONTAL_RENDER_DISTANCE)
 			return ;
 		for (int i = VERTICAL_RENDER_DISTANCE; i >= -VERTICAL_RENDER_DISTANCE; i--) {
 			for (int j = -currentRequestDistanceX; j <= currentRequestDistanceX; j++) {

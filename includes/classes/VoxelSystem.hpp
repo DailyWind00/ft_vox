@@ -5,7 +5,7 @@
 # define DATA_TYPE uint32_t
 # define CHUNK_SIZE 32
 # define HORIZONTAL_RENDER_DISTANCE 14
-# define VERTICAL_RENDER_DISTANCE 2
+# define VERTICAL_RENDER_DISTANCE 5
 # define SPAWN_LOCATION_SIZE	3
 # define BUFFER_GROWTH_FACTOR 2
 # define MESH_BATCH_LIMIT (size_t)2048
@@ -52,7 +52,7 @@ typedef struct DrawCommand {
 
 // Data structure for the SSBO (Shader Storage Buffer Object)
 typedef struct SSBOData {
-	ivec4	worldPos; // Wpos x y z, face orientation
+	ivec4	worldPos; // Wpos x y z, face orientation + LOD
 } SSBOData;
 
 // Data structure for the G-Buffer (Geometry pass)
@@ -69,6 +69,7 @@ typedef struct BufferArea {
 	size_t	size;
 } BufferArea;
 
+// Data structure for a chunk and its metadata
 typedef struct ChunkData {
 	AChunk *	chunk;
 	ivec3		Wpos;
@@ -167,7 +168,6 @@ class VoxelSystem {
 
 		void	requestChunk(const vector<ChunkRequest> &requests);
 		void	requestMesh (const vector<ChunkRequest> &requests);
-		void	_chunkFloodFill(const glm::ivec3 &pos, const glm::ivec3 &oldPos, const ChunkAction &reqType, vector<ChunkRequest> *requests);
 
 		void	tryDestroyBlock();
 		const GeoFrameBuffers &	draw();

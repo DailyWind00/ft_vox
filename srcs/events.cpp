@@ -99,6 +99,8 @@ static void	chunkRequests(VoxelSystem &voxelSystem, const CameraInfo &cameraInfo
 
 // Handle the camera movements/interactions
 static void	cameraMovement(Window &window, Camera &camera) {
+	if (!window.isFocused()) return;
+
 	CameraInfo	cameraInfo = camera.getCameraInfo();
 
 	# pragma region Camera controls

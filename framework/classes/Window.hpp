@@ -63,6 +63,8 @@ class Window {
 		size_t	getFPS();
 		double	getFrameTime() const;
 
+		bool isFocused() const;
+
 		/// Setters
 
 		void	setTitle(const std::string &title);

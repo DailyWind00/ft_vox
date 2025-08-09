@@ -96,6 +96,11 @@ size_t	Window::getFPS() {
 double	Window::getFrameTime() const {
 	return frameTime;
 }
+
+// Return if the window is focused
+bool	Window::isFocused() const {
+	return glfwGetWindowAttrib(window, GLFW_FOCUSED);
+}
 /// ---
 
 

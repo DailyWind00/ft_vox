@@ -16,19 +16,19 @@ typedef enum class ProjectionType {
 } ProjectionType;
 
 // Struct to store the camera information (view matrix)
-typedef struct CameraInfo {
+struct CameraInfo {
 	glm::vec3	position = {0, 0, 0};
 	glm::vec3	lookAt   = {0, 1, 0};
 	glm::vec3	up       = {0, 0, 1};
-} CameraInfo;
+};
 
 // Struct to store the projection information (projection matrix)
-typedef struct ProjectionInfo {
+struct ProjectionInfo {
 	float	fov          = 45.0f;
 	float	aspectRatio  = 16.0f / 9.0f;
 	float	near         = 0.1f;
 	float	far          = 100.0f;
-} ProjectionInfo;
+};
 
 // Class for camera management, handle the view and projection matrices and the camera position
 class Camera {

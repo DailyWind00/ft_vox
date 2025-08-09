@@ -32,12 +32,12 @@ enum	BiomeID {
 
 # define WORLDFEATURE_THRESHOLDS	(float[]){10000.0f, 30.0f, 0.2f, 2.0f}
 
-typedef struct WorldFeature {
+struct WorldFeature {
 	glm::ivec3	_localPosition;
 	uint8_t		_type;
 	glm::ivec4 *	_data;
 	bool		_origin;
-} WorldFeature;
+};
 
 enum e_worldFeatures {
 	WF_NONE = 0,
@@ -46,12 +46,12 @@ enum e_worldFeatures {
 	WF_SNOW_TREE
 };
 
-typedef struct WorldNoises {
+struct WorldNoises {
 	float *	heightMap;
 	float * heatMap;
 	float *	humidityMap;
 	float * featuresMap;
-}	WorldNoises;
+};
 
 /// Global variables
 extern std::list<std::pair<glm::ivec3, WorldFeature> >	g_pendingFeatures;

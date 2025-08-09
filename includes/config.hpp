@@ -35,18 +35,18 @@ using namespace glm;
 extern bool VERBOSE;
 extern bool SHOW_TOOLTIP;
 
-typedef struct {
+struct RenderData {
 	GLuint		renderQuadVAO;
-} RenderData;
+};
 
-typedef struct GameData {
+struct GameData {
 	Window			&window;
 	ShaderHandler	&shaders;
 	VoxelSystem		&voxelSystem;
 	SkyBox			&skybox;
 	Camera			&camera;
 	RenderData		&renderDatas;
-} GameData;
+};
 
 /// Functions
 

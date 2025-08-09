@@ -41,7 +41,7 @@ void	VoxelSystem::_meshGenerationRoutine() {
 				pos.x / CHUNK_SIZE,
 			};
 			const size_t	dist   = glm::distance(chunkPos, (vec3)Wpos);
-			_chunks[Wpos].LOD = (dist >= 0 && dist <= 4)
+			_chunks[Wpos].LOD = (dist <= 4)
 				+ 2 * (dist >= 5 && dist <= 9)
 				+ 4 * (dist >= 10 && dist <= 14)
 				+ 8 * (dist >= 15 && dist <= 19)

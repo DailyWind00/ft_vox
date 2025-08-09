@@ -9,13 +9,13 @@
 
 /// Global variables
 
-typedef struct timeLog {
+struct timeLog {
 	timeLog() : max(0), av(0), min(FLT_MAX) {};
 
 	float	max;
 	float	av;
 	float	min;
-}	timeLog;
+};
 
 // The Profiler class allow to evaluate performance in specific context of the program.
 // It can:

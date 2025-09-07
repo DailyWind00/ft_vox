@@ -40,9 +40,9 @@ static inline bool MouseButtonPressedOnce(GLFWwindow *window, int button) {
 static void	chunkRequests(VoxelSystem &voxelSystem, const CameraInfo &cameraInfo)
 {
 	glm::ivec3		camChunkPos = {
-		cameraInfo.position.z / CHUNK_SIZE,
+		cameraInfo.position.x / CHUNK_SIZE,
 		cameraInfo.position.y  / CHUNK_SIZE,
-		cameraInfo.position.x / CHUNK_SIZE
+		cameraInfo.position.z / CHUNK_SIZE
 	};
 	static glm::ivec3	prevCamChunkPos = camChunkPos;
 
@@ -183,7 +183,7 @@ void	handleEvents(GameData &gameData) {
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
 
-	chunkRequests(gameData.voxelSystem, gameData.camera.getCameraInfo());
+	// chunkRequests(gameData.voxelSystem, gameData.camera.getCameraInfo());
 	cameraMovement(window, camera);
 	inputs(gameData);
 

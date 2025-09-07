@@ -33,7 +33,7 @@ static void program_loop(GameData &gameData) {
 
 	// Voxel Geometrie
 	shaders.use(shaders[1]);
-	GeoFrameBuffers	gBuffer = voxelSystem.draw();
+	GeoFrameBuffers	gBuffer = voxelSystem.draw(shaders, 1);
 
 	// Deferred rendering lighting
 	shaders.use(shaders[2]);

@@ -21,7 +21,6 @@ void	VoxelSystem::_meshGenerationRoutine() {
 		// Generate meshes up to the batch limit
 		size_t batchCount = 0;
 		_chunksMutex.lock();
-		_buffersMutex.lock();
 
 		for (ChunkRequest request : localRequestedMeshes) {
 			if (batchCount >= MESH_BATCH_LIMIT)
@@ -41,11 +40,12 @@ void	VoxelSystem::_meshGenerationRoutine() {
 				pos.x / CHUNK_SIZE,
 			};
 			const size_t	dist   = glm::distance(chunkPos, (vec3)Wpos);
-			_chunks[Wpos].LOD = (dist >= 0 && dist <= 4)
-				+ 2 * (dist >= 5 && dist <= 9)
-				+ 4 * (dist >= 10 && dist <= 14)
-				+ 8 * (dist >= 15 && dist <= 19)
-				+ 16 * (dist >= 20);
+			_chunks[Wpos].LOD = 1;
+			// _chunks[Wpos].LOD = (dist >= 0 && dist <= 4)
+			// 	+ 2 * (dist >= 5 && dist <= 9)
+			// 	+ 4 * (dist >= 10 && dist <= 14)
+			// 	+ 8 * (dist >= 15 && dist <= 19)
+			// 	+ 16 * (dist >= 20);
 
 			ChunkData &data = _chunks[Wpos];
 
@@ -79,9 +79,7 @@ void	VoxelSystem::_meshGenerationRoutine() {
 			data.inCreation = false;
 		}
 
-		_buffersNeedUpdates = true;
 		_chunksMutex.unlock();
-		_buffersMutex.unlock();
 
 
 		// Remove the generated meshes from the requested list
@@ -96,7 +94,7 @@ void	VoxelSystem::_meshGenerationRoutine() {
 
 // Check if a neighbour chunk mesh is loaded
 static inline bool	isNeightbourLoaded(ChunkData *neightbour) {
-	return neightbour && neightbour->chunk && (neightbour->hasMesh() || neightbour->inCreation);
+	return neightbour && neightbour->chunk && (neightbour->mesh || neightbour->inCreation);
 }
 
 // Update the area of the given buffer
@@ -174,18 +172,6 @@ static int	trailing_ones32(uint64_t x)
 {
 	return trailing_zeros32(~x);
 }
-static DATA_TYPE	constructFace(const glm::ivec3 &pos, const uint8_t &blockID, const glm::ivec2 &size)
-{
-	DATA_TYPE	data = 0;
-
-	data |= (pos.x & 0x1F);		// X
-	data |= (pos.y & 0x1F) << 5;	// Y
-	data |= (pos.z & 0x1F) << 10;	// Z
-	data |= (blockID & 0x7F) << 15;	// Block ID
-	data |= (size.x & 0x1F) << 22;	// Face length
-	data |= (size.y & 0x1F) << 27;	// Face length
-	return (data);
-}
 
 static uint64_t		binMap(const uint64_t &x, const uint64_t &count, const uint64_t &stride)
 {
@@ -198,6 +184,94 @@ static uint64_t		binMap(const uint64_t &x, const uint64_t &count, const uint64_t
 			res |= (~x & 0x01) << i;
 	}
 	return (res);
+}
+
+static DATA_TYPE	constructFaceVertice(const glm::ivec3 &pos, const glm::ivec2 &len, const glm::ivec2 &uv, const uint8_t &axis, const uint8_t &blockID) {
+	DATA_TYPE	data = 0;
+
+	data |= (pos.x & 0x3F);		// X
+	data |= (pos.y & 0x3F) << 6;	// Y
+	data |= (pos.z & 0x3F) << 12;	// Z
+	data |= (axis & 0x07) << 18;	// face
+	data |= (blockID & 0x1F) << 22;	// blockID
+	data |= (uv.x & 0x01) << 27;	// UV X
+	data |= (uv.y & 0x01) << 28;	// UV X
+	data |= (len.x & (uint64_t)0x3F) << 32;
+	data |= (len.y & (uint64_t)0x3F) << 38;
+
+	return (data);
+}
+
+// Mesh Bitmask
+// pos: 6 * 3 bits
+// face: 3 bits
+// id: 5 bits
+static void	constructFace(vector<DATA_TYPE> *vertices, const glm::ivec3 &pos, const uint8_t &blockID, const glm::ivec2 &size, const uint8_t &axis)
+{
+	switch(axis) {
+	case 0:	// X
+		vertices->push_back(constructFaceVertice({pos.z, pos.y, pos.x}, {size.x, size.y}, {0, 0}, axis, blockID));
+		vertices->push_back(constructFaceVertice({pos.z, pos.y + size.y, pos.x}, {size.x, size.y}, {0, 0}, axis, blockID));
+		vertices->push_back(constructFaceVertice({pos.z + size.x, pos.y, pos.x}, {size.x, size.y}, {0, 0}, axis, blockID));
+
+		vertices->push_back(constructFaceVertice({pos.z + size.x, pos.y + size.y, pos.x}, {size.x, size.y}, {0, 0}, axis, blockID));
+		vertices->push_back(constructFaceVertice({pos.z + size.x, pos.y, pos.x}, {size.x, size.y}, {0, 0}, axis, blockID));
+		vertices->push_back(constructFaceVertice({pos.z, pos.y + size.y, pos.x}, {size.x, size.y}, {0, 0}, axis, blockID));
+		break ;
+	
+	case 1: // X
+		vertices->push_back(constructFaceVertice({pos.z, pos.y, pos.x + 1}, {size.x, size.y}, {0, 0}, axis, blockID));
+		vertices->push_back(constructFaceVertice({pos.z + size.x, pos.y, pos.x + 1}, {size.x, size.y}, {0, 0}, axis, blockID));
+		vertices->push_back(constructFaceVertice({pos.z, pos.y + size.y, pos.x + 1}, {size.x, size.y}, {0, 0}, axis, blockID));
+
+		vertices->push_back(constructFaceVertice({pos.z + size.x, pos.y + size.y, pos.x + 1}, {size.x, size.y}, {0, 0}, axis, blockID));
+		vertices->push_back(constructFaceVertice({pos.z, pos.y + size.y, pos.x + 1}, {0, 0}, {size.x, size.y}, axis, blockID));
+		vertices->push_back(constructFaceVertice({pos.z + size.x, pos.y, pos.x + 1}, {0, 0}, {size.x, size.y}, axis, blockID));
+		break ;
+
+	case 2:	// Y
+		vertices->push_back(constructFaceVertice({pos.z, pos.y, pos.x}, {size.x, size.y}, {0, 0}, axis, blockID));
+		vertices->push_back(constructFaceVertice({pos.z + size.x, pos.y, pos.x}, {size.x, size.y}, {1, 0}, axis, blockID));
+		vertices->push_back(constructFaceVertice({pos.z, pos.y, pos.x + size.y}, {size.x, size.y}, {0, 1}, axis, blockID));
+
+		vertices->push_back(constructFaceVertice({pos.z + size.x, pos.y, pos.x + size.y}, {size.x, size.y}, {1, 1}, axis, blockID));
+		vertices->push_back(constructFaceVertice({pos.z, pos.y, pos.x + size.y}, {size.x, size.y}, {0, 1}, axis, blockID));
+		vertices->push_back(constructFaceVertice({pos.z + size.x, pos.y, pos.x}, {size.x, size.y}, {1, 0}, axis, blockID));
+		break ;
+	
+	case 3:	// Y
+		vertices->push_back(constructFaceVertice({pos.z, pos.y + 1, pos.x}, {size.y, size.x}, {0, 0}, axis, blockID));
+		vertices->push_back(constructFaceVertice({pos.z, pos.y + 1, pos.x + size.y}, {size.y, size.x}, {1, 0}, axis, blockID));
+		vertices->push_back(constructFaceVertice({pos.z + size.x, pos.y + 1, pos.x}, {size.y, size.x}, {0, 1}, axis, blockID));
+
+		vertices->push_back(constructFaceVertice({pos.z + size.x, pos.y + 1, pos.x + size.y}, {size.y, size.x}, {1, 1}, axis, blockID));
+		vertices->push_back(constructFaceVertice({pos.z + size.x, pos.y + 1, pos.x}, {size.y, size.x}, {0, 1}, axis, blockID));
+		vertices->push_back(constructFaceVertice({pos.z, pos.y + 1, pos.x + size.y}, {size.y, size.x}, {1, 0}, axis, blockID));
+		break ;
+	
+	case 4:	// Z
+		vertices->push_back(constructFaceVertice({pos.z, pos.y, pos.x}, {size.x, size.y}, {0, 0}, axis, blockID));
+		vertices->push_back(constructFaceVertice({pos.z, pos.y, pos.x + size.x}, {size.x, size.y}, {0, 0}, axis, blockID));
+		vertices->push_back(constructFaceVertice({pos.z, pos.y + size.y, pos.x}, {size.x, size.y}, {0, 0}, axis, blockID));
+
+		vertices->push_back(constructFaceVertice({pos.z, pos.y + size.y, pos.x + size.x}, {size.x, size.y}, {0, 0}, axis, blockID));
+		vertices->push_back(constructFaceVertice({pos.z, pos.y + size.y, pos.x}, {size.x, size.y}, {0, 0}, axis, blockID));
+		vertices->push_back(constructFaceVertice({pos.z, pos.y, pos.x + size.x}, {size.x, size.y}, {0, 0}, axis, blockID));
+		break ;
+	
+	case 5:	// Z
+		vertices->push_back(constructFaceVertice({pos.z + 1, pos.y, pos.x}, {size.x, size.y}, {0, 0}, axis, blockID));
+		vertices->push_back(constructFaceVertice({pos.z + 1, pos.y + size.y, pos.x}, {size.x, size.y}, {0, 0}, axis, blockID));
+		vertices->push_back(constructFaceVertice({pos.z + 1, pos.y, pos.x + size.x}, {size.x, size.y}, {0, 0}, axis, blockID));
+
+		vertices->push_back(constructFaceVertice({pos.z + 1, pos.y + size.y, pos.x + size.x}, {size.x, size.y}, {0, 0}, axis, blockID));
+		vertices->push_back(constructFaceVertice({pos.z + 1, pos.y, pos.x + size.x}, {size.x, size.y}, {0, 0}, axis, blockID));
+		vertices->push_back(constructFaceVertice({pos.z + 1, pos.y + size.y, pos.x}, {size.x, size.y}, {0, 0}, axis, blockID));
+		break ;
+	
+	default:
+		break ;
+	}
 }
 
 // Binary greedy meshing algorythme
@@ -238,26 +312,26 @@ static void	binaryGreedyMeshing(std::vector<DATA_TYPE> *vertices, uint32_t plane
 			glm::ivec3	pos = {0, 0, 0};
 			glm::ivec2	size = {0, 0};
 
-			if (axis == 0) {
+			if (axis == 0 || axis == 1) {
 				pos = {depth, i, col};
-				size = {height - 1, width - 1};
+				size = {height, width};
 			}
-			else if (axis == 1){
+			else if (axis == 2 || axis == 3){
 				pos = {col, depth, i};
-				size = {width - 1, height - 1};
+				size = {width, height};
 			}
-			else if (axis == 2) {
+			else if (axis == 4 || axis == 5) {
 				pos = {col, i, depth};
-				size = {height - 1, width - 1};
+				size = {height, width};
 			}
 
-			vertices->push_back(constructFace(pos, blockID, size));
+			constructFace(vertices, pos, blockID, size, axis);
 			col += height;
 		}
 	}
 }
 
-static void	constructXAxisMesh(std::vector<DATA_TYPE> (&vertices)[6], uint64_t (&xAxisBitmask)[(CHUNK_WIDTH + 2) * (CHUNK_WIDTH + 2)], ChunkData &chunk, ChunkData *neightboursChunks[6], const uint8_t &LOD)
+static void	constructXAxisMesh(std::vector<DATA_TYPE> *vertices, uint64_t (&xAxisBitmask)[(CHUNK_WIDTH + 2) * (CHUNK_WIDTH + 2)], ChunkData &chunk, ChunkData *neightboursChunks[6], const uint8_t &LOD)
 {
 	// Get the X axis neighbours data
 	for (uint64_t i = 0; i < CHUNK_HEIGHT * CHUNK_WIDTH; i++) {
@@ -295,10 +369,10 @@ static void	constructXAxisMesh(std::vector<DATA_TYPE> (&vertices)[6], uint64_t (
 	for (int i = 0; i < 2; i++)
 		for (auto &[key, value] : binaryPlaneHM[i])
 			for (int j = 0; j < CHUNK_WIDTH; j += LOD)
-				binaryGreedyMeshing(&vertices[i], value[j], j, key, 0, LOD);
+				binaryGreedyMeshing(vertices, value[j], j, key, i, LOD);
 }
 
-static void	constructYAxisMesh(std::vector<DATA_TYPE> (&vertices)[6], uint64_t (&yAxisBitmask)[(CHUNK_WIDTH + 2) * (CHUNK_WIDTH + 2)], ChunkData &chunk, ChunkData *neightboursChunks[6], const uint8_t &LOD)
+static void	constructYAxisMesh(std::vector<DATA_TYPE> *vertices, uint64_t (&yAxisBitmask)[(CHUNK_WIDTH + 2) * (CHUNK_WIDTH + 2)], ChunkData &chunk, ChunkData *neightboursChunks[6], const uint8_t &LOD)
 {
 	// Get the Y axis neighbours data
 	for (uint64_t i = 0; i < CHUNK_WIDTH * CHUNK_WIDTH; i++) {
@@ -336,10 +410,10 @@ static void	constructYAxisMesh(std::vector<DATA_TYPE> (&vertices)[6], uint64_t (
 	for (int i = 0; i < 2; i++)
 		for (auto &[key, value] : binaryPlaneHM[i])
 			for (int j = 0; j < CHUNK_WIDTH; j += LOD)
-				binaryGreedyMeshing(&vertices[i + 2], value[j], j, key, 1, LOD);
+				binaryGreedyMeshing(vertices, value[j], j, key, i + 2, LOD);
 }
 
-static void	constructZAxisMesh(std::vector<DATA_TYPE> (&vertices)[6], uint64_t (&zAxisBitmask)[(CHUNK_WIDTH + 2) * (CHUNK_WIDTH + 2)], ChunkData &chunk, ChunkData *neightboursChunks[6], const uint8_t &LOD)
+static void	constructZAxisMesh(std::vector<DATA_TYPE> *vertices, uint64_t (&zAxisBitmask)[(CHUNK_WIDTH + 2) * (CHUNK_WIDTH + 2)], ChunkData &chunk, ChunkData *neightboursChunks[6], const uint8_t &LOD)
 {
 	// Get the Z axis neighbours data
 	for (uint64_t i = 0; i < CHUNK_HEIGHT * CHUNK_WIDTH; i++) {
@@ -377,14 +451,14 @@ static void	constructZAxisMesh(std::vector<DATA_TYPE> (&vertices)[6], uint64_t (
 	for (int i = 0; i < 2; i++)
 		for (auto &[key, value] : binaryPlaneHM[i])
 			for (int j = 0; j < CHUNK_WIDTH; j += LOD)
-				binaryGreedyMeshing(&vertices[i + 4], value[j], j, key, 2, LOD);
+				binaryGreedyMeshing(vertices, value[j], j, key, i + 4, LOD);
 }
 
 // Create/update the mesh of the given chunk
 // The data will be stored in the main thread at the end of OpenGL buffers
 void	VoxelSystem::_generateMesh(ChunkData &chunk, ChunkData *neightboursChunks[6], const uint8_t &LOD) {
 	// Check if the chunk already have a mesh (in case of update)
-	if (chunk.hasMesh())
+	if (chunk.mesh)
 		_deleteMesh(chunk, neightboursChunks);
 
 	chunk.neigthbourUpdated = false;
@@ -411,54 +485,24 @@ void	VoxelSystem::_generateMesh(ChunkData &chunk, ChunkData *neightboursChunks[6
 		}
 	}
 
-	vector<DATA_TYPE>	vertices[6];
+	vector<DATA_TYPE>	vertices;
+	size_t		maxDataSizePerChunk = (pow(CHUNK_SIZE, 3) / 2) * 6 * sizeof(DATA_TYPE);
 
-	constructXAxisMesh(vertices, xAxisBitmask, chunk, neightboursChunks, LOD);
-	constructYAxisMesh(vertices, yAxisBitmask, chunk, neightboursChunks, LOD);
-	constructZAxisMesh(vertices, zAxisBitmask, chunk, neightboursChunks, LOD);
+	vertices.reserve(maxDataSizePerChunk);
 
-	size_t old_VBO_data_size = _VBO_data.size() * sizeof(DATA_TYPE);
-	size_t old_IB_data_size = _IB_data.size() * sizeof(DrawCommand);
-	size_t old_SSBO_data_size = _SSBO_data.size() * sizeof(SSBOData);
+	constructXAxisMesh(&vertices, xAxisBitmask, chunk, neightboursChunks, LOD);
+	constructYAxisMesh(&vertices, yAxisBitmask, chunk, neightboursChunks, LOD);
+	constructZAxisMesh(&vertices, zAxisBitmask, chunk, neightboursChunks, LOD);
 
-	// Write the mesh in OpenGL buffers
-	for (uint32_t i = 0; i < 6; i++) {
-		if (!vertices[i].size())
-			continue;
-
-		// IB first as it need the VBO size before it being written
-		DrawCommand	cmd = {4, GLuint(vertices[i].size()), 0, GLuint((_VBO_size / sizeof(DATA_TYPE)) + _VBO_data.size())};
-		_IB_data.push_back(cmd);
-
-		// VBO
-		_VBO_data.insert(_VBO_data.end(), vertices[i].begin(), vertices[i].end());
-
-		// SSBO
-		uint32_t	faceLODMask = 0;
-
-		faceLODMask |= (i & 0x0F);
-		faceLODMask |= (LOD & 0xFF) << 4;
-		SSBOData data = {ivec4{chunk.Wpos, faceLODMask}};
-		_SSBO_data.push_back(data);
-	}
-
-	// Create new areas for the buffers
-	chunk.VBO_area.push_back({0, 0});
-	chunk.IB_area.push_back({0, 0});
-	chunk.SSBO_area.push_back({0, 0});
-
-	// Update the areas of the buffers
-	updateArea(chunk.VBO_area.back(), old_VBO_data_size, _VBO_data.size() * sizeof(DATA_TYPE), _VBO_size);
-	updateArea(chunk.IB_area.back(), old_IB_data_size, _IB_data.size() * sizeof(DrawCommand), _IB_size);
-	updateArea(chunk.SSBO_area.back(), old_SSBO_data_size, _SSBO_data.size() * sizeof(SSBOData), _SSBO_size);
+	_chunks[chunk.Wpos].mesh = new ChunkMesh(vertices);
 }
 
 // Delete the first mesh
 void	VoxelSystem::_deleteMesh(ChunkData &chunk, ChunkData *neightboursChunks[6]) {
-	if (!_chunks.count(chunk.Wpos) || !chunk.hasMesh())
+	if (!_chunks.count(chunk.Wpos) || !chunk.mesh)
 		return;
 
-	_chunksToDelete.push_back(chunk.Wpos);
+	_toDelete[chunk.Wpos] = chunk.mesh;
 
 	if (chunk.neigthbourUpdated)
 		return;

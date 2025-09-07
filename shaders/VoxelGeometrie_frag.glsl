@@ -9,6 +9,7 @@ in vec3	Normal;
 in vec2	uv;
 in vec2	l;
 flat in uint	texID;
+flat in uint	face;
 
 uniform float		time;
 uniform sampler2D	atlas;
@@ -21,7 +22,6 @@ void	main()
 	uint	xOff = texID % 16;
 	uint	yOff = texID / 16;
 
-	float	d = smoothstep(uv.x, uv.x + 0.1, -0.1);
-
-	gColor = texture(atlas, vec2((fract(uv.x * l.x) + xOff) / 16, (fract(uv.y * l.y) + yOff) / 16)) + vec4(d, 0.0, 0.0, 1.0);
+	gColor = texture(atlas, vec2((fract(uv.x * l.x) + xOff) / 16, (fract(uv.y * l.y) + yOff) / 16));
+	// gColor = vec4(vec3(float(face) / 6.0f), 1.0f);
 }

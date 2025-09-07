@@ -28,6 +28,7 @@ add_executable(ft_vox
 	includes/classes/MeshGeneration.cpp
 	includes/classes/Chunks/AChunk.cpp
 	includes/classes/Chunks/ChunkImpl.cpp
+	includes/classes/Chunks/ChunkMesh.cpp
 	includes/classes/Chunks/ChunkHandler.cpp
 
 	# Structure Definitions

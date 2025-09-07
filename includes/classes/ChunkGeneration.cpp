@@ -43,7 +43,7 @@ void VoxelSystem::_chunkGenerationRoutine() {
 			// Execute the requested action on the chunk in local memory
 			switch (req.second) {
 				case ChunkAction::CREATE_UPDATE:
-					generatedChunks[pos] = ChunkData{ChunkHandler::createChunk(pos), pos, MAX_LOD};
+					generatedChunks[pos] = ChunkData{nullptr, ChunkHandler::createChunk(pos), pos, MAX_LOD};
 					break;
 
 				case ChunkAction::DELETE:

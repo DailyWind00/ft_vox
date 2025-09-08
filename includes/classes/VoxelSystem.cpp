@@ -279,8 +279,6 @@ const GeoFrameBuffers	&VoxelSystem::draw(ShaderHandler &shader, const GLuint &id
 	glBindTexture(GL_TEXTURE_2D, _textureAtlas);
 
 	// Setup frustum culling
-	CameraInfo camInfo = _camera.getCameraInfo();
-	ProjectionInfo projInfo = _camera.getProjectionInfo();
 	mat4 VP = _camera; // Get the View-Projection matrix
 
 	array<vec4, 6> frustumPlanes;
@@ -307,10 +305,7 @@ const GeoFrameBuffers	&VoxelSystem::draw(ShaderHandler &shader, const GLuint &id
 				break;
 			}
 		}
-		if (!inFrustrum) {
-			cout << "Culled chunk at " << it->first.x << ", " << it->first.y << ", " << it->first.z << endl;
-			continue;
-		}
+		if (!inFrustrum) continue;
 
 		// Draw the chunk
 		if (!it->second.mesh->getVAO())

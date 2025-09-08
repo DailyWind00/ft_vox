@@ -40,6 +40,7 @@ Camera::~Camera() {
 // Update the view matrix
 void	Camera::_updateViewMatrix() {
 	_viewMatrix = glm::lookAt(_cameraInfo.position, _cameraInfo.lookAt, _cameraInfo.up);
+	_cameraInfo.right = glm::normalize(glm::cross(glm::normalize(_cameraInfo.lookAt - _cameraInfo.position), _cameraInfo.up));
 }
 
 // Update the projection matrix
@@ -118,12 +119,6 @@ void	Camera::setPosition(const glm::vec3 &position) {
 // Set the camera lookAt
 void	Camera::setLookAt(const glm::vec3 &lookAt) {
 	_cameraInfo.lookAt = lookAt;
-	_updateViewMatrix();
-}
-
-// Set the camera up
-void	Camera::setUp(const glm::vec3 &up) {
-	_cameraInfo.up = up;
 	_updateViewMatrix();
 }
 

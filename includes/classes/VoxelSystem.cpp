@@ -254,6 +254,18 @@ void VoxelSystem::tryDestroyBlock()
 		cout << BRed << "No block found" << ResetColor << endl;
 }
 
+static inline const vec4 extractPlane(const mat4& m, int row, int sign) {
+    vec4 plane(
+        m[0][3] + sign * m[0][row],
+        m[1][3] + sign * m[1][row],
+        m[2][3] + sign * m[2][row],
+        m[3][3] + sign * m[3][row]
+    );
+
+    float len = length(vec3(plane)); // normalize by xyz length
+    return plane / len;
+}
+
 // Draw all chunks using batched rendering
 const GeoFrameBuffers	&VoxelSystem::draw(ShaderHandler &shader, const GLuint &id) {
 	// _updateBuffers();
@@ -266,13 +278,41 @@ const GeoFrameBuffers	&VoxelSystem::draw(ShaderHandler &shader, const GLuint &id
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, _textureAtlas);
 
+	// Setup frustum culling
+	CameraInfo camInfo = _camera.getCameraInfo();
+	ProjectionInfo projInfo = _camera.getProjectionInfo();
+	mat4 VP = _camera; // Get the View-Projection matrix
+
+	array<vec4, 6> frustumPlanes;
+	frustumPlanes[0] = extractPlane(VP, 0, +1); // Left
+	frustumPlanes[1] = extractPlane(VP, 0, -1); // Right
+	frustumPlanes[2] = extractPlane(VP, 1, +1); // Bottom
+	frustumPlanes[3] = extractPlane(VP, 1, -1); // Top
+	frustumPlanes[4] = extractPlane(VP, 2, +1); // Near
+	frustumPlanes[5] = extractPlane(VP, 2, -1); // Far
+
 	for (ChunkMap::iterator it = _chunks.begin(); it != _chunks.end(); it++) {
 		if (!it->second.mesh)
 			continue ;
-		// if (_toDelete[it->second.Wpos]->count()) {
-		// 	delete _toDelete[it->second.Wpos];
-		// 	continue ;
-		// }
+
+		// Frustum culling
+		vec3 chunkCenter = vec3(it->first * CHUNK_SIZE + CHUNK_SIZE / 2);
+    	float chunkRadius = CHUNK_SIZE * sqrt(3) / 2.0f;
+
+		bool inFrustrum = true;
+		for (auto& plane : frustumPlanes) {
+			float distance = dot(vec3(plane), chunkCenter) + plane.w;
+			if (distance < -chunkRadius) { // sphere outside
+				inFrustrum = false;
+				break;
+			}
+		}
+		if (!inFrustrum) {
+			cout << "Culled chunk at " << it->first.x << ", " << it->first.y << ", " << it->first.z << endl;
+			continue;
+		}
+
+		// Draw the chunk
 		if (!it->second.mesh->getVAO())
 			it->second.mesh->updateMesh();
 

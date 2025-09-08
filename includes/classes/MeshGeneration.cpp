@@ -211,22 +211,22 @@ static void	constructFace(vector<DATA_TYPE> *vertices, const glm::ivec3 &pos, co
 	switch(axis) {
 	case 0:	// X
 		vertices->push_back(constructFaceVertice({pos.z, pos.y, pos.x}, {size.x, size.y}, {0, 0}, axis, blockID));
-		vertices->push_back(constructFaceVertice({pos.z, pos.y + size.y, pos.x}, {size.x, size.y}, {0, 0}, axis, blockID));
-		vertices->push_back(constructFaceVertice({pos.z + size.x, pos.y, pos.x}, {size.x, size.y}, {0, 0}, axis, blockID));
+		vertices->push_back(constructFaceVertice({pos.z, pos.y + size.y, pos.x}, {size.x, size.y}, {0, 1}, axis, blockID));
+		vertices->push_back(constructFaceVertice({pos.z + size.x, pos.y, pos.x}, {size.x, size.y}, {1, 0}, axis, blockID));
 
-		vertices->push_back(constructFaceVertice({pos.z + size.x, pos.y + size.y, pos.x}, {size.x, size.y}, {0, 0}, axis, blockID));
-		vertices->push_back(constructFaceVertice({pos.z + size.x, pos.y, pos.x}, {size.x, size.y}, {0, 0}, axis, blockID));
-		vertices->push_back(constructFaceVertice({pos.z, pos.y + size.y, pos.x}, {size.x, size.y}, {0, 0}, axis, blockID));
+		vertices->push_back(constructFaceVertice({pos.z + size.x, pos.y + size.y, pos.x}, {size.x, size.y}, {1, 1}, axis, blockID));
+		vertices->push_back(constructFaceVertice({pos.z + size.x, pos.y, pos.x}, {size.x, size.y}, {1, 0}, axis, blockID));
+		vertices->push_back(constructFaceVertice({pos.z, pos.y + size.y, pos.x}, {size.x, size.y}, {0, 1}, axis, blockID));
 		break ;
 	
 	case 1: // X
 		vertices->push_back(constructFaceVertice({pos.z, pos.y, pos.x + 1}, {size.x, size.y}, {0, 0}, axis, blockID));
-		vertices->push_back(constructFaceVertice({pos.z + size.x, pos.y, pos.x + 1}, {size.x, size.y}, {0, 0}, axis, blockID));
-		vertices->push_back(constructFaceVertice({pos.z, pos.y + size.y, pos.x + 1}, {size.x, size.y}, {0, 0}, axis, blockID));
+		vertices->push_back(constructFaceVertice({pos.z + size.x, pos.y, pos.x + 1}, {size.x, size.y}, {1, 0}, axis, blockID));
+		vertices->push_back(constructFaceVertice({pos.z, pos.y + size.y, pos.x + 1}, {size.x, size.y}, {0, 1}, axis, blockID));
 
-		vertices->push_back(constructFaceVertice({pos.z + size.x, pos.y + size.y, pos.x + 1}, {size.x, size.y}, {0, 0}, axis, blockID));
-		vertices->push_back(constructFaceVertice({pos.z, pos.y + size.y, pos.x + 1}, {0, 0}, {size.x, size.y}, axis, blockID));
-		vertices->push_back(constructFaceVertice({pos.z + size.x, pos.y, pos.x + 1}, {0, 0}, {size.x, size.y}, axis, blockID));
+		vertices->push_back(constructFaceVertice({pos.z + size.x, pos.y + size.y, pos.x + 1}, {size.x, size.y}, {1, 1}, axis, blockID));
+		vertices->push_back(constructFaceVertice({pos.z, pos.y + size.y, pos.x + 1}, {size.x, size.y}, {0, 1}, axis, blockID));
+		vertices->push_back(constructFaceVertice({pos.z + size.x, pos.y, pos.x + 1}, {size.x, size.y}, {1, 0}, axis, blockID));
 		break ;
 
 	case 2:	// Y
@@ -240,33 +240,33 @@ static void	constructFace(vector<DATA_TYPE> *vertices, const glm::ivec3 &pos, co
 		break ;
 	
 	case 3:	// Y
-		vertices->push_back(constructFaceVertice({pos.z, pos.y + 1, pos.x}, {size.y, size.x}, {0, 0}, axis, blockID));
-		vertices->push_back(constructFaceVertice({pos.z, pos.y + 1, pos.x + size.y}, {size.y, size.x}, {1, 0}, axis, blockID));
-		vertices->push_back(constructFaceVertice({pos.z + size.x, pos.y + 1, pos.x}, {size.y, size.x}, {0, 1}, axis, blockID));
+		vertices->push_back(constructFaceVertice({pos.z, pos.y + 1, pos.x}, {size.x, size.y}, {0, 0}, axis, blockID));
+		vertices->push_back(constructFaceVertice({pos.z, pos.y + 1, pos.x + size.y}, {size.x, size.y}, {0, 1}, axis, blockID));
+		vertices->push_back(constructFaceVertice({pos.z + size.x, pos.y + 1, pos.x}, {size.x, size.y}, {1, 0}, axis, blockID));
 
-		vertices->push_back(constructFaceVertice({pos.z + size.x, pos.y + 1, pos.x + size.y}, {size.y, size.x}, {1, 1}, axis, blockID));
-		vertices->push_back(constructFaceVertice({pos.z + size.x, pos.y + 1, pos.x}, {size.y, size.x}, {0, 1}, axis, blockID));
-		vertices->push_back(constructFaceVertice({pos.z, pos.y + 1, pos.x + size.y}, {size.y, size.x}, {1, 0}, axis, blockID));
+		vertices->push_back(constructFaceVertice({pos.z + size.x, pos.y + 1, pos.x + size.y}, {size.x, size.y}, {1, 1}, axis, blockID));
+		vertices->push_back(constructFaceVertice({pos.z + size.x, pos.y + 1, pos.x}, {size.x, size.y}, {1, 0}, axis, blockID));
+		vertices->push_back(constructFaceVertice({pos.z, pos.y + 1, pos.x + size.y}, {size.x, size.y}, {0, 1}, axis, blockID));
 		break ;
 	
 	case 4:	// Z
 		vertices->push_back(constructFaceVertice({pos.z, pos.y, pos.x}, {size.x, size.y}, {0, 0}, axis, blockID));
-		vertices->push_back(constructFaceVertice({pos.z, pos.y, pos.x + size.x}, {size.x, size.y}, {0, 0}, axis, blockID));
-		vertices->push_back(constructFaceVertice({pos.z, pos.y + size.y, pos.x}, {size.x, size.y}, {0, 0}, axis, blockID));
+		vertices->push_back(constructFaceVertice({pos.z, pos.y, pos.x + size.x}, {size.x, size.y}, {1, 0}, axis, blockID));
+		vertices->push_back(constructFaceVertice({pos.z, pos.y + size.y, pos.x}, {size.x, size.y}, {0, 1}, axis, blockID));
 
-		vertices->push_back(constructFaceVertice({pos.z, pos.y + size.y, pos.x + size.x}, {size.x, size.y}, {0, 0}, axis, blockID));
-		vertices->push_back(constructFaceVertice({pos.z, pos.y + size.y, pos.x}, {size.x, size.y}, {0, 0}, axis, blockID));
-		vertices->push_back(constructFaceVertice({pos.z, pos.y, pos.x + size.x}, {size.x, size.y}, {0, 0}, axis, blockID));
+		vertices->push_back(constructFaceVertice({pos.z, pos.y + size.y, pos.x + size.x}, {size.x, size.y}, {1, 1}, axis, blockID));
+		vertices->push_back(constructFaceVertice({pos.z, pos.y + size.y, pos.x}, {size.x, size.y}, {0, 1}, axis, blockID));
+		vertices->push_back(constructFaceVertice({pos.z, pos.y, pos.x + size.x}, {size.x, size.y}, {1, 0}, axis, blockID));
 		break ;
 	
 	case 5:	// Z
 		vertices->push_back(constructFaceVertice({pos.z + 1, pos.y, pos.x}, {size.x, size.y}, {0, 0}, axis, blockID));
-		vertices->push_back(constructFaceVertice({pos.z + 1, pos.y + size.y, pos.x}, {size.x, size.y}, {0, 0}, axis, blockID));
-		vertices->push_back(constructFaceVertice({pos.z + 1, pos.y, pos.x + size.x}, {size.x, size.y}, {0, 0}, axis, blockID));
+		vertices->push_back(constructFaceVertice({pos.z + 1, pos.y + size.y, pos.x}, {size.x, size.y}, {0, 1}, axis, blockID));
+		vertices->push_back(constructFaceVertice({pos.z + 1, pos.y, pos.x + size.x}, {size.x, size.y}, {1, 0}, axis, blockID));
 
-		vertices->push_back(constructFaceVertice({pos.z + 1, pos.y + size.y, pos.x + size.x}, {size.x, size.y}, {0, 0}, axis, blockID));
-		vertices->push_back(constructFaceVertice({pos.z + 1, pos.y, pos.x + size.x}, {size.x, size.y}, {0, 0}, axis, blockID));
-		vertices->push_back(constructFaceVertice({pos.z + 1, pos.y + size.y, pos.x}, {size.x, size.y}, {0, 0}, axis, blockID));
+		vertices->push_back(constructFaceVertice({pos.z + 1, pos.y + size.y, pos.x + size.x}, {size.x, size.y}, {1, 1}, axis, blockID));
+		vertices->push_back(constructFaceVertice({pos.z + 1, pos.y, pos.x + size.x}, {size.x, size.y}, {1, 0}, axis, blockID));
+		vertices->push_back(constructFaceVertice({pos.z + 1, pos.y + size.y, pos.x}, {size.x, size.y}, {0, 1}, axis, blockID));
 		break ;
 	
 	default:

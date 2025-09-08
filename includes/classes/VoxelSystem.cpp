@@ -269,10 +269,10 @@ const GeoFrameBuffers	&VoxelSystem::draw(ShaderHandler &shader, const GLuint &id
 	for (ChunkMap::iterator it = _chunks.begin(); it != _chunks.end(); it++) {
 		if (!it->second.mesh)
 			continue ;
-		if (_toDelete[it->second.Wpos]->count()) {
-			delete _toDelete[it->second.Wpos];
-			continue ;
-		}
+		// if (_toDelete[it->second.Wpos]->count()) {
+		// 	delete _toDelete[it->second.Wpos];
+		// 	continue ;
+		// }
 		if (!it->second.mesh->getVAO())
 			it->second.mesh->updateMesh();
 

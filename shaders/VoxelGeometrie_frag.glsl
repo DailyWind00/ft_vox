@@ -14,6 +14,15 @@ flat in uint	face;
 uniform float		time;
 uniform sampler2D	atlas;
 
+float	sdfSegment(vec2 p, vec2 a, vec2 b) {
+	float	h = min(1.0, max(0.0, dot(p - a, b - a) / dot(b - a, b - a)));
+	return length(p - (a + h * (b - a)));
+}
+
+float	addSegment(float d1, float d2, float d3, float d4, float d5) {
+	return min(min(min(min(d1, d2), d3), d4), d5);
+}
+
 void	main()
 {
 	gPosition = vec4(fragPos, 1.0f);
@@ -22,6 +31,15 @@ void	main()
 	uint	xOff = texID % 16;
 	uint	yOff = texID / 16;
 
-	gColor = texture(atlas, vec2((fract(uv.x * l.x) + xOff) / 16, (fract(uv.y * l.y) + yOff) / 16));
 	// gColor = vec4(vec3(float(face) / 6.0f), 1.0f);
+
+	float	thickness = 0.01 / ((l.x + l.y) / 2.0f);
+
+	float	d = addSegment(sdfSegment(uv, vec2(0, 0), vec2(1, 0)),
+			sdfSegment(uv, vec2(0, 0), vec2(0, 1)),
+			sdfSegment(uv, vec2(1, 1), vec2(1, 0)),
+			sdfSegment(uv, vec2(1, 1), vec2(0, 1)),
+			sdfSegment(uv, vec2(0, 0), vec2(1, 1)));
+	float	sm = smoothstep(thickness, (thickness + 0.01), d);
+	gColor = texture(atlas, vec2((fract(uv.x * l.x) + xOff) / 16, (fract(uv.y * l.y) + yOff) / 16)) * vec4(vec3(sm), 1.0f);
 }

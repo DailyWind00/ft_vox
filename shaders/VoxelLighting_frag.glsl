@@ -8,6 +8,7 @@ uniform sampler2D	gNormal;
 uniform sampler2D	gColor;
 
 uniform vec3	sunPos;
+uniform bool	polygonVisible;
 
 uniform vec2	screenSize;
 const float		crossThickness = 1.0f;

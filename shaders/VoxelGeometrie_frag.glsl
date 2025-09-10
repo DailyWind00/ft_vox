@@ -34,12 +34,16 @@ void	main()
 	// gColor = vec4(vec3(float(face) / 6.0f), 1.0f);
 
 	float	thickness = 0.01 / ((l.x + l.y) / 2.0f);
+	float	roughness = 0.01 / ((l.x + l.y) / 2.0f);
 
 	float	d = addSegment(sdfSegment(uv, vec2(0, 0), vec2(1, 0)),
 			sdfSegment(uv, vec2(0, 0), vec2(0, 1)),
 			sdfSegment(uv, vec2(1, 1), vec2(1, 0)),
 			sdfSegment(uv, vec2(1, 1), vec2(0, 1)),
 			sdfSegment(uv, vec2(0, 0), vec2(1, 1)));
-	float	sm = smoothstep(thickness, (thickness + 0.01), d);
-	gColor = texture(atlas, vec2((fract(uv.x * l.x) + xOff) / 16, (fract(uv.y * l.y) + yOff) / 16)) * vec4(vec3(sm), 1.0f);
+	float	sm = 1.0f - smoothstep(thickness, (thickness + roughness), d);
+	vec3	color = texture(atlas, vec2((fract(uv.x * l.x) + xOff) / 16, (fract(uv.y * l.y) + yOff) / 16)).rgb;
+	vec3	polygonColor = (1.0f - color) * sm;
+	color *= 1.0f - sm;
+	gColor = vec4(color + polygonColor, 1.0f);
 }

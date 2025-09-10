@@ -34,6 +34,7 @@ using namespace glm;
 
 extern bool VERBOSE;
 extern bool SHOW_TOOLTIP;
+extern bool POLYGON;
 
 typedef struct {
 	GLuint		renderQuadVAO;

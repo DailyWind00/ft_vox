@@ -201,6 +201,7 @@ void	handleEvents(GameData &gameData) {
 	shaders.setUniform((*shaders[1])->getID(), "projection", camera.getProjectionMatrix());
 	shaders.setUniform((*shaders[1])->getID(), "view", camera.getViewMatrix());
 	shaders.setUniform((*shaders[1])->getID(), "time", time);
+	shaders.setUniform((*shaders[1])->getID(), "polygonVisible", POLYGON);
 
 	// Lighting Pass Shader Parameters
 	shaders.setUniform((*shaders[2])->getID(), "time", time);

@@ -43,6 +43,7 @@ void main() {
 
 	face = (quad[0] >> 18) & 0x07;
 	Normal = Normals[face];
+	fragPos = (view * vec4(ivec3(pos) + ivec3(32 * worldPos), 1.0f)).xyz;
 	texID = ((quad[0] >> 22) & 0x1F) - 1;
 
 	l.x = (quad[1]) & 0x3F;

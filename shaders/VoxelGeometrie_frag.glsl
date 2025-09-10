@@ -11,6 +11,7 @@ in vec2	l;
 flat in uint	texID;
 flat in uint	face;
 
+uniform bool		polygonVisible;
 uniform float		time;
 uniform sampler2D	atlas;
 
@@ -36,14 +37,19 @@ void	main()
 	float	thickness = 0.01 / ((l.x + l.y) / 2.0f);
 	float	roughness = 0.01 / ((l.x + l.y) / 2.0f);
 
-	float	d = addSegment(sdfSegment(uv, vec2(0, 0), vec2(1, 0)),
+	vec3	color = texture(atlas, vec2((fract(uv.x * l.x) + xOff) / 16, (fract(uv.y * l.y) + yOff) / 16)).rgb;
+
+	if (polygonVisible) {
+		float	d = addSegment(sdfSegment(uv, vec2(0, 0), vec2(1, 0)),
 			sdfSegment(uv, vec2(0, 0), vec2(0, 1)),
 			sdfSegment(uv, vec2(1, 1), vec2(1, 0)),
 			sdfSegment(uv, vec2(1, 1), vec2(0, 1)),
 			sdfSegment(uv, vec2(0, 0), vec2(1, 1)));
-	float	sm = 1.0f - smoothstep(thickness, (thickness + roughness), d);
-	vec3	color = texture(atlas, vec2((fract(uv.x * l.x) + xOff) / 16, (fract(uv.y * l.y) + yOff) / 16)).rgb;
-	vec3	polygonColor = (1.0f - color) * sm;
-	color *= 1.0f - sm;
-	gColor = vec4(color + polygonColor, 1.0f);
+		float	sm = 1.0f - smoothstep(thickness, (thickness + roughness), d);
+		vec3	polygonColor = (1.0f - color) * sm;
+		color *= 1.0f - sm;
+		color += polygonColor;
+	}
+
+	gColor = vec4(color, 1.0f);
 }

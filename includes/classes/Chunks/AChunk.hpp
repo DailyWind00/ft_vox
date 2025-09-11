@@ -34,4 +34,5 @@ class	AChunk {
 		virtual void	print() = 0;
 		virtual void	generate(const glm::ivec3 &pos) = 0;
 		virtual void	setBlock(const glm::ivec3 &pos, const uint8_t &blockID) = 0;
+		virtual const uint8_t &	getBlock(const glm::ivec3 &pos) = 0;
 };

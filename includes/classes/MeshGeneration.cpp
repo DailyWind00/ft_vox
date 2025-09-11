@@ -337,8 +337,10 @@ static void	constructXAxisMesh(std::vector<DATA_TYPE> *vertices, uint64_t (&xAxi
 	for (uint64_t i = 0; i < CHUNK_HEIGHT * CHUNK_WIDTH; i++) {
 		uint64_t	y = i / CHUNK_WIDTH;
 		uint64_t	z = i % CHUNK_WIDTH;
-		if (isNeightbourLoaded(neightboursChunks[4]) && BLOCK_AT(neightboursChunks[4]->chunk, CHUNK_WIDTH - 1, y, z))
-			xAxisBitmask[i] |= (uint64_t)0x1 << 0;
+
+		// Temporary fix for hole in the map (NEED TO FIND A BETTER SOLUTION)
+		// if (isNeightbourLoaded(neightboursChunks[4]) && BLOCK_AT(neightboursChunks[4]->chunk, CHUNK_WIDTH - 1, y, z))
+		// 	xAxisBitmask[i] |= (uint64_t)0x1 << 0;
 		if (isNeightbourLoaded(neightboursChunks[5]) && BLOCK_AT(neightboursChunks[5]->chunk, 0, y, z))
 			xAxisBitmask[i] |= (uint64_t)0x1 << (CHUNK_WIDTH + 1);
 	}

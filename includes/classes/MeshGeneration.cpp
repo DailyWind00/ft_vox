@@ -21,6 +21,7 @@ void	VoxelSystem::_meshGenerationRoutine() {
 		// Generate meshes up to the batch limit
 		size_t batchCount = 0;
 		_chunksMutex.lock();
+		_meshToDeleteMutex.lock();
 
 		for (ChunkRequest request : localRequestedMeshes) {
 			if (batchCount >= MESH_BATCH_LIMIT)
@@ -67,6 +68,7 @@ void	VoxelSystem::_meshGenerationRoutine() {
 			data.inCreation = false;
 		}
 
+		_meshToDeleteMutex.unlock();
 		_chunksMutex.unlock();
 
 
@@ -110,12 +112,9 @@ void	VoxelSystem::_deleteMesh(ChunkData &chunk, ChunkData *neightboursChunks[6])
 
 	if (!chunk.mesh)
 		return ;
-	_meshToDeleteMutex.lock();
-		_meshToDelete.push_back(chunk.mesh);
-	_meshToDeleteMutex.unlock();
-	chunk.mesh = nullptr;
 
-	if (chunk.mesh)
+	_meshToDelete.push_back(chunk.mesh);
+	chunk.mesh = nullptr;
 
 	if (chunk.neigthbourUpdated)
 		return;

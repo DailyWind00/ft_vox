@@ -127,8 +127,8 @@ class	LayeredChunk : public AChunk {
 		AChunkLayer *	& operator[](const size_t &i);
 
 		// Debugging method. Will not be used in the final release.
-		void	print();
-		void	setBlock(const glm::ivec3 &pos, const uint8_t &blockID);
+		void		print();
+		void		setBlock(const glm::ivec3 &pos, const uint8_t &blockID);
 };
 
 class	SingleBlockChunk : public AChunk {

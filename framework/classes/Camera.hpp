@@ -20,6 +20,7 @@ typedef struct CameraInfo {
 	glm::vec3	position = {0, 0, 0};
 	glm::vec3	lookAt   = {0, 1, 0};
 	glm::vec3	up       = {0, 0, 1};
+	glm::vec3	right    = {1, 0, 0};
 } CameraInfo;
 
 // Struct to store the projection information (projection matrix)
@@ -68,7 +69,6 @@ class Camera {
 
 		void	setPosition(const glm::vec3 &position);
 		void	setLookAt(const glm::vec3 &lookAt);
-		void	setUp(const glm::vec3 &up);
 
 		void	addToPosition(const glm::vec3 &position);
 		void	addToLookAt(const glm::vec3 &lookAt);

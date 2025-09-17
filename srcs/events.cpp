@@ -36,67 +36,6 @@ static inline bool MouseButtonPressedOnce(GLFWwindow *window, int button) {
 
 #pragma endregion
 
-// Handle the request for chunks/meshes creation_update/deletion
-static void	chunkRequests(VoxelSystem &voxelSystem, const CameraInfo &cameraInfo)
-{
-	glm::ivec3		camChunkPos = {
-		cameraInfo.position.z / CHUNK_SIZE,
-		cameraInfo.position.y  / CHUNK_SIZE,
-		cameraInfo.position.x / CHUNK_SIZE
-	};
-	static glm::ivec3	prevCamChunkPos = camChunkPos;
-
-	// Wait for the current chunks to be generated before sending other ones
-	if (voxelSystem.getChunkRequestCount() != 0)
-		return ;
-
-	vector<ChunkRequest>	chunks;
-	static int		currentRequestDistanceX = glm::min(SPAWN_LOCATION_SIZE, HORIZONTAL_RENDER_DISTANCE) + 1;
-	static int		currentRequestDistanceZ = glm::min(SPAWN_LOCATION_SIZE, HORIZONTAL_RENDER_DISTANCE) + 1;
-
-	if (camChunkPos == prevCamChunkPos) {	// If the player is staying in the same chunk, the world load until the render distance is reached
-		if (currentRequestDistanceX >= HORIZONTAL_RENDER_DISTANCE || currentRequestDistanceZ >= HORIZONTAL_RENDER_DISTANCE)
-			return ;
-		for (int i = VERTICAL_RENDER_DISTANCE; i >= -VERTICAL_RENDER_DISTANCE; i--) {
-			for (int j = -currentRequestDistanceX; j <= currentRequestDistanceX; j++) {
-				chunks.push_back({{-currentRequestDistanceX + camChunkPos.x, i + camChunkPos.y, j + camChunkPos.z}, ChunkAction::CREATE_UPDATE});
-				chunks.push_back({{currentRequestDistanceX + camChunkPos.x, i + camChunkPos.y, j + camChunkPos.z}, ChunkAction::CREATE_UPDATE});
-			}
-			for (int j = -currentRequestDistanceZ + 1; j <= currentRequestDistanceZ - 1; j++) {
-				chunks.push_back({{j + camChunkPos.x, i + camChunkPos.y, -currentRequestDistanceZ + camChunkPos.z}, ChunkAction::CREATE_UPDATE});
-				chunks.push_back({{j + camChunkPos.x, i + camChunkPos.y, currentRequestDistanceZ + camChunkPos.z}, ChunkAction::CREATE_UPDATE});
-			}
-		}
-		if (currentRequestDistanceX < HORIZONTAL_RENDER_DISTANCE)
-			currentRequestDistanceX++;
-		if (currentRequestDistanceZ < HORIZONTAL_RENDER_DISTANCE)
-			currentRequestDistanceZ++;
-	}
-	else {
-		currentRequestDistanceX = 1;
-		currentRequestDistanceZ = 1;
-		for (int i = VERTICAL_RENDER_DISTANCE; i >= -VERTICAL_RENDER_DISTANCE; i--) {
-			for (int j = -HORIZONTAL_RENDER_DISTANCE; j <= HORIZONTAL_RENDER_DISTANCE; j++) {
-				chunks.push_back({{-HORIZONTAL_RENDER_DISTANCE + camChunkPos.x, i + camChunkPos.y, j + camChunkPos.z}, ChunkAction::DELETE});
-				chunks.push_back({{HORIZONTAL_RENDER_DISTANCE + camChunkPos.x, i + camChunkPos.y, j + camChunkPos.z}, ChunkAction::DELETE});
-			}
-			for (int j = -HORIZONTAL_RENDER_DISTANCE; j <= HORIZONTAL_RENDER_DISTANCE; j++) {
-				chunks.push_back({{j + camChunkPos.x, i + camChunkPos.y, -HORIZONTAL_RENDER_DISTANCE + camChunkPos.z}, ChunkAction::DELETE});
-				chunks.push_back({{j + camChunkPos.x, i + camChunkPos.y, HORIZONTAL_RENDER_DISTANCE + camChunkPos.z}, ChunkAction::DELETE});
-			}
-		}
-		for (int i = -HORIZONTAL_RENDER_DISTANCE; i < HORIZONTAL_RENDER_DISTANCE; i++) {
-			for (int j = -HORIZONTAL_RENDER_DISTANCE; j < HORIZONTAL_RENDER_DISTANCE; j++) {
-				chunks.push_back({{j + camChunkPos.x, -VERTICAL_RENDER_DISTANCE + camChunkPos.y, i + camChunkPos.z}, ChunkAction::DELETE});
-				chunks.push_back({{j + camChunkPos.x, VERTICAL_RENDER_DISTANCE + camChunkPos.y, i + camChunkPos.z}, ChunkAction::DELETE});
-			}
-		}
-	}
-
-	voxelSystem.requestChunk(chunks);
-	prevCamChunkPos = camChunkPos;
-}
-
 // Handle the camera movements/interactions
 static void	cameraMovement(Window &window, Camera &camera) {
 	CameraInfo	cameraInfo = camera.getCameraInfo();
@@ -183,7 +122,6 @@ void	handleEvents(GameData &gameData) {
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
 
-	chunkRequests(gameData.voxelSystem, gameData.camera.getCameraInfo());
 	cameraMovement(window, camera);
 	inputs(gameData);
 
@@ -200,7 +138,7 @@ void	handleEvents(GameData &gameData) {
 	// Geometrie Pass Shader parameters
 	shaders.setUniform((*shaders[1])->getID(), "projection", camera.getProjectionMatrix());
 	shaders.setUniform((*shaders[1])->getID(), "view", camera.getViewMatrix());
-	shaders.setUniform((*shaders[1])->getID(), "time", time);
+	shaders.setUniform((*shaders[1])->getID(), "polygonVisible", POLYGON);
 
 	// Lighting Pass Shader Parameters
 	shaders.setUniform((*shaders[2])->getID(), "time", time);

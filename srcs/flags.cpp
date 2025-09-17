@@ -2,6 +2,8 @@
 
 bool VERBOSE = false;
 bool SHOW_TOOLTIP = true;
+bool NO_CAVES = false;
+bool POLYGON = false;
 
 static void	printUsage() {
 	cout << BGreen << "=== ft_vox by DailyWind & HaSYxD ===" << ResetColor << endl;
@@ -28,6 +30,8 @@ uint64_t	flagHandler(int argc, char **argv) {
 		if      (arg == "-h" || arg == "--help") 		printUsage();
 		else if (arg == "-v" || arg == "--verbose")		VERBOSE = true;
 		else if (arg == "-t" || arg == "--no-tooltip")	SHOW_TOOLTIP = false;
+		else if (arg == "-n" || arg == "--no-caves")	NO_CAVES = true;
+		else if (arg == "-p" || arg == "--polygon")	POLYGON = true;
 
 		else {
 			if (i == argc - 1) {

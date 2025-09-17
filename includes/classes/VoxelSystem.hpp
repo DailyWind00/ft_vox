@@ -23,15 +23,12 @@
 # include <deque>
 # include <thread>
 # include <mutex>
-# include <atomic>
 
 /// Dependencies
 # include <glad/glad.h>
 # include "glm/gtx/hash.hpp"
-# include "BufferGL.hpp"
-# include "PMapBufferGL.hpp"
-# include "Noise.hpp"
 # include "Camera.hpp"
+# include <Shader.hpp>
 # include "chunk.h"
 
 /// Global variables
@@ -107,6 +104,7 @@ class VoxelSystem {
 		void	_deleteChunk  (const ivec3 &pos);
 
 		void	_generateMesh(ChunkData &chunk, ChunkData *neightboursChunks[6], const uint8_t &LOD);
+		void	_constructChunkMesh(std::vector<DATA_TYPE> *vertices, ChunkData &chunk, ChunkData *neightboursChunks[6], const uint8_t &LOD);
 		void	_deleteMesh  (ChunkData &chunk, ChunkData *neightboursChunks[6]);
 
 	public:
@@ -117,10 +115,9 @@ class VoxelSystem {
 
 		void	requestChunk(const vector<ChunkRequest> &requests);
 		void	requestMesh (const vector<ChunkRequest> &requests);
-		void	_chunkFloodFill(const glm::ivec3 &pos, const glm::ivec3 &oldPos, const ChunkAction &reqType, vector<ChunkRequest> *requests);
 
 		void	tryDestroyBlock();
-		const GeoFrameBuffers &	draw(ShaderHandler &shader, const GLuint &id);
+		const GeoFrameBuffers &	draw(ShaderHandler &shader);
 
 		/// Setters
 

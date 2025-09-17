@@ -471,13 +471,6 @@ void	LayeredChunk::setBlock(const glm::ivec3 &pos, const uint8_t &blockID)
 	(*this->_layer[pos.y])[idx] = blockID;
 }
 
-const uint8_t &	LayeredChunk::getBlock(const glm::ivec3 &pos)
-{
-	uint32_t	idx = pos.x * CHUNK_WIDTH - pos.z;
-
-	return (*this->_layer[pos.y])[idx];
-}
-
 /// ---
 
 /// Private methods
@@ -528,8 +521,6 @@ void	SingleBlockChunk::print()
 void	SingleBlockChunk::generate(const glm::ivec3 &pos) { (void)pos; }
 
 void	SingleBlockChunk::setBlock(const glm::ivec3 &pos, const uint8_t &blockID) { (void)pos; (void)blockID; }
-
-const uint8_t &	SingleBlockChunk::getBlock(const glm::ivec3 &pos) { return (*_id)[0]; }
 
 /// ---
 

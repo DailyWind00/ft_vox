@@ -1,6 +1,8 @@
 #include "VoxelSystem.hpp"
 #include "config.hpp" // Get the window size
 
+# include <Shader.hpp>
+
 /// Constructors & Destructors
 VoxelSystem::VoxelSystem(const uint64_t &seed, Camera &camera) : _camera(camera) {
 	if (VERBOSE)
@@ -267,7 +269,7 @@ static inline const vec4	extractPlane(const mat4& m, int row, int sign) {
 }
 
 // Draw all chunks using batched rendering
-const GeoFrameBuffers	&VoxelSystem::draw(ShaderHandler &shader, const GLuint &id) {
+const GeoFrameBuffers	&VoxelSystem::draw(ShaderHandler &shader) {
 	if (_meshToDelete.size() &&  _meshToDeleteMutex.try_lock()) {
 		for (ChunkMesh *mesh : _meshToDelete)
 			delete mesh;

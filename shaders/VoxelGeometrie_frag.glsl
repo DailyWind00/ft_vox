@@ -12,7 +12,6 @@ flat in uint	texID;
 flat in uint	face;
 
 uniform bool		polygonVisible;
-uniform float		time;
 uniform sampler2D	atlas;
 
 float	sdfSegment(vec2 p, vec2 a, vec2 b) {
@@ -31,8 +30,6 @@ void	main()
 
 	uint	xOff = texID % 16;
 	uint	yOff = texID / 16;
-
-	// gColor = vec4(vec3(float(face) / 6.0f), 1.0f);
 
 	float	thickness = 0.01 / ((l.x + l.y) / 2.0f);
 	float	roughness = 0.01 / ((l.x + l.y) / 2.0f);

@@ -1,19 +1,9 @@
 #version 460 core
 
-// struct Chunk {
-// 	ivec4	data; // Fuck you khronos
-// };
-
-layout (location = 0) in uvec2 quad;
-// layout (location = 1) in uint blockData;
-// layout (location = 2) in vec2 UVs;
-// layout (std430, binding = 0) buffer SSBO {
-// 	Chunk meshData[];
-// };
+layout (location = 0) in uvec2 vertexData;
 
 uniform mat4	view;
 uniform mat4	projection;
-uniform float	time;
 uniform vec3	worldPos;
 
 out vec2	uv;
@@ -32,22 +22,35 @@ const vec3	Normals[] = {
 	vec3( 1, 0, 0)
 };
 
-void main() {
+uvec3	decodePosition() {
 	uvec3	pos = uvec3(0);
-	pos.x = (quad[0])        & 0x3F;
-	pos.y = (quad[0] >> 6)   & 0x3F;
-	pos.z = (quad[0] >> 12)  & 0x3F;
+	pos.x = (vertexData[0])        & 0x3F;
+	pos.y = (vertexData[0] >> 6)   & 0x3F;
+	pos.z = (vertexData[0] >> 12)  & 0x3F;
+	return pos;
+}
 
-	uv.x = (quad[0] >> 27) & 0x01;
-	uv.y = (quad[0] >> 28) & 0x01;
+void	decodeUVs() {
+	uv.x = (vertexData[0] >> 27) & 0x01;
+	uv.y = (vertexData[0] >> 28) & 0x01;
+}
 
-	face = (quad[0] >> 18) & 0x07;
+void	decodeLengths() {
+	l.x = (vertexData[1]) & 0x3F;
+	l.y = (vertexData[1] >> 6) & 0x3F;
+}
+
+void	main() {
+	// Decode Vertex Data
+	uvec3	pos = decodePosition();
+	decodeUVs();
+	decodeLengths();
+	face = (vertexData[0] >> 18) & 0x07;
+	texID = ((vertexData[0] >> 22) & 0x1F) - 1;
+
+	// Set rendering data
 	Normal = Normals[face];
 	fragPos = (view * vec4(ivec3(pos) + ivec3(32 * worldPos), 1.0f)).xyz;
-	texID = ((quad[0] >> 22) & 0x1F) - 1;
-
-	l.x = (quad[1]) & 0x3F;
-	l.y = (quad[1] >> 6) & 0x3F;
 
 	gl_Position = projection * view * vec4(ivec3(pos) + ivec3(32 * worldPos), 1.0f);
 }

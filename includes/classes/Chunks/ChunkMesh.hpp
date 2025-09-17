@@ -8,7 +8,6 @@
 
 /// Dependencies
 # include "BufferGL.hpp"
-# include "Shader.hpp"
 
 class	ChunkMesh {
 	private:
@@ -17,8 +16,6 @@ class	ChunkMesh {
 
 		std::vector<DATA_TYPE>	_data;
 		size_t		_dataSize = 0;
-
-		bool	_toDelete = false;
 	
 	public:
 		ChunkMesh(const std::vector<DATA_TYPE> &data);
@@ -26,7 +23,5 @@ class	ChunkMesh {
 
 		void		draw();
 		void		updateMesh();
-		const GLuint &	getVAO();
-		void		markToDelete();
-		const bool &	checkToDelete();
+		const GLuint &	getVAO() const;
 };

@@ -254,21 +254,26 @@ void VoxelSystem::tryDestroyBlock()
 		cout << BRed << "No block found" << ResetColor << endl;
 }
 
-static inline const vec4 extractPlane(const mat4& m, int row, int sign) {
-    vec4 plane(
-        m[0][3] + sign * m[0][row],
-        m[1][3] + sign * m[1][row],
-        m[2][3] + sign * m[2][row],
-        m[3][3] + sign * m[3][row]
-    );
-
-    float len = length(vec3(plane)); // normalize by xyz length
-    return plane / len;
+static inline const vec4	extractPlane(const mat4& m, int row, int sign) {
+	vec4	plane = {
+		m[0][3] + sign * m[0][row],
+		m[1][3] + sign * m[1][row],
+		m[2][3] + sign * m[2][row],
+		m[3][3] + sign * m[3][row]
+	};
+	
+	float	len = length(vec3(plane)); // normalize by xyz length
+	return plane / len;
 }
 
 // Draw all chunks using batched rendering
 const GeoFrameBuffers	&VoxelSystem::draw(ShaderHandler &shader, const GLuint &id) {
-	// _updateBuffers();
+	if (_meshToDelete.size() &&  _meshToDeleteMutex.try_lock()) {
+		for (ChunkMesh *mesh : _meshToDelete)
+			delete mesh;
+		_meshToDelete.clear();
+		_meshToDeleteMutex.unlock();
+	}
 
 	// Bind the gBuffer
 	glBindFramebuffer(GL_FRAMEBUFFER, _gBuffer.gBuffer);
@@ -295,7 +300,7 @@ const GeoFrameBuffers	&VoxelSystem::draw(ShaderHandler &shader, const GLuint &id
 
 		// Frustum culling
 		vec3 chunkCenter = vec3(it->first * CHUNK_SIZE + CHUNK_SIZE / 2);
-    	float chunkRadius = CHUNK_SIZE * sqrt(3) / 2.0f;
+		float chunkRadius = CHUNK_SIZE * sqrt(3) / 2.0f;
 
 		bool inFrustrum = true;
 		for (auto& plane : frustumPlanes) {

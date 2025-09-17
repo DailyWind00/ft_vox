@@ -37,8 +37,7 @@ static inline bool MouseButtonPressedOnce(GLFWwindow *window, int button) {
 #pragma endregion
 
 // Handle the request for chunks/meshes creation_update/deletion
-static void	chunkRequests(VoxelSystem &voxelSystem, const CameraInfo &cameraInfo)
-{
+static void	chunkRequests(VoxelSystem &voxelSystem, const CameraInfo &cameraInfo) {
 	glm::ivec3		camChunkPos = {
 		cameraInfo.position.x / CHUNK_SIZE,
 		cameraInfo.position.y  / CHUNK_SIZE,
@@ -183,7 +182,7 @@ void	handleEvents(GameData &gameData) {
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
 
-	// chunkRequests(gameData.voxelSystem, gameData.camera.getCameraInfo());
+	chunkRequests(gameData.voxelSystem, gameData.camera.getCameraInfo());
 	cameraMovement(window, camera);
 	inputs(gameData);
 

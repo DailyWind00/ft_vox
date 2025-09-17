@@ -4,7 +4,7 @@
 # define GLM_ENABLE_EXPERIMENTAL
 # define DATA_TYPE uint64_t
 # define CHUNK_SIZE 32
-# define HORIZONTAL_RENDER_DISTANCE 32
+# define HORIZONTAL_RENDER_DISTANCE 8
 # define VERTICAL_RENDER_DISTANCE 8
 # define SPAWN_LOCATION_SIZE	3
 # define MESH_BATCH_LIMIT (size_t)2048
@@ -57,7 +57,6 @@ typedef struct ChunkData {
 	bool		inCreation = true;
 } ChunkData;
 typedef unordered_map<ivec3, ChunkData> ChunkMap; // Wpos -> ChunkData ptr
-typedef unordered_map<ivec3, ChunkMesh *>	MeshDeleteMap;
 
 // Interface for chunk & mesh modifications
 enum class ChunkAction {
@@ -70,16 +69,13 @@ typedef pair<ivec3, ChunkAction> ChunkRequest; // Wpos, Action
 // It have 2 child threads: ChunkGeneration & MeshGeneration
 class VoxelSystem {
 	private:
-		MeshDeleteMap	_toDelete;
+		list<ChunkMesh *>	_meshToDelete;
 		ChunkMap	_chunks; // ChunkGeneration output
 		Camera &	_camera;
 
 		// OpenGL variables
 		GLuint		_textureAtlas;
 		GeoFrameBuffers	_gBuffer;
-
-		// OpenGL Buffers (MeshGeneration output)
-		BufferGL *	_VBO;
 
 		// Multi-threading
 		thread *	_chunkGenerationThreads;
@@ -93,6 +89,7 @@ class VoxelSystem {
 		mutex	_requestedChunksMutex;
 		mutex	_requestedMeshesMutex;
 		mutex	_chunksMutex;
+		mutex	_meshToDeleteMutex;
 
 		/// Private functions
 

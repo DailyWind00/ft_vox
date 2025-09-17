@@ -504,7 +504,14 @@ void	VoxelSystem::_deleteMesh(ChunkData &chunk, ChunkData *neightboursChunks[6])
 	if (!_chunks.count(chunk.Wpos) || !chunk.mesh)
 		return;
 
-	_toDelete[chunk.Wpos] = chunk.mesh;
+	if (!chunk.mesh)
+		return ;
+	_meshToDeleteMutex.lock();
+		_meshToDelete.push_back(chunk.mesh);
+	_meshToDeleteMutex.unlock();
+	chunk.mesh = nullptr;
+
+	if (chunk.mesh)
 
 	if (chunk.neigthbourUpdated)
 		return;

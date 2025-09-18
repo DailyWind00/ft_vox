@@ -111,6 +111,27 @@ static void inputs(GameData &gameData) {
 	}
 }
 
+// Add condition to the function VoxelSystem::loadChunksAroundCamera to avoid calling it every frame
+static void dynamicChunkLoading(VoxelSystem &voxelSystem, Camera &camera, float deltaTime) {
+	static vec3 lastCameraChunk = vec3(FLT_MAX);
+	static float timeSinceLastLoad = 0.0f;
+	timeSinceLastLoad += deltaTime;
+
+	vec3 camPos = camera.getCameraInfo().position;
+	ivec3 currentChunk = ivec3(
+		camPos.z / CHUNK_SIZE,
+		camPos.y / CHUNK_SIZE,
+		camPos.x / CHUNK_SIZE
+	);
+
+	// Load new chunks if the camera has moved to a new chunk and at least 1 second has passed since the last load
+	if ((timeSinceLastLoad >= 1.0f) && (ivec3(lastCameraChunk) != currentChunk)) {
+		voxelSystem.loadChunksAroundCamera();
+		lastCameraChunk = vec3(currentChunk);
+		timeSinceLastLoad = 0.0f;
+	}
+}
+
 // Handle all keyboard & other events
 void	handleEvents(GameData &gameData) {
 	Window			&window  = gameData.window;
@@ -124,6 +145,7 @@ void	handleEvents(GameData &gameData) {
 
 	cameraMovement(window, camera);
 	inputs(gameData);
+	dynamicChunkLoading(gameData.voxelSystem, camera, window.getFrameTime());
 
 	// Skybox Shader parameters
 	float		dayDuration = 360;

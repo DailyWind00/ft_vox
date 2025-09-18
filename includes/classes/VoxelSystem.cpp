@@ -201,6 +201,41 @@ static inline vec3 toVoxelCoords(const vec3 &vector) {
 
 # pragma region Public functions
 
+/// @brief Load chunks around the current camera position, and delete chunks that are too far away.
+void	VoxelSystem::loadChunksAroundCamera() {
+	const CameraInfo &camInfo = _camera.getCameraInfo();
+	vec3 camChunkPos = floor(camInfo.position / (float)CHUNK_SIZE);
+	vector<ChunkRequest>	chunksRequests;
+
+	// Request chunks to load
+	for (int i = -VERTICAL_RENDER_DISTANCE; i <= VERTICAL_RENDER_DISTANCE; i++) {
+		for (int j = -HORIZONTAL_RENDER_DISTANCE; j <= HORIZONTAL_RENDER_DISTANCE; j++) {
+			for (int k = -HORIZONTAL_RENDER_DISTANCE; k <= HORIZONTAL_RENDER_DISTANCE; k++)
+			{
+				ivec3 chunkPos = {camChunkPos.x + k, camChunkPos.y + i, camChunkPos.z + j};
+				if (!_chunks.count(chunkPos))
+					chunksRequests.push_back({chunkPos, ChunkAction::CREATE_UPDATE});
+			}
+		}
+	}
+	
+	// Sort the requests by distance to the camera, to load the closest chunks first
+	sort(chunksRequests.begin(), chunksRequests.end(),
+		[&camChunkPos](const ChunkRequest &a, const ChunkRequest &b) {
+			return distance((vec3)a.first, camChunkPos) < distance((vec3)b.first, camChunkPos);
+		});
+
+	// Find chunks to delete
+	for (ChunkMap::value_type &chunk : _chunks) { 
+		if (distance((vec3)chunk.first, camChunkPos) > HORIZONTAL_RENDER_DISTANCE)
+			chunksRequests.push_back({chunk.first, ChunkAction::DELETE});
+	}
+
+	// Send the requests
+	if (chunksRequests.size())
+		requestChunk(chunksRequests);
+}
+
 /// @brief Try to destroy a block on where the currently set camera is looking at.
 /// @details Raycast a ray from the camera position to the lookAt position, until it hits a block or PLAYER_REACH is reached.
 void VoxelSystem::tryDestroyBlock()

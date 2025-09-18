@@ -1,24 +1,28 @@
 # version 460 core
 
+// Flowing data
 out vec4	ScreenColor;
 in vec2		uv;
-in vec3		spFragPos;
-in vec3		lpFragPos;
 
+// Uniforms
 uniform sampler2D	gPosition;
 uniform sampler2D	gNormal;
 uniform sampler2D	gColor;
 uniform sampler2D	shadowMap;
+
 uniform mat4		spView;
 uniform mat4		spProj;
 uniform mat4		lpMat;
 
 uniform vec3	sunPos;
+uniform vec2	screenSize;
 uniform bool	polygonVisible;
 
-uniform vec2	screenSize;
-const float		crossThickness = 1.0f;
+// Constant values
+const float	crossThickness = 1.0f;
 const float 	crossLength = 10.0f;
+
+/// Functions
 
 // Function to compute the sun's brightness and color
 vec3 getSunColor(vec3 direction, vec3 sunPos) {
@@ -89,7 +93,19 @@ vec3 getSkyGradient(vec3 direction, float sunHeight) {
 	return mix(horizonColor, mixedSkyColor, t);
 }
 
-vec3	computeLighting(const vec3 texCol, const vec3 Normal) {
+float	computeShadows(const vec4 lpFragPos, const vec3 normal) {
+	vec3	projCoords = lpFragPos.xyz / lpFragPos.w;
+	projCoords = projCoords * 0.5 + 0.5;
+
+	float	closestDepth = texture(shadowMap, projCoords.xy).r;
+	float	currentDepth = projCoords.z;
+	float	bias = max(0.0000005 * (1.0 - dot(normal, -sunPos)), 0.00000005);
+	float	shadow = currentDepth - bias > closestDepth ? 1.0 : 0.0;
+
+	return shadow;
+}
+
+vec3	computeLighting(const vec3 texCol, const vec3 Normal, const float shadow) {
 	float	clampedSunHeight = clamp(sunPos.y, 0.15, 0.85);
 
 	vec3	skyCol = getSkyGradient(vec3(1.0), sunPos.y);
@@ -101,7 +117,9 @@ vec3	computeLighting(const vec3 texCol, const vec3 Normal) {
 
 	vec3	diffColor = max(diffuseSun, diffuseMoon) * Color.rgb;
 
-	return ambColor + diffColor;
+	vec3	shadowCol = vec3(1.0 - shadow + 0.2);
+
+	return (ambColor + diffColor) * shadowCol;
 }
 
 float	computeFogFactor(const float scDepth) {
@@ -122,15 +140,17 @@ vec3	computeCrosshair() {
 	return vec3(min(d1, d2));
 }
 
-void	main()
-{
-	vec4	fragPos = spView * texture(gPosition, uv);
+void	main() {
+	vec4	fragPos = texture(gPosition, uv);
+	vec4	spFragPos = spView * fragPos;
+	vec4	lpFragPos = lpMat * fragPos;
 	vec4	Normal = texture(gNormal, uv);
 	vec3	texCol = texture(gColor, uv).rgb;
 
-	vec3	lightColor = computeLighting(texCol, Normal.rgb);
+	float	shadow = computeShadows(lpFragPos, Normal.xyz);
+	vec3	lightColor = computeLighting(texCol, Normal.rgb, shadow);
 
-	float	fogFactor = computeFogFactor(-fragPos.z);
+	float	fogFactor = computeFogFactor(-spFragPos.z);
 
 	vec4	crosshair = vec4(1.0f - computeCrosshair(), 0.75);
 

@@ -34,7 +34,7 @@ static void program_loop(GameData &gameData) {
 	static RenderData	&renderDatas = gameData.renderDatas;
 
 	shaders.use(shaders[3]);
-	glViewport(0, 0, 1024, 1024);
+	glViewport(0, 0, 4096, 4096);
 	ShadowMappingData	shadowMapData = voxelSystem.renderShadowMapPass(shaders);
 
 	// Voxel Geometrie
@@ -75,10 +75,10 @@ void	Rendering(Window &window, const uint64_t &seed) {
 		(ProjectionInfo){FOV, (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, 0.1f, 10000.0f}
 	);
 	Camera	shadowMapCam(
-		(CameraInfo){{50, 20, 0}, {0, 0, 0}, {0, 1, 0}},
-		(ProjectionInfo){FOV, (float)1024 / (float)1024, 0.1f, 500.0f}
+		(CameraInfo){{150, 150, 0}, {0, 0, 0}, {0, 1, 0}},
+		(ProjectionInfo){FOV, (float)1024 / (float)1024, 0.1f, 1000.0f}
 	);
-	shadowMapCam.setProjectionType(ProjectionType::ORTHOGRAPHIC);
+	// shadowMapCam.setProjectionType(ProjectionType::ORTHOGRAPHIC);
 	VoxelSystem		voxelSystem(seed, camera, shadowMapCam);
 	SkyBox			skybox;
 	ShaderHandler	shaders; // Skybox -> Voxels Geometrie -> Voxels Lighting

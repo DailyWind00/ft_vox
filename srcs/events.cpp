@@ -123,6 +123,7 @@ void	handleEvents(GameData &gameData) {
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
 
+
 	cameraMovement(window, camera);
 	inputs(gameData);
 
@@ -131,6 +132,8 @@ void	handleEvents(GameData &gameData) {
 	float		angle = (time / dayDuration) * M_PI;
 	vec3		sunPos = normalize(vec3(cos(angle), sin(angle), 0.0f));
 	mat4		skyboxView = camera.getProjectionMatrix() * mat4(mat3(camera.getViewMatrix())); // Get rid of the translation part
+
+	shadowMapCam.setPosition({sunPos.x * 500, sunPos.y * 500, sunPos.z * 500});
 
 	// Skybox Pass Shader Parameters
 	shaders.setUniform((*shaders[0])->getID(), "time", time);

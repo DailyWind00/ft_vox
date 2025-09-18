@@ -2,10 +2,16 @@
 
 out vec4	ScreenColor;
 in vec2		uv;
+in vec3		spFragPos;
+in vec3		lpFragPos;
 
 uniform sampler2D	gPosition;
 uniform sampler2D	gNormal;
 uniform sampler2D	gColor;
+uniform sampler2D	shadowMap;
+uniform mat4		spView;
+uniform mat4		spProj;
+uniform mat4		lpMat;
 
 uniform vec3	sunPos;
 uniform bool	polygonVisible;
@@ -83,17 +89,11 @@ vec3 getSkyGradient(vec3 direction, float sunHeight) {
 	return mix(horizonColor, mixedSkyColor, t);
 }
 
-void	main()
-{
-	vec4	fragPos = texture(gPosition, uv);
-	vec4	Normal = texture(gNormal, uv);
-
-	vec3	texCol = texture(gColor, uv).rgb;
-	vec3	skyCol = getSkyGradient(vec3(1.0), sunPos.y);
-
+vec3	computeLighting(const vec3 texCol, const vec3 Normal) {
 	float	clampedSunHeight = clamp(sunPos.y, 0.15, 0.85);
-	vec3	Color = pow(clampedSunHeight, 0.7) * texCol + (1.0f - pow(clampedSunHeight, 0.7)) * skyCol;
 
+	vec3	skyCol = getSkyGradient(vec3(1.0), sunPos.y);
+	vec3	Color = pow(clampedSunHeight, 0.7) * texCol + (1.0f - pow(clampedSunHeight, 0.7)) * skyCol;
 	vec3	ambColor = Color.rgb * 0.4;
 
 	float	diffuseSun = max(dot(Normal.rgb, sunPos), 0.0) * pow(sunPos.y, 1.2);
@@ -101,22 +101,38 @@ void	main()
 
 	vec3	diffColor = max(diffuseSun, diffuseMoon) * Color.rgb;
 
-	//-ScreenColor= vec4((face * 1.8) * (0.2 * vec3(randFactor)) + ivec3(fragPos) * 0.01, 1.0);
-	//-ScreenColor = vec4(vec3(0.3 * (face + 1) * (fragPos.y + 100) * 0.005), 1.0f);
-	//-ScreenColor = vec4(Color, 1.0f);
-	float	lerpFactor = -fragPos.z * 0.001;
-	lerpFactor = pow(lerpFactor, 1.2f);
-	if (lerpFactor > 1.0f)
-		lerpFactor = 1.0f;
+	return ambColor + diffColor;
+}
 
+float	computeFogFactor(const float scDepth) {
+	float	lerpFactor = scDepth * 0.001;
+
+	lerpFactor = pow(lerpFactor, 1.2f);
+	lerpFactor = clamp(lerpFactor, 0.0, 1.0f);
+	return lerpFactor;
+}
+
+vec3	computeCrosshair() {
 	// Crosshair
 	vec2 pixelCoord = uv * screenSize;
 	vec2 center = screenSize * 0.5;
 	vec2 deltaFromCenter = abs(pixelCoord - center);
-	bool isVerticalLine = deltaFromCenter.x < crossThickness && deltaFromCenter.y < crossLength;
-	bool isHorizontalLine = deltaFromCenter.y < crossThickness && deltaFromCenter.x < crossLength;
-	if (isVerticalLine || isHorizontalLine)
-		ScreenColor = vec4(1.0f, 1.0f, 1.0f, 0.75f);
-	else
-		ScreenColor = vec4(mix(diffColor + ambColor, getSkyGradient(vec3(0, 0, 0), sunPos.y), lerpFactor), 1.0f);
+	float	d1 = max(step(crossThickness, deltaFromCenter.x), step(crossLength, deltaFromCenter.y));
+	float	d2 = max(step(crossThickness, deltaFromCenter.y), step(crossLength, deltaFromCenter.x));
+	return vec3(min(d1, d2));
+}
+
+void	main()
+{
+	vec4	fragPos = spView * texture(gPosition, uv);
+	vec4	Normal = texture(gNormal, uv);
+	vec3	texCol = texture(gColor, uv).rgb;
+
+	vec3	lightColor = computeLighting(texCol, Normal.rgb);
+
+	float	fogFactor = computeFogFactor(-fragPos.z);
+
+	vec4	crosshair = vec4(1.0f - computeCrosshair(), 0.75);
+
+	ScreenColor = max(vec4(mix(lightColor, getSkyGradient(vec3(0, 0, 0), sunPos.y), fogFactor), 1.0f), crosshair);
 }

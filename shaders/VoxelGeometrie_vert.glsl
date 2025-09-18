@@ -50,7 +50,7 @@ void	main() {
 
 	// Set rendering data
 	Normal = Normals[face];
-	fragPos = (view * vec4(ivec3(pos) + ivec3(32 * worldPos), 1.0f)).xyz;
+	fragPos = (vec4(ivec3(pos) + ivec3(32 * worldPos), 1.0f)).xyz;
 
 	gl_Position = projection * view * vec4(ivec3(pos) + ivec3(32 * worldPos), 1.0f);
 }

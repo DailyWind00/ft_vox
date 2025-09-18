@@ -1,6 +1,6 @@
 #include "config.hpp"
 
-static void	lightingPass(const GeoFrameBuffers &gBuffer, GLuint &renderQuadVAO) {
+static void	lightingPass(const ShadowMappingData &shadowMapData, const GeoFrameBuffers &gBuffer, GLuint &renderQuadVAO) {
 	// Binding the gBuffer textures
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, gBuffer.gPosition);
@@ -8,6 +8,8 @@ static void	lightingPass(const GeoFrameBuffers &gBuffer, GLuint &renderQuadVAO) 
 	glBindTexture(GL_TEXTURE_2D, gBuffer.gNormal);
 	glActiveTexture(GL_TEXTURE2);
 	glBindTexture(GL_TEXTURE_2D, gBuffer.gColor);
+	glActiveTexture(GL_TEXTURE3);
+	glBindTexture(GL_TEXTURE_2D, shadowMapData.depthMap);
 
 	// Rendering to the renderQuad
 	glDisable(GL_CULL_FACE);
@@ -31,13 +33,18 @@ static void program_loop(GameData &gameData) {
 	static SkyBox		&skybox      = gameData.skybox;
 	static RenderData	&renderDatas = gameData.renderDatas;
 
+	shaders.use(shaders[3]);
+	glViewport(0, 0, 1024, 1024);
+	ShadowMappingData	shadowMapData = voxelSystem.renderShadowMapPass(shaders);
+
 	// Voxel Geometrie
 	shaders.use(shaders[1]);
-	GeoFrameBuffers	gBuffer = voxelSystem.draw(shaders);
+	glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+	GeoFrameBuffers	gBuffer = voxelSystem.renderGeometryPass(shaders);
 
 	// Deferred rendering lighting
 	shaders.use(shaders[2]);
-	lightingPass(gBuffer, renderDatas.renderQuadVAO);
+	lightingPass(shadowMapData, gBuffer, renderDatas.renderQuadVAO);
 
 	// Skybox 
 	shaders.use(shaders[0]);
@@ -67,12 +74,18 @@ void	Rendering(Window &window, const uint64_t &seed) {
 		(CameraInfo){{0, 0, 0}, {0, 0, 1}, {0, 1, 0}},
 		(ProjectionInfo){FOV, (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, 0.1f, 10000.0f}
 	);
-	VoxelSystem		voxelSystem(seed, camera);
+	Camera	shadowMapCam(
+		(CameraInfo){{50, 20, 0}, {0, 0, 0}, {0, 1, 0}},
+		(ProjectionInfo){FOV, (float)1024 / (float)1024, 0.1f, 500.0f}
+	);
+	shadowMapCam.setProjectionType(ProjectionType::ORTHOGRAPHIC);
+	VoxelSystem		voxelSystem(seed, camera, shadowMapCam);
 	SkyBox			skybox;
 	ShaderHandler	shaders; // Skybox -> Voxels Geometrie -> Voxels Lighting
 	shaders.add_shader("shaders/Skybox_vert.glsl", "shaders/Skybox_frag.glsl"); // Used by default
 	shaders.add_shader("shaders/VoxelGeometrie_vert.glsl", "shaders/VoxelGeometrie_frag.glsl");
 	shaders.add_shader("shaders/VoxelLighting_vert.glsl", "shaders/VoxelLighting_frag.glsl");
+	shaders.add_shader("shaders/ShadowMap_vert.glsl", "shaders/ShadowMap_frag.glsl");
 
 	// Rendering Quad Initialization
 	RenderData	renderDatas;
@@ -105,6 +118,7 @@ void	Rendering(Window &window, const uint64_t &seed) {
 		voxelSystem,
 		skybox,
 		camera,
+		shadowMapCam,
 		renderDatas
 	};
 

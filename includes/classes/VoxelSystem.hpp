@@ -45,6 +45,11 @@ typedef struct GeoFrameBuffers {
 	GLuint	gColor;
 } GeoFrameBuffers;
 
+typedef struct ShadowMappingData {
+	unsigned int	depthMapFBO;
+	unsigned int	depthMap;
+} ShadowMappingData;
+
 typedef struct ChunkData {
 	ChunkMesh *	mesh;
 	AChunk *	chunk;
@@ -69,10 +74,12 @@ class VoxelSystem {
 		list<ChunkMesh *>	_meshToDelete;
 		ChunkMap	_chunks; // ChunkGeneration output
 		Camera &	_camera;
+		Camera &	_shadowMapCam;
 
 		// OpenGL variables
-		GLuint		_textureAtlas;
-		GeoFrameBuffers	_gBuffer;
+		GLuint			_textureAtlas;
+		GeoFrameBuffers		_gBuffer;
+		ShadowMappingData	_shadowMapData;
 
 		// Multi-threading
 		thread *	_chunkGenerationThreads;
@@ -94,6 +101,7 @@ class VoxelSystem {
 		void	_genWorldSpawn();
 		void	_initThreads();
 		void	_initDefferedRenderingPipeline();
+		void	_initShadowMappingPipeline();
 		void	_loadTextureAtlas();
 
 		// Thread routines
@@ -108,7 +116,7 @@ class VoxelSystem {
 		void	_deleteMesh  (ChunkData &chunk, ChunkData *neightboursChunks[6]);
 
 	public:
-		VoxelSystem(const uint64_t &seed, Camera &camera); // seed 0 = random seed
+		VoxelSystem(const uint64_t &seed, Camera &camera, Camera &shadowMapCam); // seed 0 = random seed
 		~VoxelSystem();
 
 		/// Public functions
@@ -117,11 +125,13 @@ class VoxelSystem {
 		void	requestMesh (const vector<ChunkRequest> &requests);
 
 		void	tryDestroyBlock();
-		const GeoFrameBuffers &	draw(ShaderHandler &shader);
+		const GeoFrameBuffers &		renderGeometryPass(ShaderHandler &shader);
+		const ShadowMappingData &	renderShadowMapPass(ShaderHandler &shader);
 
 		/// Setters
 
 		void	setCamera(Camera &cam);
+		void	setShadowMapCam(Camera &cam);
 
 		/// Getters
 

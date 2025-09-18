@@ -4,7 +4,7 @@
 # include <Shader.hpp>
 
 /// Constructors & Destructors
-VoxelSystem::VoxelSystem(const uint64_t &seed, Camera &camera) : _camera(camera) {
+VoxelSystem::VoxelSystem(const uint64_t &seed, Camera &camera, Camera &shadowMapCam) : _camera(camera), _shadowMapCam(shadowMapCam) {
 	if (VERBOSE)
 		cout << "Creating VoxelSystem\n";
 
@@ -27,6 +27,9 @@ VoxelSystem::VoxelSystem(const uint64_t &seed, Camera &camera) : _camera(camera)
 
 	// Initialize the rendering pipeline
 	_initDefferedRenderingPipeline();
+
+	// Initialize the ShadowMapping Pipeline
+	_initShadowMappingPipeline();
 
 	// Initialize the threads
 	_initThreads();
@@ -149,6 +152,25 @@ void	VoxelSystem::_initDefferedRenderingPipeline() {
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
+void	VoxelSystem::_initShadowMappingPipeline() {
+	// Testing shadow mapping
+	glGenFramebuffers(1, &_shadowMapData.depthMapFBO);
+
+	glGenTextures(1, &_shadowMapData.depthMap);
+	glBindTexture(GL_TEXTURE_2D, _shadowMapData.depthMap);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, 1024, 1024, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); 
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, _shadowMapData.depthMapFBO);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, _shadowMapData.depthMap, 0);
+	glDrawBuffer(GL_NONE);
+	glReadBuffer(GL_NONE);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
 // Load/reload the texture atlas
 void	VoxelSystem::_loadTextureAtlas() {
 	if (VERBOSE)
@@ -268,15 +290,8 @@ static inline const vec4	extractPlane(const mat4& m, int row, int sign) {
 	return plane / len;
 }
 
-// Draw all chunks using batched rendering
-const GeoFrameBuffers	&VoxelSystem::draw(ShaderHandler &shader) {
-	if (_meshToDelete.size() &&  _meshToDeleteMutex.try_lock()) {
-		for (ChunkMesh *mesh : _meshToDelete)
-			delete mesh;
-		_meshToDelete.clear();
-		_meshToDeleteMutex.unlock();
-	}
-
+// Draw all chunks
+const GeoFrameBuffers	&VoxelSystem::renderGeometryPass(ShaderHandler &shader) {
 	// Bind the gBuffer
 	glBindFramebuffer(GL_FRAMEBUFFER, _gBuffer.gBuffer);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -316,7 +331,7 @@ const GeoFrameBuffers	&VoxelSystem::draw(ShaderHandler &shader) {
 
 		// Draw the chunk
 		if (!it->second.mesh->getVAO())
-			it->second.mesh->updateMesh();
+			continue ;
 
 		vec3	wPos = it->second.Wpos;
 		shader.setUniform((*shader[1])->getID(), "worldPos", wPos);
@@ -328,6 +343,57 @@ const GeoFrameBuffers	&VoxelSystem::draw(ShaderHandler &shader) {
 
 	return _gBuffer;
 }
+
+// Draw all chunks
+const ShadowMappingData	&VoxelSystem::renderShadowMapPass(ShaderHandler &shader) {
+	// Bind the gBuffer
+	glBindFramebuffer(GL_FRAMEBUFFER, _shadowMapData.depthMapFBO);
+	glClear(GL_DEPTH_BUFFER_BIT);
+
+	// Setup frustum culling
+	mat4 VP = _shadowMapCam; // Get the View-Projection matrix
+
+	array<vec4, 6> frustumPlanes;
+	frustumPlanes[0] = extractPlane(VP, 0, +1); // Left
+	frustumPlanes[1] = extractPlane(VP, 0, -1); // Right
+	frustumPlanes[2] = extractPlane(VP, 1, +1); // Bottom
+	frustumPlanes[3] = extractPlane(VP, 1, -1); // Top
+	frustumPlanes[4] = extractPlane(VP, 2, +1); // Near
+	frustumPlanes[5] = extractPlane(VP, 2, -1); // Far
+
+	for (ChunkMap::iterator it = _chunks.begin(); it != _chunks.end(); it++) {
+		if (!it->second.mesh)
+			continue ;
+
+		// Draw the chunk
+		if (!it->second.mesh->getVAO())
+			it->second.mesh->updateMesh();
+
+		// Frustum culling
+		vec3 chunkCenter = vec3(it->first * CHUNK_SIZE + CHUNK_SIZE / 2);
+		float chunkRadius = CHUNK_SIZE * sqrt(3) / 2.0f;
+
+		bool inFrustrum = true;
+		for (auto& plane : frustumPlanes) {
+			float distance = dot(vec3(plane), chunkCenter) + plane.w;
+			if (distance < -chunkRadius) { // sphere outside
+				inFrustrum = false;
+				break;
+			}
+		}
+		if (!inFrustrum) continue;
+
+
+		vec3	wPos = it->second.Wpos;
+		shader.setUniform((*shader[3])->getID(), "worldPos", wPos);
+
+		it->second.mesh->draw();
+	}
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	return _shadowMapData;
+}
 /// ---
 
 
@@ -337,6 +403,10 @@ const GeoFrameBuffers	&VoxelSystem::draw(ShaderHandler &shader) {
 // Set the camera
 void	VoxelSystem::setCamera(Camera &camera) {
 	_camera = camera;
+}
+
+void	VoxelSystem::setShadowMapCam(Camera &camera) {
+	_shadowMapCam = camera;
 }
 /// ---
 

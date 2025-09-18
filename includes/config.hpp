@@ -46,6 +46,7 @@ typedef struct GameData {
 	VoxelSystem		&voxelSystem;
 	SkyBox			&skybox;
 	Camera			&camera;
+	Camera			&shadowMapCam;
 	RenderData		&renderDatas;
 } GameData;
 

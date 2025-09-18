@@ -116,6 +116,7 @@ void	handleEvents(GameData &gameData) {
 	Window			&window  = gameData.window;
 	ShaderHandler	&shaders = gameData.shaders;
 	Camera			&camera  = gameData.camera;
+	Camera			&shadowMapCam = gameData.shadowMapCam;
 
 	static float time = 20; time += 0.001 * window.getFrameTime(); // Start at early daytime
 
@@ -131,6 +132,7 @@ void	handleEvents(GameData &gameData) {
 	vec3		sunPos = normalize(vec3(cos(angle), sin(angle), 0.0f));
 	mat4		skyboxView = camera.getProjectionMatrix() * mat4(mat3(camera.getViewMatrix())); // Get rid of the translation part
 
+	// Skybox Pass Shader Parameters
 	shaders.setUniform((*shaders[0])->getID(), "time", time);
 	shaders.setUniform((*shaders[0])->getID(), "camera", skyboxView);
 	shaders.setUniform((*shaders[0])->getID(), "sunPos", sunPos);
@@ -140,12 +142,19 @@ void	handleEvents(GameData &gameData) {
 	shaders.setUniform((*shaders[1])->getID(), "view", camera.getViewMatrix());
 	shaders.setUniform((*shaders[1])->getID(), "polygonVisible", POLYGON);
 
+	// Shadow Mapping Pass Shader parameters
+	shaders.setUniform((*shaders[3])->getID(), "projection", shadowMapCam.getProjectionMatrix());
+	shaders.setUniform((*shaders[3])->getID(), "view", shadowMapCam.getViewMatrix());
+
 	// Lighting Pass Shader Parameters
-	shaders.setUniform((*shaders[2])->getID(), "time", time);
+	shaders.setUniform((*shaders[2])->getID(), "spView", camera.getViewMatrix());
+	shaders.setUniform((*shaders[2])->getID(), "spProj", camera.getProjectionMatrix());
+	shaders.setUniform((*shaders[2])->getID(), "lpMat", shadowMapCam.getProjectionMatrix() * shadowMapCam.getViewMatrix());
 	shaders.setUniform((*shaders[2])->getID(), "camera", skyboxView);
 	shaders.setUniform((*shaders[2])->getID(), "sunPos", sunPos);
 	shaders.setUniform((*shaders[2])->getID(), "gPosition", 0);
 	shaders.setUniform((*shaders[2])->getID(), "gNormal", 1);
 	shaders.setUniform((*shaders[2])->getID(), "gColor", 2);
+	shaders.setUniform((*shaders[2])->getID(), "shadowMap", 3);
 	shaders.setUniform((*shaders[2])->getID(), "screenSize", vec2(WINDOW_WIDTH, WINDOW_HEIGHT));
 }

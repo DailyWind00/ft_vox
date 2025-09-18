@@ -113,8 +113,9 @@ class VoxelSystem {
 
 		/// Public functions
 
-		void	requestChunk(const vector<ChunkRequest> &requests);
-		void	requestMesh (const vector<ChunkRequest> &requests);
+		void	requestChunk(const vector<ChunkRequest> &requests); // Todo : set private
+		void	requestMesh (const vector<ChunkRequest> &requests); // Todo : set private
+		void	loadChunksAroundCamera();
 
 		void	tryDestroyBlock();
 		const GeoFrameBuffers &	draw(ShaderHandler &shader);

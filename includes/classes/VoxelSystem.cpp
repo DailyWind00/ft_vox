@@ -188,21 +188,15 @@ void	VoxelSystem::_loadTextureAtlas() {
 
 static inline vec3 toVoxelCoords(const vec3 &vector) {
 	return vec3 (
-		vector.z,
+		vector.x,
 		vector.y,
-		vector.x
+		vector.z
 	);
 }
 
 # pragma endregion
 
 # pragma region Public functions
-
-static inline void	staticChunkRequests() {
-}
-
-static inline void	movingChunkRequests() {
-}
 
 /// @brief Load chunks around the current camera position, and delete chunks that are too far away.
 void	VoxelSystem::findChunksToDelete(list<ChunkRequest> &requestReturnList) {
@@ -302,7 +296,6 @@ static bool isChunkInFrustrum(ivec3 chunkWorldPos, array<vec4, 6> &frustumPlanes
 
 // Draw all chunks using batched rendering
 const GeoFrameBuffers	&VoxelSystem::draw(ShaderHandler &shader) {
-
 	// Delete old meshes if needed
 	if (_meshToDelete.size() &&  _meshToDeleteMutex.try_lock()) {
 		for (ChunkMesh *mesh : _meshToDelete)

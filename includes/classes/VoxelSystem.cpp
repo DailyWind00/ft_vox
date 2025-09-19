@@ -198,45 +198,25 @@ static inline vec3 toVoxelCoords(const vec3 &vector) {
 
 # pragma region Public functions
 
+static inline void	staticChunkRequests() {
+}
+
+static inline void	movingChunkRequests() {
+}
+
 /// @brief Load chunks around the current camera position, and delete chunks that are too far away.
-void	VoxelSystem::loadChunksAroundCamera() {
-	const CameraInfo &camInfo = _camera.getCameraInfo();
-	vec3 camChunkPos = floor(camInfo.position / (float)CHUNK_SIZE);
-	list<ChunkRequest>	chunksRequests;
-
-	// Request chunks to load
-	for (int i = -VERTICAL_RENDER_DISTANCE; i <= VERTICAL_RENDER_DISTANCE; i++) {
-		for (int j = -HORIZONTAL_RENDER_DISTANCE; j <= HORIZONTAL_RENDER_DISTANCE; j++) {
-			for (int k = -HORIZONTAL_RENDER_DISTANCE; k <= HORIZONTAL_RENDER_DISTANCE; k++)
-			{
-				ivec3 chunkPos = {camChunkPos.x + k, camChunkPos.y + i, camChunkPos.z + j};
-				if (_chunks.find(chunkPos) == _chunks.end())
-					chunksRequests.push_back({chunkPos, ChunkAction::CREATE_UPDATE});
-			}
-		}
-	}
-
-	// Sort the requests by distance to the camera, to load the closest chunks first
-	chunksRequests.sort(
-		[&camChunkPos](const ChunkRequest &a, const ChunkRequest &b) {
-			vec3 da = (vec3)a.first - camChunkPos;
-			vec3 db = (vec3)b.first - camChunkPos;
-			return dot(da, da) < dot(db, db);
-		});
+void	VoxelSystem::findChunksToDelete(list<ChunkRequest> &requestReturnList) {
+	const CameraInfo &	camInfo = _camera.getCameraInfo();
+	vec3			camChunkPos = floor(camInfo.position / (float)CHUNK_SIZE);
 
 	// Find chunks to delete
-	for (const ChunkMap::value_type &chunk : _chunks)
-	{ 
+	for (const ChunkMap::value_type &chunk : _chunks) { 
 		vec3 diff = (vec3)chunk.first - camChunkPos;
 		float dist2 = dot(diff, diff);
 
 		if (dist2 > HORIZONTAL_RENDER_DISTANCE * HORIZONTAL_RENDER_DISTANCE)
-			chunksRequests.push_front({chunk.first, ChunkAction::DELETE}); // Push front to avoid loading too many chunks at once
+			requestReturnList.push_front({chunk.first, ChunkAction::DELETE}); // Push front to avoid loading too many chunks at once
 	}
-
-	// Send the requests
-	if (!chunksRequests.empty())
-		requestChunk(chunksRequests);
 }
 
 /// @brief Try to destroy a block on where the currently set camera is looking at.

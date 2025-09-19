@@ -5,7 +5,7 @@
 # define DATA_TYPE uint64_t
 # define CHUNK_SIZE 32
 # define HORIZONTAL_RENDER_DISTANCE 8
-# define VERTICAL_RENDER_DISTANCE 8
+# define VERTICAL_RENDER_DISTANCE 4
 # define SPAWN_LOCATION_SIZE	3
 # define MESH_BATCH_LIMIT (size_t)2048
 # define CHUNK_BATCH_LIMIT (size_t)128
@@ -119,7 +119,7 @@ class VoxelSystem {
 
 		void	requestChunk(const list<ChunkRequest> &requests); // Todo : set private
 		void	requestMesh (const list<ChunkRequest> &requests); // Todo : set private
-		void	loadChunksAroundCamera();
+		void	findChunksToDelete(list<ChunkRequest> &requestReturnList);
 
 		void	tryDestroyBlock();
 		const GeoFrameBuffers &	draw(ShaderHandler &shader);

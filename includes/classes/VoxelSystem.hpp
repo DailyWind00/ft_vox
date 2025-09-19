@@ -52,6 +52,10 @@ typedef struct ChunkData {
 	size_t		LOD = 0;
 	bool		neigthbourUpdated = false;
 	bool		inCreation = true;
+
+	inline bool shouldBeDeleted() const {
+		return !chunk && !mesh;
+	}
 } ChunkData;
 typedef unordered_map<ivec3, ChunkData> ChunkMap; // Wpos -> ChunkData ptr
 

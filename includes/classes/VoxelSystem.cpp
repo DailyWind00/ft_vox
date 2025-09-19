@@ -354,8 +354,13 @@ const GeoFrameBuffers	&VoxelSystem::draw(ShaderHandler &shader) {
 	_chunksMutex.lock();
 	for (ChunkMap::iterator it = _chunks.begin(); it != _chunks.end(); it++)
 	{
-		// if (!it->second.chunk)
-		// 	_chunks.erase(it);
+		// Remove empty chunks marked for deletion
+		while (it->second.shouldBeDeleted()) {
+			ChunkMap::iterator next = it; next++;
+			_chunks.erase(it);
+			it = next;
+			continue ;
+		}
 
 		if (!it->second.mesh || !isChunkInFrustrum(it->first, frustumPlanes))
 			continue ;

@@ -63,7 +63,8 @@ void VoxelSystem::_chunkGenerationRoutine() {
 
 		list<ChunkRequest> meshRequests;
 
-		_chunksMutex.lock(Priority::LOW);
+		while (_chunksMutex.try_lock() == false)
+			this_thread::sleep_for(chrono::milliseconds(THREAD_SLEEP_DURATION));
 
 		// Put the generated chunks in the shared memory and request their meshes
 		for (ChunkMap::value_type &chunk : generatedChunks) {
@@ -77,7 +78,7 @@ void VoxelSystem::_chunkGenerationRoutine() {
 			meshRequests.push_back({pos, ChunkAction::DELETE});
 		}
 
-		_chunksMutex.unlock(Priority::LOW);
+		_chunksMutex.unlock();
 
 		// Request the mesh generation
 		requestMesh(meshRequests);

@@ -21,7 +21,8 @@ void	VoxelSystem::_meshGenerationRoutine() {
 		// Generate meshes up to the batch limit
 		size_t batchCount = 0;
 
-		_chunksMutex.lock(Priority::LOW);
+		while (_chunksMutex.try_lock() == false)
+			this_thread::sleep_for(chrono::milliseconds(THREAD_SLEEP_DURATION));
 		_meshToDeleteMutex.lock();
 
 		for (ChunkRequest request : localRequestedMeshes) {
@@ -37,7 +38,7 @@ void	VoxelSystem::_meshGenerationRoutine() {
 			// Calculate the LOD of the chunk (cause crashes for now)
 			_chunks[Wpos].LOD = 1; // TODO: implement LOD
 
-			ChunkData data = _chunks[Wpos];
+			ChunkData &data = _chunks[Wpos];
 
 			// Search for neightbouring chunks
 			const ivec3	neightboursPos[6] = { 
@@ -54,20 +55,15 @@ void	VoxelSystem::_meshGenerationRoutine() {
 					neightboursChunks[i] = &_chunks[neightboursPos[i]];
 			}
 
-			ChunkMesh *	newMesh = nullptr;
 
 			// Execute the requested action on the chunk mesh
 			switch (request.second) {
 				case ChunkAction::CREATE_UPDATE:
-					_chunksMutex.unlock(Priority::LOW);
-					newMesh = _generateMesh(data, neightboursChunks, data.LOD);
-					_chunksMutex.lock(Priority::LOW);
-					if (newMesh != nullptr)
-						_chunks[data.Wpos].mesh = newMesh;
+					_generateMesh(data, neightboursChunks, data.LOD);
 					break;
 
 				case ChunkAction::DELETE:
-					_deleteMesh(_chunks[Wpos], neightboursChunks);
+					_deleteMesh(data, neightboursChunks);
 					break;
 			}
 
@@ -75,7 +71,7 @@ void	VoxelSystem::_meshGenerationRoutine() {
 		}
 
 		_meshToDeleteMutex.unlock();
-		_chunksMutex.unlock(Priority::LOW);
+		_chunksMutex.unlock();
 
 
 		// Remove the generated meshes from the requested list
@@ -90,7 +86,7 @@ void	VoxelSystem::_meshGenerationRoutine() {
 
 // Create/update the mesh of the given chunk
 // The data will be stored in the main thread at the end of OpenGL buffers
-ChunkMesh *	VoxelSystem::_generateMesh(ChunkData &chunk, ChunkData *neightboursChunks[6], const uint8_t &LOD) {
+void	VoxelSystem::_generateMesh(ChunkData &chunk, ChunkData *neightboursChunks[6], const uint8_t &LOD) {
 	// Check if the chunk already have a mesh (in case of update)
 	if (chunk.mesh)
 		_deleteMesh(chunk, neightboursChunks);
@@ -99,7 +95,7 @@ ChunkMesh *	VoxelSystem::_generateMesh(ChunkData &chunk, ChunkData *neightboursC
 
 	// Check if the chunk completely empty
 	if (!chunk.chunk || (IS_CHUNK_COMPRESSED(chunk.chunk) && !BLOCK_AT(chunk.chunk, 0, 0, 0)))
-		return NULL;
+		return;
 
 	vector<DATA_TYPE>	vertices;
 	size_t		maxDataSizePerChunk = (pow(CHUNK_SIZE, 3) / 2) * 6 * sizeof(DATA_TYPE);
@@ -108,7 +104,7 @@ ChunkMesh *	VoxelSystem::_generateMesh(ChunkData &chunk, ChunkData *neightboursC
 
 	_constructChunkMesh(&vertices, chunk, neightboursChunks, LOD);
 
-	return new ChunkMesh(vertices);
+	_chunks[chunk.Wpos].mesh = new ChunkMesh(vertices);
 }
 
 // Delete the first mesh

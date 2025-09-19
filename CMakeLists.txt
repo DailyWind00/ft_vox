@@ -13,7 +13,6 @@ add_executable(ft_vox
 	srcs/flags.cpp
 
 	# Framework
-	framework/classes/PriorityMutex.cpp
 	framework/classes/Shader.cpp
 	framework/classes/Window.cpp
 	framework/classes/Camera.cpp

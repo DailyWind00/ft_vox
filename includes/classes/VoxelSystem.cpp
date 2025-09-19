@@ -13,24 +13,17 @@ VoxelSystem::VoxelSystem(const uint64_t &seed, Camera &camera) : _camera(camera)
 
 		int	rSeed = rand();
 
-		std::cout << "Loading ft_vox with the random seed: " << rSeed << std::endl;
+		if (VERBOSE)
+			cout << "Loading ft_vox with the random seed: " << rSeed << endl;
 
 		Noise::setSeed(rSeed);
 	}
 	else
 		Noise::setSeed(seed);
 
-	// Load the texture atlas
-	_textureAtlas = 0;
 	_loadTextureAtlas();
-
-	// Initialize the rendering pipeline
 	_initDefferedRenderingPipeline();
-
-	// Initialize the threads
 	_initThreads();
-
-	// Generate chunks around the spawn location
 	_genWorldSpawn();
 
 	if (VERBOSE)
@@ -56,11 +49,13 @@ VoxelSystem::~VoxelSystem() {
 	for (uint32_t i = 0; i < _cpuCoreCount / CHUNKGEN_CORE_RATIO; i++)
 		_chunkGenerationThreads[i].join();
 	_meshGenerationThread.join();
+	delete[] _chunkGenerationThreads;
 
 	// Delete all chunks
-	for (const ChunkMap::value_type &chunk : _chunks)
-		if (chunk.second.chunk)
-			delete chunk.second.chunk;
+	for (const ChunkMap::value_type &chunk : _chunks) {
+		if (chunk.second.chunk) delete chunk.second.chunk;
+		if (chunk.second.mesh)  delete chunk.second.mesh;
+	}
 
 	_chunks.clear();
 	g_pendingFeatures.clear();
@@ -75,7 +70,7 @@ VoxelSystem::~VoxelSystem() {
 
 // Generate chunks around the spawn location in a 3 or less chunk radius
 void	VoxelSystem::_genWorldSpawn() {
-	vector<ChunkRequest>	spawnChunks;
+	list<ChunkRequest>	spawnChunks;
 	const int		horizontalSpawnSize = glm::min(SPAWN_LOCATION_SIZE, HORIZONTAL_RENDER_DISTANCE);
 
 	for (int i = VERTICAL_RENDER_DISTANCE; i >= -VERTICAL_RENDER_DISTANCE; i--)
@@ -152,6 +147,8 @@ void	VoxelSystem::_loadTextureAtlas() {
 	if (VERBOSE)
 		cout << "> Loading texture atlas -> ";
 
+	_textureAtlas = 0;
+
 	// Load the texture atlas
 	//-stbi_set_flip_vertically_on_load(true);
 	int width, height, nrChannels;
@@ -205,7 +202,7 @@ static inline vec3 toVoxelCoords(const vec3 &vector) {
 void	VoxelSystem::loadChunksAroundCamera() {
 	const CameraInfo &camInfo = _camera.getCameraInfo();
 	vec3 camChunkPos = floor(camInfo.position / (float)CHUNK_SIZE);
-	vector<ChunkRequest>	chunksRequests;
+	list<ChunkRequest>	chunksRequests;
 
 	// Request chunks to load
 	for (int i = -VERTICAL_RENDER_DISTANCE; i <= VERTICAL_RENDER_DISTANCE; i++) {
@@ -213,26 +210,32 @@ void	VoxelSystem::loadChunksAroundCamera() {
 			for (int k = -HORIZONTAL_RENDER_DISTANCE; k <= HORIZONTAL_RENDER_DISTANCE; k++)
 			{
 				ivec3 chunkPos = {camChunkPos.x + k, camChunkPos.y + i, camChunkPos.z + j};
-				if (!_chunks.count(chunkPos))
+				if (_chunks.find(chunkPos) == _chunks.end())
 					chunksRequests.push_back({chunkPos, ChunkAction::CREATE_UPDATE});
 			}
 		}
 	}
-	
+
 	// Sort the requests by distance to the camera, to load the closest chunks first
-	sort(chunksRequests.begin(), chunksRequests.end(),
+	chunksRequests.sort(
 		[&camChunkPos](const ChunkRequest &a, const ChunkRequest &b) {
-			return distance((vec3)a.first, camChunkPos) < distance((vec3)b.first, camChunkPos);
+			vec3 da = (vec3)a.first - camChunkPos;
+			vec3 db = (vec3)b.first - camChunkPos;
+			return dot(da, da) < dot(db, db);
 		});
 
 	// Find chunks to delete
-	for (ChunkMap::value_type &chunk : _chunks) { 
-		if (distance((vec3)chunk.first, camChunkPos) > HORIZONTAL_RENDER_DISTANCE)
-			chunksRequests.push_back({chunk.first, ChunkAction::DELETE});
+	for (const ChunkMap::value_type &chunk : _chunks)
+	{ 
+		vec3 diff = (vec3)chunk.first - camChunkPos;
+		float dist2 = dot(diff, diff);
+
+		if (dist2 > HORIZONTAL_RENDER_DISTANCE * HORIZONTAL_RENDER_DISTANCE)
+			chunksRequests.push_front({chunk.first, ChunkAction::DELETE}); // Push front to avoid loading too many chunks at once
 	}
 
 	// Send the requests
-	if (chunksRequests.size())
+	if (!chunksRequests.empty())
 		requestChunk(chunksRequests);
 }
 
@@ -348,8 +351,12 @@ const GeoFrameBuffers	&VoxelSystem::draw(ShaderHandler &shader) {
 	frustumPlanes[5] = extractPlane(VP, 2, -1); // Far
 
 	// Draw all chunks
+	_chunksMutex.lock();
 	for (ChunkMap::iterator it = _chunks.begin(); it != _chunks.end(); it++)
 	{
+		// if (!it->second.chunk)
+		// 	_chunks.erase(it);
+
 		if (!it->second.mesh || !isChunkInFrustrum(it->first, frustumPlanes))
 			continue ;
 
@@ -362,6 +369,7 @@ const GeoFrameBuffers	&VoxelSystem::draw(ShaderHandler &shader) {
 
 		it->second.mesh->draw();
 	}
+	_chunksMutex.unlock();
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 

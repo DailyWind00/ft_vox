@@ -37,15 +37,23 @@ void VoxelSystem::_chunkGenerationRoutine() {
 		ChunkMap 		generatedChunks;
 		deque<ivec3>	chunksToDelete;
 
+		const CameraInfo &camInfo = _camera.getCameraInfo();
+		vec3 camChunkPos = floor(camInfo.position / (float)CHUNK_SIZE);
+
 		for (const ChunkRequest &req : localRequestedChunks) {
 			ivec3 pos = req.first;
 
 			// Execute the requested action on the chunk in local memory
 			switch (req.second) {
-				case ChunkAction::CREATE_UPDATE:
-					generatedChunks[pos] = ChunkData{nullptr, ChunkHandler::createChunk(pos), pos, MAX_LOD};
-					break;
+				case ChunkAction::CREATE_UPDATE: {
+					// Don't generate the chunk if it too far from the camera
+					vec3 diff = (vec3)req.first - camChunkPos;
+					float dist2 = dot(diff, diff);
 
+					if (dist2 < HORIZONTAL_RENDER_DISTANCE * HORIZONTAL_RENDER_DISTANCE)
+						generatedChunks[pos] = ChunkData{nullptr, ChunkHandler::createChunk(pos), pos, MAX_LOD};
+					break;
+				}
 				case ChunkAction::DELETE:
 					chunksToDelete.push_back(pos);
 					break;
@@ -53,9 +61,10 @@ void VoxelSystem::_chunkGenerationRoutine() {
 		}
 
 
-		vector<ChunkRequest> meshRequests;
-		meshRequests.reserve(batchCount);
-		_chunksMutex.lock();
+		list<ChunkRequest> meshRequests;
+
+		while (_chunksMutex.try_lock() == false)
+			this_thread::sleep_for(chrono::milliseconds(THREAD_SLEEP_DURATION));
 
 		// Put the generated chunks in the shared memory and request their meshes
 		for (ChunkMap::value_type &chunk : generatedChunks) {
@@ -90,7 +99,7 @@ void VoxelSystem::_generateChunk(ChunkMap::value_type &chunk) {
 // Delete a chunk
 // It will be removed from the ChunkMap in the main thread
 void VoxelSystem::_deleteChunk(const ivec3 &pos) {
-	if (!_chunks.count(pos))
+	if (_chunks.find(pos) == _chunks.end())
 		return;
 
 	delete _chunks[pos].chunk;
@@ -105,8 +114,8 @@ void VoxelSystem::_deleteChunk(const ivec3 &pos) {
 // Request an action on a chunk :
 //  - CREATE_UPDATE will generate the chunk and request a mesh creation
 //  - DELETE will delete the chunk and request the deletion of the mesh
-void	VoxelSystem::requestChunk(const vector<ChunkRequest> &requests) {
-	if (!requests.size())
+void	VoxelSystem::requestChunk(const list<ChunkRequest> &requests) {
+	if (requests.empty())
 		return;
 
 	_requestedChunksMutex.lock();

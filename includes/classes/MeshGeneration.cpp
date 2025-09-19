@@ -20,7 +20,9 @@ void	VoxelSystem::_meshGenerationRoutine() {
 
 		// Generate meshes up to the batch limit
 		size_t batchCount = 0;
-		_chunksMutex.lock();
+		
+		while (_chunksMutex.try_lock() == false)
+			this_thread::sleep_for(chrono::milliseconds(THREAD_SLEEP_DURATION));
 		_meshToDeleteMutex.lock();
 
 		for (ChunkRequest request : localRequestedMeshes) {
@@ -107,7 +109,7 @@ void	VoxelSystem::_generateMesh(ChunkData &chunk, ChunkData *neightboursChunks[6
 
 // Delete the first mesh
 void	VoxelSystem::_deleteMesh(ChunkData &chunk, ChunkData *neightboursChunks[6]) {
-	if (!_chunks.count(chunk.Wpos) || !chunk.mesh)
+	if (_chunks.find(chunk.Wpos) == _chunks.end() || !chunk.mesh)
 		return;
 
 	if (!chunk.mesh)
@@ -120,7 +122,7 @@ void	VoxelSystem::_deleteMesh(ChunkData &chunk, ChunkData *neightboursChunks[6])
 		return;
 
 	// Request the update of neighbouring chunks
-	vector<ChunkRequest>	neightboursRequests;
+	list<ChunkRequest>	neightboursRequests;
 
 	for (size_t i = 0; i < 6; i++) {
 		if (neightboursChunks[i]) {
@@ -140,8 +142,8 @@ void	VoxelSystem::_deleteMesh(ChunkData &chunk, ChunkData *neightboursChunks[6])
 // Request an action on a chunk mesh :
 //  - CREATE_UPDATE will generate or update the chunk mesh
 //  - DELETE will delete the mesh
-void	VoxelSystem::requestMesh(const vector<ChunkRequest> &requests) {
-	if (!requests.size())
+void	VoxelSystem::requestMesh(const list<ChunkRequest> &requests) {
+	if (requests.empty())
 		return;
 
 	_requestedMeshesMutex.lock();

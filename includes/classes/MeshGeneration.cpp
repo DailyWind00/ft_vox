@@ -20,7 +20,7 @@ void	VoxelSystem::_meshGenerationRoutine() {
 
 		// Generate meshes up to the batch limit
 		size_t batchCount = 0;
-		
+
 		while (_chunksMutex.try_lock() == false)
 			this_thread::sleep_for(chrono::milliseconds(THREAD_SLEEP_DURATION));
 		_meshToDeleteMutex.lock();
@@ -49,11 +49,11 @@ void	VoxelSystem::_meshGenerationRoutine() {
 
 			ChunkData	*neightboursChunks[6] = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
 
-			// for (size_t i = 0; i < 6; i++) {
-			// 	// Check if the chunk exist and have data to work with
-			// 	if (_chunks.find(neightboursPos[i]) != _chunks.end())
-			// 		neightboursChunks[i] = &_chunks[neightboursPos[i]];
-			// }
+			for (size_t i = 0; i < 6; i++) {
+				// Check if the chunk exist and have data to work with
+				if (_chunks.find(neightboursPos[i]) != _chunks.end())
+					neightboursChunks[i] = &_chunks[neightboursPos[i]];
+			}
 
 
 			// Execute the requested action on the chunk mesh

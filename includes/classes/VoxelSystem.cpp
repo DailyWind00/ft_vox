@@ -324,7 +324,7 @@ const GeoFrameBuffers	&VoxelSystem::draw(ShaderHandler &shader) {
 	frustumPlanes[5] = extractPlane(VP, 2, -1); // Far
 
 	// Draw all chunks
-	_chunksMutex.lock();
+	_chunksMutex.lock(Priority::HIGHT);
 	for (ChunkMap::iterator it = _chunks.begin(); it != _chunks.end(); it++)
 	{
 		// Remove empty chunks marked for deletion
@@ -350,7 +350,7 @@ const GeoFrameBuffers	&VoxelSystem::draw(ShaderHandler &shader) {
 
 		it->second.mesh->draw();
 	}
-	_chunksMutex.unlock();
+	_chunksMutex.unlock(Priority::HIGHT);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 

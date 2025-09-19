@@ -4,8 +4,8 @@
 # define GLM_ENABLE_EXPERIMENTAL
 # define DATA_TYPE uint64_t
 # define CHUNK_SIZE 32
-# define HORIZONTAL_RENDER_DISTANCE 8
-# define VERTICAL_RENDER_DISTANCE 4
+# define HORIZONTAL_RENDER_DISTANCE 32
+# define VERTICAL_RENDER_DISTANCE 8
 # define SPAWN_LOCATION_SIZE	3
 # define MESH_BATCH_LIMIT (size_t)2048
 # define CHUNK_BATCH_LIMIT (size_t)128
@@ -26,6 +26,7 @@
 
 /// Dependencies
 # include <glad/glad.h>
+# include <PriorityMutex.hpp>
 # include "glm/gtx/hash.hpp"
 # include "Camera.hpp"
 # include <Shader.hpp>
@@ -87,9 +88,9 @@ class VoxelSystem {
 		deque<ChunkRequest>	_requestedChunks;
 		deque<ChunkRequest>	_requestedMeshes;
 
+		PriorityMutex	_chunksMutex;
 		mutex	_requestedChunksMutex;
 		mutex	_requestedMeshesMutex;
-		mutex	_chunksMutex;
 		mutex	_meshToDeleteMutex;
 
 		/// Private functions
@@ -107,7 +108,7 @@ class VoxelSystem {
 		void	_generateChunk(ChunkMap::value_type &chunk);
 		void	_deleteChunk  (const ivec3 &pos);
 
-		void	_generateMesh(ChunkData &chunk, ChunkData *neightboursChunks[6], const uint8_t &LOD);
+		ChunkMesh *	_generateMesh(ChunkData &chunk, ChunkData *neightboursChunks[6], const uint8_t &LOD);
 		void	_constructChunkMesh(std::vector<DATA_TYPE> *vertices, ChunkData &chunk, ChunkData *neightboursChunks[6], const uint8_t &LOD);
 		void	_deleteMesh  (ChunkData &chunk, ChunkData *neightboursChunks[6]);
 

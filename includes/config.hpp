@@ -6,7 +6,7 @@
 # define FOV 80.0f
 # define WINDOW_WIDTH  1920
 # define WINDOW_HEIGHT 1080
-# define CAMERA_SPEED  0.02f
+# define CAMERA_SPEED  0.006f
 # define CAMERA_SPRINT_BOOST  0.05f
 # define CAMERA_SENSITIVITY  0.015f
 

@@ -123,10 +123,12 @@ static void dynamicChunkLoading(VoxelSystem &voxelSystem, const CameraInfo &camI
 
 	// Request distance data initialization
 	static int	horRequestDistance = glm::min(SPAWN_LOCATION_SIZE, HORIZONTAL_RENDER_DISTANCE);
+	static int	vertRequestDistance = glm::min(VERTICAL_RENDER_DISTANCE / 4, VERTICAL_RENDER_DISTANCE);
 
 	list<ChunkRequest>	chunkRequests;
 
-	horRequestDistance = glm::clamp(horRequestDistance, 0, HORIZONTAL_RENDER_DISTANCE - 2);
+	horRequestDistance = glm::clamp(horRequestDistance, 0, HORIZONTAL_RENDER_DISTANCE - 1);
+	vertRequestDistance = glm::clamp(vertRequestDistance, 0, VERTICAL_RENDER_DISTANCE - 1);
 
 	if (voxelSystem.getChunkRequestCount() != 0)
 		return ;
@@ -135,19 +137,26 @@ static void dynamicChunkLoading(VoxelSystem &voxelSystem, const CameraInfo &camI
 		if (horRequestDistance >= HORIZONTAL_RENDER_DISTANCE)
 			return ;
 		for (int i = -horRequestDistance; i < horRequestDistance; i++) {
-			for (int j = -VERTICAL_RENDER_DISTANCE; j < VERTICAL_RENDER_DISTANCE; j++) {
+			for (int j = -vertRequestDistance; j < vertRequestDistance; j++) {
 				chunkRequests.push_back({{i + chunkPos.x, j + chunkPos.y, -horRequestDistance + chunkPos.z}, ChunkAction::CREATE_UPDATE});
 				chunkRequests.push_back({{i + chunkPos.x, j + chunkPos.y, horRequestDistance + chunkPos.z}, ChunkAction::CREATE_UPDATE});
 				chunkRequests.push_back({{-horRequestDistance + chunkPos.x, j + chunkPos.y, i + chunkPos.z}, ChunkAction::CREATE_UPDATE});
 				chunkRequests.push_back({{horRequestDistance + chunkPos.x, j + chunkPos.y, i + chunkPos.z}, ChunkAction::CREATE_UPDATE});
 			}
 		}
+		for (int i = -horRequestDistance; i < horRequestDistance; i++) {
+			for (int j = -horRequestDistance; j < horRequestDistance; j++) {
+				chunkRequests.push_back({{i + chunkPos.x, -vertRequestDistance + chunkPos.y, j + chunkPos.z}, ChunkAction::CREATE_UPDATE});
+				chunkRequests.push_back({{i + chunkPos.x, vertRequestDistance + chunkPos.y, j + chunkPos.z}, ChunkAction::CREATE_UPDATE});
+			}
+		}
 		horRequestDistance++;
+		vertRequestDistance++;
 	}
-	else
+	else {
 		horRequestDistance -= abs(lastChunkPos.x - chunkPos.x) + abs(lastChunkPos.z - chunkPos.z);
-	
-	// Updating last chunk position to current
+		vertRequestDistance -= abs(lastChunkPos.x - chunkPos.x) + abs(lastChunkPos.z - chunkPos.z);
+	}
 
 	// Sort the requests by distance to the camera, to load the closest chunks first
 	chunkRequests.sort(

@@ -132,8 +132,10 @@ void	handleEvents(GameData &gameData) {
 	float		angle = (time / dayDuration) * M_PI;
 	vec3		sunPos = normalize(vec3(cos(angle), sin(angle), 0.0f));
 	mat4		skyboxView = camera.getProjectionMatrix() * mat4(mat3(camera.getViewMatrix())); // Get rid of the translation part
+	vec3		camPos = camera.getCameraInfo().position;
 
-	shadowMapCam.setPosition({sunPos.x * 500, sunPos.y * 500, sunPos.z * 500});
+	shadowMapCam.setPosition({camPos.x + sunPos.x * 500, camPos.y + sunPos.y * 500, camPos.z + sunPos.z * 500});
+	shadowMapCam.setLookAt(camPos);
 
 	// Skybox Pass Shader Parameters
 	shaders.setUniform((*shaders[0])->getID(), "time", time);

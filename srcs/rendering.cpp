@@ -34,7 +34,7 @@ static void program_loop(GameData &gameData) {
 	static RenderData	&renderDatas = gameData.renderDatas;
 
 	shaders.use(shaders[3]);
-	glViewport(0, 0, 4096, 4096);
+	glViewport(0, 0, SHADOW_RESOLUTION, SHADOW_RESOLUTION);
 	ShadowMappingData	shadowMapData = voxelSystem.renderShadowMapPass(shaders);
 
 	// Voxel Geometrie
@@ -72,13 +72,14 @@ void	Rendering(Window &window, const uint64_t &seed) {
 	// Systemes Initialization
 	Camera	camera(
 		(CameraInfo){{0, 0, 0}, {0, 0, 1}, {0, 1, 0}},
-		(ProjectionInfo){FOV, (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, 0.1f, 10000.0f}
+		(ProjectionInfo){FOV, {(float)WINDOW_WIDTH, (float)WINDOW_HEIGHT}, {0.0f, 0.0f}, 0.1f, 10000.0f},
+		ProjectionType::PERSPECTIVE
 	);
 	Camera	shadowMapCam(
-		(CameraInfo){{150, 150, 0}, {0, 0, 0}, {0, 1, 0}},
-		(ProjectionInfo){FOV, (float)1024 / (float)1024, 0.1f, 1000.0f}
+		(CameraInfo){{100, 100, 0}, {0, 0, 0}, {0, 1, 0}},
+		(ProjectionInfo){FOV, {SHADOW_FRUSTUM_SIZE / 2, SHADOW_FRUSTUM_SIZE / 2}, {-SHADOW_FRUSTUM_SIZE / 2, -SHADOW_FRUSTUM_SIZE / 2}, 0.1f, 600.0f},
+		ProjectionType::ORTHOGRAPHIC
 	);
-	// shadowMapCam.setProjectionType(ProjectionType::ORTHOGRAPHIC);
 	VoxelSystem		voxelSystem(seed, camera, shadowMapCam);
 	SkyBox			skybox;
 	ShaderHandler	shaders; // Skybox -> Voxels Geometrie -> Voxels Lighting

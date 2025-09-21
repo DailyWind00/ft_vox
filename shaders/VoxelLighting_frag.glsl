@@ -97,10 +97,22 @@ float	computeShadows(const vec4 lpFragPos, const vec3 normal) {
 	vec3	projCoords = lpFragPos.xyz / lpFragPos.w;
 	projCoords = projCoords * 0.5 + 0.5;
 
-	float	closestDepth = texture(shadowMap, projCoords.xy).r;
+	// float	closestDepth = texture(shadowMap, projCoords.xy).r;
 	float	currentDepth = projCoords.z;
-	float	bias = max(0.0000005 * (1.0 - dot(normal, -sunPos)), 0.00000005);
-	float	shadow = currentDepth - bias > closestDepth ? 1.0 : 0.0;
+	if (currentDepth > 1.0f)
+		return 0.0f;
+
+	float	diffFactor = dot(normal, sunPos);
+	float	bias = mix(0.005, 0.0, diffFactor);
+	vec2	texelSize = 1.0 / textureSize(shadowMap, 0);
+	float	shadow = 0.0;
+	for (int x = -1; x <= 1; ++x) {
+		for (int y = -1; y <= 1; ++y) {
+			float	pcfDepth = texture(shadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
+			shadow += currentDepth - bias > pcfDepth ? 1.0 : 0.0;
+		}
+	}
+	shadow /= 9.0;
 
 	return shadow;
 }
@@ -119,7 +131,7 @@ vec3	computeLighting(const vec3 texCol, const vec3 Normal, const float shadow) {
 
 	vec3	shadowCol = vec3(1.0 - shadow + 0.2);
 
-	return (ambColor + diffColor) * shadowCol;
+	return ambColor + shadowCol * diffColor;
 }
 
 float	computeFogFactor(const float scDepth) {

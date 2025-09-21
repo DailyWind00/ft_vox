@@ -2,7 +2,8 @@
 #include <glm/glm.hpp>
 
 /// Constructors & Destructors
-Camera::Camera(const CameraInfo &cameraInfo, const ProjectionInfo &projectionInfo) {
+Camera::Camera(const CameraInfo &cameraInfo, const ProjectionInfo &projectionInfo, const ProjectionType &type) {
+	_type = type;
 	_cameraInfo = cameraInfo;
 	_projectionInfo = projectionInfo;
 	_updateViewMatrix();
@@ -13,6 +14,7 @@ Camera::Camera(const CameraInfo &cameraInfo, const ProjectionInfo &projectionInf
 }
 
 Camera::Camera(const Camera &camera) {
+	_type = camera._type;
 	_cameraInfo = camera._cameraInfo;
 	_projectionInfo = camera._projectionInfo;
 	_updateViewMatrix();
@@ -20,6 +22,7 @@ Camera::Camera(const Camera &camera) {
 }
 
 Camera &Camera::operator=(const Camera &camera) {
+	_type = camera._type;
 	_cameraInfo = camera._cameraInfo;
 	_projectionInfo = camera._projectionInfo;
 	_updateViewMatrix();
@@ -49,14 +52,17 @@ void	Camera::_updateProjectionMatrix() {
 		case ProjectionType::PERSPECTIVE:
 			_projectionMatrix = glm::perspective(
 				glm::radians(_projectionInfo.fov),
-				_projectionInfo.aspectRatio,
+				_projectionInfo.resolution.x / _projectionInfo.resolution.y,
 				_projectionInfo.near,
 				_projectionInfo.far
 			);
 			break;
 		case ProjectionType::ORTHOGRAPHIC:
 			_projectionMatrix = glm::ortho(
-				0.0f, _projectionInfo.aspectRatio, 0.0f, 1.0f,
+				_projectionInfo.resolutionOffset.x,
+				_projectionInfo.resolution.x,
+				_projectionInfo.resolutionOffset.y,
+				_projectionInfo.resolution.y,
 				_projectionInfo.near, _projectionInfo.far
 			);
 			break;

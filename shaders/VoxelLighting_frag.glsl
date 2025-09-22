@@ -14,6 +14,7 @@ uniform mat4		spView;
 uniform mat4		spProj;
 uniform mat4		lpMat;
 
+uniform vec3	camPos;
 uniform vec3	sunPos;
 uniform vec2	screenSize;
 uniform bool	polygonVisible;
@@ -22,6 +23,10 @@ uniform bool	inWater;
 // Constant values
 const float	crossThickness = 1.0f;
 const float 	crossLength = 10.0f;
+
+const float	constant = 1.0f;
+const float	linear = 0.09f;
+const float	quadratic = 0.032f;
 
 /// Functions
 
@@ -118,19 +123,24 @@ float	computeShadows(const vec4 lpFragPos, const vec3 normal) {
 	return shadow;
 }
 
-vec3	computeLighting(const vec3 texCol, const vec3 Normal, const float shadow) {
+vec3	computeLighting(const vec3 texCol, const vec3 Normal, const float shadow, const vec3 fragPos) {
 	float	clampedSunHeight = clamp(sunPos.y, 0.15, 0.85);
+
+	// Point light calculation
+	float	dist = length(camPos - fragPos);
+	float	attenuation = 1.0 / (constant + linear * dist + quadratic * (dist * dist));
 
 	vec3	skyCol = getSkyGradient(vec3(1.0), sunPos.y);
 	vec3	Color = pow(clampedSunHeight, 0.7) * texCol + (1.0f - pow(clampedSunHeight, 0.7)) * skyCol;
-	vec3	ambColor = Color.rgb * 0.4;
+	vec3	ambColor = Color.rgb * max(0.4, attenuation);
 
 	float	diffuseSun = max(dot(Normal.rgb, sunPos), 0.0) * pow(sunPos.y, 1.2);
 	float	diffuseMoon = max(dot(Normal.rgb, -sunPos), 0.0) * pow(-sunPos.y, 3);
 
-	vec3	diffColor = max(diffuseSun, diffuseMoon) * Color.rgb;
 
+	vec3	diffColor = max(diffuseSun, diffuseMoon) * Color.rgb;
 	vec3	shadowCol = vec3(1.0 - shadow + 0.2);
+
 
 	return ambColor + shadowCol * diffColor;
 }
@@ -161,7 +171,7 @@ void	main() {
 	vec3	texCol = texture(gColor, uv).rgb;
 
 	float	shadow = computeShadows(lpFragPos, Normal.xyz);
-	vec3	lightColor = computeLighting(texCol, Normal.rgb, shadow);
+	vec3	lightColor = computeLighting(texCol, Normal.rgb, shadow, fragPos.rgb);
 
 	float	fogFactor = computeFogFactor(-spFragPos.z);
 	float	waterFogFactor = computeFogFactor(log(-fragPos.y / 8.0f) * 250.0f);

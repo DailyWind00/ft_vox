@@ -153,6 +153,7 @@ void	handleEvents(GameData &gameData) {
 	shaders.setUniform((*shaders[3])->getID(), "view", shadowMapCam.getViewMatrix());
 
 	// Lighting Pass Shader Parameters
+	shaders.setUniform((*shaders[2])->getID(), "camPos", camPos);
 	shaders.setUniform((*shaders[2])->getID(), "inWater", inWater);
 	shaders.setUniform((*shaders[2])->getID(), "spView", camera.getViewMatrix());
 	shaders.setUniform((*shaders[2])->getID(), "spProj", camera.getProjectionMatrix());

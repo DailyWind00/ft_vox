@@ -119,6 +119,10 @@ void	handleEvents(GameData &gameData) {
 	Camera			&shadowMapCam = gameData.shadowMapCam;
 
 	static float time = 20; time += 0.001 * window.getFrameTime(); // Start at early daytime
+	static bool		flashlightOn = false;
+
+	if (keyPressedOnce(window, GLFW_KEY_F))
+		flashlightOn = (flashlightOn) ? false : true;
 
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
@@ -143,6 +147,8 @@ void	handleEvents(GameData &gameData) {
 	shaders.setUniform((*shaders[0])->getID(), "sunPos", sunPos);
 
 	// Geometrie Pass Shader parameters
+	shaders.setUniform((*shaders[1])->getID(), "time", time);
+	shaders.setUniform((*shaders[1])->getID(), "sunPos", sunPos);
 	shaders.setUniform((*shaders[1])->getID(), "projection", camera.getProjectionMatrix());
 	shaders.setUniform((*shaders[1])->getID(), "view", camera.getViewMatrix());
 	shaders.setUniform((*shaders[1])->getID(), "polygonVisible", POLYGON);
@@ -155,6 +161,7 @@ void	handleEvents(GameData &gameData) {
 	// Lighting Pass Shader Parameters
 	shaders.setUniform((*shaders[2])->getID(), "camPos", camPos);
 	shaders.setUniform((*shaders[2])->getID(), "inWater", inWater);
+	shaders.setUniform((*shaders[2])->getID(), "flashlightOn", flashlightOn);
 	shaders.setUniform((*shaders[2])->getID(), "spView", camera.getViewMatrix());
 	shaders.setUniform((*shaders[2])->getID(), "spProj", camera.getProjectionMatrix());
 	shaders.setUniform((*shaders[2])->getID(), "lpMat", shadowMapCam.getProjectionMatrix() * shadowMapCam.getViewMatrix());

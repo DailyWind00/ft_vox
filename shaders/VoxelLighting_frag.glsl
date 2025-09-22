@@ -19,6 +19,7 @@ uniform vec3	sunPos;
 uniform vec2	screenSize;
 uniform bool	polygonVisible;
 uniform bool	inWater;
+uniform bool	flashlightOn;
 
 // Constant values
 const float	crossThickness = 1.0f;
@@ -128,10 +129,14 @@ vec3	computeLighting(const vec3 texCol, const vec3 Normal, const float shadow, c
 
 	// Point light calculation
 	float	dist = length(camPos - fragPos);
-	float	attenuation = 1.0 / (constant + linear * dist + quadratic * (dist * dist));
+	float	attenuation = (flashlightOn) ? 1.0 / (constant + linear * dist + quadratic * (dist * dist)) : 0.0f;
 
+	vec3	colorModifier = vec3(1.0f, 1.0f, 1.0f);
+	if (inWater)
+		colorModifier = vec3(0.55, 0.75, 1.0f);
+	
 	vec3	skyCol = getSkyGradient(vec3(1.0), sunPos.y);
-	vec3	Color = pow(clampedSunHeight, 0.7) * texCol + (1.0f - pow(clampedSunHeight, 0.7)) * skyCol;
+	vec3	Color = pow(clampedSunHeight, 0.7) * texCol + (1.0f - pow(clampedSunHeight, 0.7)) * skyCol * colorModifier;
 	vec3	ambColor = Color.rgb * max(0.4, attenuation);
 
 	float	diffuseSun = max(dot(Normal.rgb, sunPos), 0.0) * pow(sunPos.y, 1.2);

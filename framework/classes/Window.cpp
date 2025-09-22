@@ -5,7 +5,7 @@
 
 //// Window class
 /// Constructors & Destructors
-Window::Window(int posX, int posY, int width, int height, const std::string &title) {
+Window::Window(int posX, int posY, int width, int height, const std::string &title, const float &GLversion) {
 	if (VERBOSE)
 		std::cout << "Creating window" << std::endl;
 
@@ -14,8 +14,9 @@ Window::Window(int posX, int posY, int width, int height, const std::string &tit
 	if (VERBOSE)
 		std::cout << "> GLFW initialized" << std::endl;
 
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4); // OpenGL 4.6
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+	// TODO: make the OpenGL context in a separate class, need to have an integrated framework before that
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, static_cast<int>(GLversion));
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, static_cast<int>(GLversion * 10) % 10);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // Mac-os compatibility
 	glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);

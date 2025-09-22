@@ -134,7 +134,7 @@ void	handleEvents(GameData &gameData) {
 	mat4		skyboxView = camera.getProjectionMatrix() * mat4(mat3(camera.getViewMatrix())); // Get rid of the translation part
 	vec3		camPos = camera.getCameraInfo().position;
 
-	shadowMapCam.setPosition({camPos.x + sunPos.x * 300, camPos.y + sunPos.y * 300, camPos.z + sunPos.z * 300});
+	shadowMapCam.setPosition({camPos.x + sunPos.x * 600, camPos.y + sunPos.y * 600, camPos.z + sunPos.z * 600});
 	shadowMapCam.setLookAt(camPos);
 
 	// Skybox Pass Shader Parameters

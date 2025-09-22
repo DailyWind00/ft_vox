@@ -341,6 +341,7 @@ const GeoFrameBuffers	&VoxelSystem::renderGeometryPass(ShaderHandler &shader) {
 		it->second.mesh->draw();
 	}
 
+	glDisable(GL_CULL_FACE);
 	for (ChunkMap::iterator it = _chunks.begin(); it != _chunks.end(); it++) {
 		if (!it->second.mesh)
 			continue ;
@@ -368,6 +369,7 @@ const GeoFrameBuffers	&VoxelSystem::renderGeometryPass(ShaderHandler &shader) {
 
 		it->second.mesh->drawWater();
 	}
+	glEnable(GL_CULL_FACE);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 

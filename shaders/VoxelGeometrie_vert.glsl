@@ -53,10 +53,11 @@ void	main() {
 
 	if (texID == 8)
 		fPos.y -= 2.0f / 16.0f;
+	fPos += vec3(32 * worldPos);
 
 	// Set rendering data
 	Normal = Normals[face];
-	fragPos = (vec4(fPos + vec3(32 * worldPos), 1.0f)).xyz;
+	fragPos = (vec4(fPos, 1.0f)).xyz;
 
-	gl_Position = projection * view * vec4(fPos + vec3(32 * worldPos), 1.0f);
+	gl_Position = projection * view * vec4(fPos, 1.0f);
 }

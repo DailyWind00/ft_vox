@@ -163,8 +163,9 @@ void	main() {
 	vec3	lightColor = computeLighting(texCol, Normal.rgb, shadow);
 
 	float	fogFactor = computeFogFactor(-spFragPos.z);
+	float	waterFogFactor = computeFogFactor(-fragPos.y * 0.2);
 
 	vec4	crosshair = vec4(1.0f - computeCrosshair(), 0.75);
 
-	ScreenColor = max(vec4(mix(lightColor, getSkyGradient(vec3(0, 0, 0), sunPos.y), fogFactor), 1.0f), crosshair);
+	ScreenColor = max(vec4(mix(mix(lightColor, getSkyGradient(vec3(0, 0, 0), sunPos.y), fogFactor), vec3(64, 32, 16), -waterFogFactor), 1.0f), crosshair);
 }

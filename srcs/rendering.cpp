@@ -77,7 +77,7 @@ void	Rendering(Window &window, const uint64_t &seed) {
 	);
 	Camera	shadowMapCam(
 		(CameraInfo){{100, 100, 0}, {0, 0, 0}, {0, 1, 0}},
-		(ProjectionInfo){FOV, {SHADOW_FRUSTUM_SIZE / 2, SHADOW_FRUSTUM_SIZE / 2}, {-SHADOW_FRUSTUM_SIZE / 2, -SHADOW_FRUSTUM_SIZE / 2}, 0.1f, 600.0f},
+		(ProjectionInfo){FOV, {SHADOW_FRUSTUM_SIZE / 2, SHADOW_FRUSTUM_SIZE / 2}, {-SHADOW_FRUSTUM_SIZE / 2, -SHADOW_FRUSTUM_SIZE / 2}, 0.1f, 1200.0f},
 		ProjectionType::ORTHOGRAPHIC
 	);
 	VoxelSystem		voxelSystem(seed, camera, shadowMapCam);

@@ -34,7 +34,7 @@ void	main()
 	float	thickness = 0.01 / ((l.x + l.y) / 2.0f);
 	float	roughness = 0.01 / ((l.x + l.y) / 2.0f);
 
-	vec3	color = texture(atlas, vec2((fract(uv.x * l.x) + xOff) / 16, (fract(uv.y * l.y) + yOff) / 16)).rgb;
+	vec3	color = texture(atlas, vec2((fract(uv.x * l.x) + xOff) / 16, (fract(uv.y * l.y) + yOff) / 16)).rgb ;
 
 	if (polygonVisible) {
 		float	d = addSegment(sdfSegment(uv, vec2(0, 0), vec2(1, 0)),
@@ -48,8 +48,9 @@ void	main()
 		color += polygonColor;
 	}
 
+	float	alpha = 1.0f;
 	if (texID == 8)
-		alpha = 0.9f;
+		alpha = 0.8f;
 
 	gColor = vec4(color, alpha);
 }

@@ -301,8 +301,17 @@ static void	constructWaterAxisMesh(std::vector<DATA_TYPE> *vertices, uint64_t (&
 		forwardYCol = forwardYCol >> LOD;
 		forwardYCol = forwardYCol & ~((uint64_t)1 << CHUNK_WIDTH);
 
+		// Culling facing backwardX
+		uint64_t	backwardYCol = yAxisBitmask[i] & ~(yAxisBitmask[i] << 1);
+		backwardYCol = backwardYCol >> 1;
+		backwardYCol = backwardYCol & ~((uint64_t)1 << CHUNK_WIDTH);
+
 		for (int j = 0; j < CHUNK_WIDTH; j++) {
 			uint8_t	id = BLOCK_AT(chunk.chunk, i % CHUNK_WIDTH, j, i / CHUNK_WIDTH);
+			
+			if (1 & (backwardYCol >> j))
+				binaryPlaneHM[0][id][j][i / CHUNK_WIDTH] |= (uint64_t)0x1 << (i % CHUNK_WIDTH);
+			
 			if (1 & (forwardYCol >> j))
 				binaryPlaneHM[1][id][j][i / CHUNK_WIDTH] |= (uint64_t)0x1 << (i % CHUNK_WIDTH);
 		}

@@ -29,7 +29,7 @@ class Window {
 		void	updateFrameRate();
 
 	public:
-		Window(int posX, int posY, int width, int height, const std::string &title);
+		Window(int posX, int posY, int width, int height, const std::string &title, const float &GLversion = 4.2f);
 		~Window();
 
 		/// Public functions

@@ -280,6 +280,25 @@ void VoxelSystem::tryDestroyBlock()
 		cout << BRed << "No block found" << ResetColor << endl;
 }
 
+uint8_t	VoxelSystem::getBlockAt(const glm::ivec3 &pos) {
+	ivec3 chunkPos = {
+		floor((float)pos.x / (float)CHUNK_SIZE),
+		floor((float)pos.y / (float)CHUNK_SIZE),
+		floor((float)pos.z / (float)CHUNK_SIZE)
+	};
+
+	ChunkMap::iterator it = _chunks.find(chunkPos);
+	if (it == _chunks.end())
+		return 0;
+
+	ivec3 localPos = {
+		mod((float)pos.z, (float)CHUNK_SIZE),
+		mod((float)pos.y, (float)CHUNK_SIZE),
+		mod((float)pos.x, (float)CHUNK_SIZE)
+	};
+	return BLOCK_AT(_chunks[chunkPos].chunk, localPos.x, localPos.y, localPos.z);
+}
+
 static inline const vec4	extractPlane(const mat4& m, int row, int sign) {
 	vec4	plane = {
 		m[0][3] + sign * m[0][row],

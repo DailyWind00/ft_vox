@@ -17,6 +17,7 @@ uniform mat4		lpMat;
 uniform vec3	sunPos;
 uniform vec2	screenSize;
 uniform bool	polygonVisible;
+uniform bool	inWater;
 
 // Constant values
 const float	crossThickness = 1.0f;
@@ -163,9 +164,17 @@ void	main() {
 	vec3	lightColor = computeLighting(texCol, Normal.rgb, shadow);
 
 	float	fogFactor = computeFogFactor(-spFragPos.z);
-	float	waterFogFactor = computeFogFactor(-fragPos.y * 0.2);
+	float	waterFogFactor = computeFogFactor(log(-fragPos.y / 8.0f) * 250.0f);
 
 	vec4	crosshair = vec4(1.0f - computeCrosshair(), 0.75);
 
-	ScreenColor = max(vec4(mix(mix(lightColor, getSkyGradient(vec3(0, 0, 0), sunPos.y), fogFactor), vec3(64, 32, 16), -waterFogFactor), 1.0f), crosshair);
+	vec3	depthColor = vec3(45.0f, 25.0f, 20.0f) / 255.0f;
+	vec3	fogColor = (inWater) ? vec3(16.0f / 255.0f, 32.0f / 255.0f, 64.0f / 255.0f) : getSkyGradient(vec3(0, 0, 0), sunPos.y);
+	if (inWater) {
+		fogFactor = clamp(fogFactor * 16.0f, 0.0f, 1.0f);
+		waterFogFactor = -computeFogFactor(log(-fragPos.y / 6.0f) * 5.0f);
+		depthColor = vec3(64.0f, 32.0f, 16.0f);
+	}
+
+	ScreenColor = max(vec4(mix(mix(lightColor, fogColor, fogFactor), depthColor, waterFogFactor), 1.0f), crosshair);
 }

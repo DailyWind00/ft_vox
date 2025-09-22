@@ -4,9 +4,9 @@
 # define GLM_ENABLE_EXPERIMENTAL
 # define DATA_TYPE uint64_t
 # define CHUNK_SIZE 32
-# define HORIZONTAL_RENDER_DISTANCE 10
-# define VERTICAL_RENDER_DISTANCE 6
-# define SPAWN_LOCATION_SIZE	10
+# define HORIZONTAL_RENDER_DISTANCE 12
+# define VERTICAL_RENDER_DISTANCE 10
+# define SPAWN_LOCATION_SIZE	12
 # define MESH_BATCH_LIMIT (size_t)2048
 # define CHUNK_BATCH_LIMIT (size_t)128
 # define THREAD_SLEEP_DURATION 10 // in ms
@@ -126,6 +126,7 @@ class VoxelSystem {
 		void	requestMesh (const vector<ChunkRequest> &requests);
 
 		void	tryDestroyBlock();
+		uint8_t	getBlockAt(const glm::ivec3 &pos);
 		const GeoFrameBuffers &		renderGeometryPass(ShaderHandler &shader);
 		const ShadowMappingData &	renderShadowMapPass(ShaderHandler &shader);
 

@@ -123,7 +123,6 @@ void	handleEvents(GameData &gameData) {
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
 
-
 	cameraMovement(window, camera);
 	inputs(gameData);
 
@@ -133,6 +132,7 @@ void	handleEvents(GameData &gameData) {
 	vec3		sunPos = normalize(vec3(cos(angle), sin(angle), 0.0f));
 	mat4		skyboxView = camera.getProjectionMatrix() * mat4(mat3(camera.getViewMatrix())); // Get rid of the translation part
 	vec3		camPos = camera.getCameraInfo().position;
+	bool		inWater = (gameData.voxelSystem.getBlockAt(camPos) == 9) ? true : false;
 
 	shadowMapCam.setPosition({camPos.x + sunPos.x * 600, camPos.y + sunPos.y * 600, camPos.z + sunPos.z * 600});
 	shadowMapCam.setLookAt(camPos);
@@ -153,6 +153,7 @@ void	handleEvents(GameData &gameData) {
 	shaders.setUniform((*shaders[3])->getID(), "view", shadowMapCam.getViewMatrix());
 
 	// Lighting Pass Shader Parameters
+	shaders.setUniform((*shaders[2])->getID(), "inWater", inWater);
 	shaders.setUniform((*shaders[2])->getID(), "spView", camera.getViewMatrix());
 	shaders.setUniform((*shaders[2])->getID(), "spProj", camera.getProjectionMatrix());
 	shaders.setUniform((*shaders[2])->getID(), "lpMat", shadowMapCam.getProjectionMatrix() * shadowMapCam.getViewMatrix());

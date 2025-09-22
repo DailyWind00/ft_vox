@@ -1,4 +1,4 @@
-# version 460 core
+# version 420 core
 
 out vec4	ScreenColor;
 in vec2		uv;

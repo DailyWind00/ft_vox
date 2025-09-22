@@ -96,13 +96,15 @@ void	VoxelSystem::_generateMesh(ChunkData &chunk, ChunkData *neightboursChunks[6
 		return;
 
 	vector<DATA_TYPE>	vertices;
+	vector<DATA_TYPE>	waterVertices;
 	size_t		maxDataSizePerChunk = (pow(CHUNK_SIZE, 3) / 2) * 6 * sizeof(DATA_TYPE);
 
 	vertices.reserve(maxDataSizePerChunk);
 
 	_constructChunkMesh(&vertices, chunk, neightboursChunks, LOD);
+	_constructWaterMesh(&waterVertices, chunk, neightboursChunks, LOD);
 
-	_chunks[chunk.Wpos].mesh = new ChunkMesh(vertices);
+	_chunks[chunk.Wpos].mesh = new ChunkMesh(vertices, waterVertices);
 }
 
 // Delete the first mesh

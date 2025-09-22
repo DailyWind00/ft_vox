@@ -48,5 +48,8 @@ void	main()
 		color += polygonColor;
 	}
 
-	gColor = vec4(color, 1.0f);
+	if (texID == 8)
+		alpha = 0.9f;
+
+	gColor = vec4(color, alpha);
 }

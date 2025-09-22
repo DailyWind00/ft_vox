@@ -351,7 +351,7 @@ void	LayeredChunk::generate(const glm::ivec3 &pos)
 				// Get the current blockID according to the pre-computed factors
 				uint8_t	id = (NO_CAVES) ? _getBlockFromBiome(noises.heightMap[idx], k, biomeID) * ((k < noises.heightMap[idx])) : _getBlockFromBiome(noises.heightMap[idx], k, biomeID) * ((k < noises.heightMap[idx] && caveFactors[idx][k - pos.y] < 0.01f));
 
-				if (k >= (int)noises.heightMap[idx] && k <= 0) {
+				if (k >= (int)noises.heightMap[idx] && k <= -1) {
 					if (id == 0)
 						id = 9;
 					else if (id == 1 || id == 2)

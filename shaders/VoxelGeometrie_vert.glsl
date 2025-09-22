@@ -5,6 +5,7 @@ layout (location = 0) in uvec2 vertexData;
 uniform mat4	view;
 uniform mat4	projection;
 uniform vec3	worldPos;
+uniform vec3	camPos;
 
 out vec2	uv;
 out vec3	Normal;
@@ -43,14 +44,19 @@ void	decodeLengths() {
 void	main() {
 	// Decode Vertex Data
 	uvec3	pos = decodePosition();
+	vec3	fPos = pos;
+
 	decodeUVs();
 	decodeLengths();
 	face = (vertexData[0] >> 18) & 0x07;
 	texID = ((vertexData[0] >> 22) & 0x1F) - 1;
 
+	if (texID == 8)
+		fPos.y -= 2.0f / 16.0f;
+
 	// Set rendering data
 	Normal = Normals[face];
-	fragPos = (vec4(ivec3(pos) + ivec3(32 * worldPos), 1.0f)).xyz;
+	fragPos = (vec4(fPos + vec3(32 * worldPos), 1.0f)).xyz;
 
-	gl_Position = projection * view * vec4(ivec3(pos) + ivec3(32 * worldPos), 1.0f);
+	gl_Position = projection * view * vec4(fPos + vec3(32 * worldPos), 1.0f);
 }

@@ -341,6 +341,34 @@ const GeoFrameBuffers	&VoxelSystem::renderGeometryPass(ShaderHandler &shader) {
 		it->second.mesh->draw();
 	}
 
+	for (ChunkMap::iterator it = _chunks.begin(); it != _chunks.end(); it++) {
+		if (!it->second.mesh)
+			continue ;
+
+		// Frustum culling
+		vec3 chunkCenter = vec3(it->first * CHUNK_SIZE + CHUNK_SIZE / 2);
+		float chunkRadius = CHUNK_SIZE * sqrt(3) / 2.0f;
+
+		bool inFrustrum = true;
+		for (auto& plane : frustumPlanes) {
+			float distance = dot(vec3(plane), chunkCenter) + plane.w;
+			if (distance < -chunkRadius) { // sphere outside
+				inFrustrum = false;
+				break;
+			}
+		}
+		if (!inFrustrum) continue;
+
+		// Draw the chunk
+		if (!it->second.mesh->getWaterVAO())
+			continue ;
+
+		vec3	wPos = it->second.Wpos;
+		shader.setUniform((*shader[1])->getID(), "worldPos", wPos);
+
+		it->second.mesh->drawWater();
+	}
+
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	return _gBuffer;
@@ -368,7 +396,7 @@ const ShadowMappingData	&VoxelSystem::renderShadowMapPass(ShaderHandler &shader)
 			continue ;
 
 		// Draw the chunk
-		if (!it->second.mesh->getVAO())
+		if (!it->second.mesh->getVAO() || !it->second.mesh->getWaterVAO())
 			it->second.mesh->updateMesh();
 
 		// Frustum culling

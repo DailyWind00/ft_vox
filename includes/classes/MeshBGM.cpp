@@ -194,6 +194,10 @@ static void	binaryGreedyMeshing(std::vector<DATA_TYPE> *vertices, uint32_t plane
 	}
 }
 
+static bool	isVoxelTransparent(const uint8_t &id) {
+	return (id == 0 || id == 9);
+}
+
 static void	constructXAxisMesh(std::vector<DATA_TYPE> *vertices, uint64_t (&xAxisBitmask)[(CHUNK_WIDTH + 2) * (CHUNK_WIDTH + 2)], ChunkData &chunk, ChunkData *neightboursChunks[6], const uint8_t &LOD)
 {
 	// Get the X axis neighbours data
@@ -204,7 +208,7 @@ static void	constructXAxisMesh(std::vector<DATA_TYPE> *vertices, uint64_t (&xAxi
 		// Temporary fix for hole in the map (NEED TO FIND A BETTER SOLUTION)
 		// if (isNeightbourLoaded(neightboursChunks[4]) && BLOCK_AT(neightboursChunks[4]->chunk, CHUNK_WIDTH - 1, y, z))
 		// 	xAxisBitmask[i] |= (uint64_t)0x1 << 0;
-		if (isNeightbourLoaded(neightboursChunks[5]) && BLOCK_AT(neightboursChunks[5]->chunk, 0, y, z))
+		if (isNeightbourLoaded(neightboursChunks[5]) && !isVoxelTransparent(BLOCK_AT(neightboursChunks[5]->chunk, 0, y, z)))
 			xAxisBitmask[i] |= (uint64_t)0x1 << (CHUNK_WIDTH + 1);
 	}
 	
@@ -243,9 +247,9 @@ static void	constructYAxisMesh(std::vector<DATA_TYPE> *vertices, uint64_t (&yAxi
 	for (uint64_t i = 0; i < CHUNK_WIDTH * CHUNK_WIDTH; i++) {
 		uint64_t	x = i % CHUNK_WIDTH;
 		uint64_t	z = i / CHUNK_WIDTH;
-		if (isNeightbourLoaded(neightboursChunks[2]) && BLOCK_AT(neightboursChunks[2]->chunk, x, CHUNK_HEIGHT - 1, z))
+		if (isNeightbourLoaded(neightboursChunks[2]) && !isVoxelTransparent(BLOCK_AT(neightboursChunks[2]->chunk, x, CHUNK_HEIGHT - 1, z)))
 			yAxisBitmask[i] |= (uint64_t)0x1 << 0;
-		if (isNeightbourLoaded(neightboursChunks[3]) && BLOCK_AT(neightboursChunks[3]->chunk, x, 0, z))
+		if (isNeightbourLoaded(neightboursChunks[3]) && !isVoxelTransparent(BLOCK_AT(neightboursChunks[3]->chunk, x, 0, z)))
 			yAxisBitmask[i] |= (uint64_t)0x1 << (CHUNK_HEIGHT + 1);
 	}
 
@@ -278,15 +282,46 @@ static void	constructYAxisMesh(std::vector<DATA_TYPE> *vertices, uint64_t (&yAxi
 				binaryGreedyMeshing(vertices, value[j], j, key, i + 2, LOD);
 }
 
+static void	constructWaterAxisMesh(std::vector<DATA_TYPE> *vertices, uint64_t (&yAxisBitmask)[(CHUNK_WIDTH + 2) * (CHUNK_WIDTH + 2)], ChunkData &chunk, ChunkData *neightboursChunks[6], const uint8_t &LOD)
+{
+	// Get the Y axis neighbours data
+	for (uint64_t i = 0; i < CHUNK_WIDTH * CHUNK_WIDTH; i++) {
+		uint64_t	x = i % CHUNK_WIDTH;
+		uint64_t	z = i / CHUNK_WIDTH;
+		if (isNeightbourLoaded(neightboursChunks[2]) && BLOCK_AT(neightboursChunks[2]->chunk, x, CHUNK_HEIGHT - 1, z))
+			yAxisBitmask[i] |= (uint64_t)0x1 << 0;
+		if (isNeightbourLoaded(neightboursChunks[3]) && BLOCK_AT(neightboursChunks[3]->chunk, x, 0, z))
+			yAxisBitmask[i] |= (uint64_t)0x1 << (CHUNK_HEIGHT + 1);
+	}
+
+	std::map<uint8_t, uint32_t[CHUNK_WIDTH][CHUNK_HEIGHT]>	binaryPlaneHM[2];
+	for (int i = 0; i < CHUNK_WIDTH * CHUNK_WIDTH; i++) {
+		// Culling facing forwardX
+		uint64_t	forwardYCol = yAxisBitmask[i] & ~(yAxisBitmask[i] >> 1);
+		forwardYCol = forwardYCol >> LOD;
+		forwardYCol = forwardYCol & ~((uint64_t)1 << CHUNK_WIDTH);
+
+		for (int j = 0; j < CHUNK_WIDTH; j++) {
+			uint8_t	id = BLOCK_AT(chunk.chunk, i % CHUNK_WIDTH, j, i / CHUNK_WIDTH);
+			if (1 & (forwardYCol >> j))
+				binaryPlaneHM[1][id][j][i / CHUNK_WIDTH] |= (uint64_t)0x1 << (i % CHUNK_WIDTH);
+		}
+	}
+	// Execute the binary greedy meshing algorythme for the X axis
+	for (auto &[key, value] : binaryPlaneHM[1])
+		for (int j = 0; j < CHUNK_WIDTH; j += LOD)
+			binaryGreedyMeshing(vertices, value[j], j, key, 3, LOD);
+}
+
 static void	constructZAxisMesh(std::vector<DATA_TYPE> *vertices, uint64_t (&zAxisBitmask)[(CHUNK_WIDTH + 2) * (CHUNK_WIDTH + 2)], ChunkData &chunk, ChunkData *neightboursChunks[6], const uint8_t &LOD)
 {
 	// Get the Z axis neighbours data
 	for (uint64_t i = 0; i < CHUNK_HEIGHT * CHUNK_WIDTH; i++) {
 		uint64_t	x = i % CHUNK_WIDTH;
 		uint64_t	y = i / CHUNK_HEIGHT;
-		if (isNeightbourLoaded(neightboursChunks[0]) && BLOCK_AT(neightboursChunks[0]->chunk, x, y, CHUNK_WIDTH - 1))
+		if (isNeightbourLoaded(neightboursChunks[0]) && !isVoxelTransparent(BLOCK_AT(neightboursChunks[0]->chunk, x, y, CHUNK_WIDTH - 1)))
 			zAxisBitmask[i] |= (uint64_t)0x1 << 0;
-		if (isNeightbourLoaded(neightboursChunks[1]) && BLOCK_AT(neightboursChunks[1]->chunk, x, y, 0))
+		if (isNeightbourLoaded(neightboursChunks[1]) && !isVoxelTransparent(BLOCK_AT(neightboursChunks[1]->chunk, x, y, 0)))
 			zAxisBitmask[i] |= (uint64_t)0x1 << (CHUNK_WIDTH + 1);
 	}
 
@@ -319,6 +354,19 @@ static void	constructZAxisMesh(std::vector<DATA_TYPE> *vertices, uint64_t (&zAxi
 				binaryGreedyMeshing(vertices, value[j], j, key, i + 4, LOD);
 }
 
+void	VoxelSystem::_constructWaterMesh(std::vector<DATA_TYPE> *vertices, ChunkData &chunk, ChunkData *neightboursChunks[6], const uint8_t &LOD) {
+	uint64_t	waterBitmask[(CHUNK_WIDTH + 2) * (CHUNK_HEIGHT + 2)] = {0};
+
+	// Set the bitmasks of all the axis
+	for (uint64_t y = 0; y < CHUNK_HEIGHT; y += LOD)
+		for (uint64_t z = 0; z < CHUNK_WIDTH; z += LOD)
+			for (uint64_t x = 0; x < CHUNK_WIDTH; x += LOD)
+				if (BLOCK_AT(chunk.chunk, x, y, z) == 9)
+					waterBitmask[z * CHUNK_WIDTH + x] |= binMap(0x1, LOD, 1) << (y + 1);	// Bit-shift is offset by one to allow for neighbour data
+	
+	constructWaterAxisMesh(vertices, waterBitmask, chunk, neightboursChunks, LOD);
+}
+
 void	VoxelSystem::_constructChunkMesh(std::vector<DATA_TYPE> *vertices, ChunkData &chunk, ChunkData *neightboursChunks[6], const uint8_t &LOD) {
 	uint64_t	xAxisBitmask[(CHUNK_WIDTH + 2) * (CHUNK_HEIGHT + 2)] = {0};
 	uint64_t	yAxisBitmask[(CHUNK_WIDTH + 2) * (CHUNK_WIDTH + 2)] = {0};
@@ -329,7 +377,8 @@ void	VoxelSystem::_constructChunkMesh(std::vector<DATA_TYPE> *vertices, ChunkDat
 		for (uint64_t z = 0; z < CHUNK_WIDTH; z += LOD) {
 			for (uint64_t x = 0; x < CHUNK_WIDTH; x += LOD) {
 				// For each axis, write a bit to represent a solid block
-				if (BLOCK_AT(chunk.chunk, x, y, z) != 0) {
+				uint8_t	id = BLOCK_AT(chunk.chunk, x, y, z);
+				if (id != 0 && id != 9) {
 					xAxisBitmask[y * CHUNK_HEIGHT + z] |= binMap(0x1, LOD, 1) << (x + 1);	// Bit-shift is offset by one to allow for neighbour data
 					yAxisBitmask[z * CHUNK_WIDTH + x] |= binMap(0x1, LOD, 1) << (y + 1);	// Bit-shift is offset by one to allow for neighbour data
 					zAxisBitmask[y * CHUNK_HEIGHT + x] |= binMap(0x1, LOD, 1) << (z + 1);	// Bit-shift is offset by one to allow for neighbour data

@@ -117,8 +117,8 @@ float *	LayeredChunk::_computeHeightMap(const glm::ivec3 &pos)
 		else
 			factor = factor * 0.2;
 
-		factor += Noise::perlin2D(glm::vec2{(pos.x + (i % CHUNK_WIDTH)) / 2048,
-				(pos.z+ ((float)i / CHUNK_WIDTH)) / 2048}) * 512;
+		factor += Noise::perlin2D(glm::vec2{(pos.x + (i % CHUNK_WIDTH)) / 8192,
+				(pos.z+ ((float)i / CHUNK_WIDTH)) / 8192}) * 1024;
 
 		factors[i] = factor;
 	}

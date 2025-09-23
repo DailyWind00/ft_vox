@@ -121,6 +121,15 @@ void	handleEvents(GameData &gameData) {
 	static float time = 20; time += 0.001 * window.getFrameTime(); // Start at early daytime
 	static bool		flashlightOn = false;
 
+	if (keyPressedOnce(window, GLFW_KEY_P)) {
+		std::cout << "recompiling\n";
+		(*shaders[0])->recompile();
+		(*shaders[1])->recompile();
+		(*shaders[2])->recompile();
+		(*shaders[3])->recompile();
+		(*shaders[4])->recompile();
+	}
+
 	if (keyPressedOnce(window, GLFW_KEY_F))
 		flashlightOn = (flashlightOn) ? false : true;
 

@@ -13,6 +13,8 @@ static void	printUsage() {
 	cout << "\t-h, --help\t\tPrint this message" << endl;
 	cout << "\t-v, --verbose\t\tEnable verbose mode" << endl;
 	cout << "\t-t, --no-tooltip\tDisable the commands tooltip" << endl;
+	cout << "\t-n, --no-caves\t\tDisable cave generation" << endl;
+	cout << "\t-p, --polygon\t\tEnable polygon rendering" << endl;
 	cout << endl;
 	cout << "> Seed : Any unsigned long integer (0 by default = random)" << endl;
 	cout << BGreen << "====================================" << ResetColor << endl;

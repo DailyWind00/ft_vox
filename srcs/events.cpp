@@ -160,6 +160,7 @@ void	handleEvents(GameData &gameData) {
 
 	// Lighting Pass Shader Parameters
 	shaders.setUniform((*shaders[2])->getID(), "camPos", camPos);
+	shaders.setUniform((*shaders[2])->getID(), "renderDistance", (float)HORIZONTAL_RENDER_DISTANCE);
 	shaders.setUniform((*shaders[2])->getID(), "inWater", inWater);
 	shaders.setUniform((*shaders[2])->getID(), "flashlightOn", flashlightOn);
 	shaders.setUniform((*shaders[2])->getID(), "spView", camera.getViewMatrix());
@@ -172,4 +173,6 @@ void	handleEvents(GameData &gameData) {
 	shaders.setUniform((*shaders[2])->getID(), "gColor", 2);
 	shaders.setUniform((*shaders[2])->getID(), "shadowMap", 3);
 	shaders.setUniform((*shaders[2])->getID(), "screenSize", vec2(WINDOW_WIDTH, WINDOW_HEIGHT));
+
+	shaders.setUniform((*shaders[4])->getID(), "postProcBuffer", 0);
 }

@@ -171,15 +171,16 @@ void	main()
 	float	alpha = 1.0f;
 	vec4	finalColor = vec4(color, 1.0f);
 	if (texID == 8) {
-		float	largeNoise = noise3D(vec3(fragPos.x, fragPos.y + time * 12.0f, fragPos.z) * 0.05) * 0.5;
+		float	largeNoise = noise3D(vec3(fragPos.x + time * 6.0f, fragPos.y + time * 12.0f, fragPos.z + time * 6.0f) * 0.05) * 0.5;
 
 		vec3	waveNormal = Normal * vec3(largeNoise);
 		gNormal = vec4(waveNormal, 1.0f);
-		vec3	reflectedColor = mix(getSkyGradient(vec3(0, 1, 0), sunPos.y), color, 0.3);
+		// vec3	reflectedColor = mix(getSkyGradient(vec3(0, 1, 0), sunPos.y), color, 0.1);
+		vec3	reflectedColor = getSkyGradient(vec3(0, 1, 0), sunPos.y);
 
 		vec3	viewVector = normalize(camPos - fragPos);
 		float	fresnel = clamp(pow(1.0f - dot(viewVector, waveNormal), 1.4f), 0.0f, 1.0f);
-		finalColor = mix(vec4(color, 0.7), vec4(reflectedColor, 0.85f), fresnel);
+		finalColor = mix(vec4(color, 0.75), vec4(reflectedColor, 1.0f), fresnel);
 	}
 
 	gColor = finalColor;

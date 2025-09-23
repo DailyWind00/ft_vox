@@ -28,6 +28,8 @@ VoxelSystem::VoxelSystem(const uint64_t &seed, Camera &camera, Camera &shadowMap
 	// Initialize the rendering pipeline
 	_initDefferedRenderingPipeline();
 
+	_initPostProcessingComponents();
+
 	// Initialize the ShadowMapping Pipeline
 	_initShadowMappingPipeline();
 
@@ -83,7 +85,7 @@ void	VoxelSystem::_genWorldSpawn() {
 	vector<ChunkRequest>	spawnChunks;
 	const int		horizontalSpawnSize = glm::min(SPAWN_LOCATION_SIZE, HORIZONTAL_RENDER_DISTANCE);
 
-	for (int i = VERTICAL_RENDER_DISTANCE; i >= -VERTICAL_RENDER_DISTANCE; i--)
+	for (int i = -VERTICAL_RENDER_DISTANCE; i <= VERTICAL_RENDER_DISTANCE; i++)
 		for (int j = -horizontalSpawnSize; j <= horizontalSpawnSize; j++)
 			for (int k = -horizontalSpawnSize; k <= horizontalSpawnSize; k++)
 				spawnChunks.push_back({{k, i, j}, ChunkAction::CREATE_UPDATE});
@@ -142,6 +144,33 @@ void	VoxelSystem::_initDefferedRenderingPipeline() {
 	glDrawBuffers(3, attachments);
 
 	// Depth buffer
+	GLuint rboDepth;
+
+	glGenRenderbuffers(1, &rboDepth);
+	glBindRenderbuffer(GL_RENDERBUFFER, rboDepth);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, WINDOW_WIDTH, WINDOW_HEIGHT);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rboDepth);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void	VoxelSystem::_initPostProcessingComponents() {
+	// Frame Buffer creation
+	glGenFramebuffers(1, &_postProcData.postProcFBO);
+	glBindFramebuffer(GL_FRAMEBUFFER, _postProcData.postProcFBO);
+
+	// Texture Buffer creation
+	glGenTextures(1, &_postProcData.postProcBuffer);
+	glBindTexture(GL_TEXTURE_2D, _postProcData.postProcBuffer);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGBA, GL_FLOAT, nullptr);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, _postProcData.postProcBuffer, 0);
+
+	GLuint	attachements[1] {GL_COLOR_ATTACHMENT0};
+	glDrawBuffers(1, attachements);
+
+	// Depth buffer creation
 	GLuint rboDepth;
 
 	glGenRenderbuffers(1, &rboDepth);
@@ -464,6 +493,10 @@ void	VoxelSystem::setShadowMapCam(Camera &camera) {
 
 
 /// Getters
+
+const PostProcessingData &	VoxelSystem::getPostProcData() {
+	return _postProcData;
+}
 
 size_t	VoxelSystem::getChunkRequestCount()
 {

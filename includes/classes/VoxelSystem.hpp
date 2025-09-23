@@ -4,11 +4,11 @@
 # define GLM_ENABLE_EXPERIMENTAL
 # define DATA_TYPE uint64_t
 # define CHUNK_SIZE 32
-# define HORIZONTAL_RENDER_DISTANCE 12
-# define VERTICAL_RENDER_DISTANCE 8
-# define SPAWN_LOCATION_SIZE	12
-# define MESH_BATCH_LIMIT (size_t)2048
-# define CHUNK_BATCH_LIMIT (size_t)128
+# define HORIZONTAL_RENDER_DISTANCE 24
+# define VERTICAL_RENDER_DISTANCE 6
+# define SPAWN_LOCATION_SIZE	24
+# define MESH_BATCH_LIMIT (size_t)8192
+# define CHUNK_BATCH_LIMIT (size_t)1024
 # define THREAD_SLEEP_DURATION 10 // in ms
 # define CHUNKGEN_CORE_RATIO	2
 # define MIN_LOD (size_t)4
@@ -50,6 +50,11 @@ typedef struct ShadowMappingData {
 	unsigned int	depthMap;
 } ShadowMappingData;
 
+typedef struct PostProcessingData {
+	unsigned int	postProcFBO;
+	unsigned int	postProcBuffer;
+} PostProcessingData;
+
 typedef struct ChunkData {
 	ChunkMesh *	mesh;
 	AChunk *	chunk;
@@ -80,6 +85,7 @@ class VoxelSystem {
 		GLuint			_textureAtlas;
 		GeoFrameBuffers		_gBuffer;
 		ShadowMappingData	_shadowMapData;
+		PostProcessingData	_postProcData;
 
 		// Multi-threading
 		thread *	_chunkGenerationThreads;
@@ -102,6 +108,7 @@ class VoxelSystem {
 		void	_initThreads();
 		void	_initDefferedRenderingPipeline();
 		void	_initShadowMappingPipeline();
+		void	_initPostProcessingComponents();
 		void	_loadTextureAtlas();
 
 		// Thread routines
@@ -137,6 +144,7 @@ class VoxelSystem {
 
 		/// Getters
 
+		const PostProcessingData &	getPostProcData();
 		size_t	getChunkRequestCount();
 		size_t	getMeshRequestCount();
 };

@@ -1,6 +1,6 @@
 #include "config.hpp"
 
-static void	lightingPass(const ShadowMappingData &shadowMapData, const GeoFrameBuffers &gBuffer, GLuint &renderQuadVAO) {
+static void	lightingPass(const ShadowMappingData &shadowMapData, const GeoFrameBuffers &gBuffer, const PostProcessingData &postProcData, GLuint &renderQuadVAO) {
 	// Binding the gBuffer textures
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, gBuffer.gPosition);
@@ -13,14 +13,40 @@ static void	lightingPass(const ShadowMappingData &shadowMapData, const GeoFrameB
 
 	// Rendering to the renderQuad
 	glDisable(GL_CULL_FACE);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, postProcData.postProcFBO);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
 	glBindVertexArray(renderQuadVAO);
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 	glBindVertexArray(0);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
 	glEnable(GL_CULL_FACE);
 	
 	// Copying the final depth buffer to the default internal framebuffer
 	glBindFramebuffer(GL_READ_FRAMEBUFFER, gBuffer.gBuffer);
-	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0); // write to default framebuffer
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, postProcData.postProcFBO); // write to post processing framebuffer
+	glBlitFramebuffer(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+static void	postProcessingPass(const PostProcessingData &postProcData, GLuint &renderQuadVAO) {
+	// Binding the post processing texture
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, postProcData.postProcBuffer);
+
+	// Rendering to the renderQuad
+	glDisable(GL_CULL_FACE);
+	glBindVertexArray(renderQuadVAO);
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	glBindVertexArray(0);
+	glEnable(GL_CULL_FACE);
+
+	// Copying the final depth buffer to the default internal framebuffer
+	glBindFramebuffer(GL_READ_FRAMEBUFFER, postProcData.postProcBuffer);
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0); // write to post processing framebuffer
 	glBlitFramebuffer(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
@@ -33,6 +59,8 @@ static void program_loop(GameData &gameData) {
 	static SkyBox		&skybox      = gameData.skybox;
 	static RenderData	&renderDatas = gameData.renderDatas;
 
+	PostProcessingData	postProcData = voxelSystem.getPostProcData();
+
 	shaders.use(shaders[3]);
 	glViewport(0, 0, SHADOW_RESOLUTION, SHADOW_RESOLUTION);
 	ShadowMappingData	shadowMapData = voxelSystem.renderShadowMapPass(shaders);
@@ -44,11 +72,16 @@ static void program_loop(GameData &gameData) {
 
 	// Deferred rendering lighting
 	shaders.use(shaders[2]);
-	lightingPass(shadowMapData, gBuffer, renderDatas.renderQuadVAO);
+	lightingPass(shadowMapData, gBuffer, postProcData, renderDatas.renderQuadVAO);
 
 	// Skybox 
 	shaders.use(shaders[0]);
+	glBindFramebuffer(GL_FRAMEBUFFER, postProcData.postProcFBO);
 	skybox.draw();
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	shaders.use(shaders[4]);
+	postProcessingPass(postProcData, renderDatas.renderQuadVAO);
 
 	handleEvents(gameData);
 	window.setTitle("ft_vox | FPS: " + to_string(window.getFPS()) + " | FrameTime: " + to_string(window.getFrameTime()) + "ms");
@@ -87,6 +120,7 @@ void	Rendering(Window &window, const uint64_t &seed) {
 	shaders.add_shader("shaders/VoxelGeometrie_vert.glsl", "shaders/VoxelGeometrie_frag.glsl");
 	shaders.add_shader("shaders/VoxelLighting_vert.glsl", "shaders/VoxelLighting_frag.glsl");
 	shaders.add_shader("shaders/ShadowMap_vert.glsl", "shaders/ShadowMap_frag.glsl");
+	shaders.add_shader("shaders/PostProcessing_vert.glsl", "shaders/PostProcessing_frag.glsl");
 
 	// Rendering Quad Initialization
 	RenderData	renderDatas;

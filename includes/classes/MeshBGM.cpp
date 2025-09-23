@@ -366,6 +366,9 @@ static void	constructZAxisMesh(std::vector<DATA_TYPE> *vertices, uint64_t (&zAxi
 void	VoxelSystem::_constructWaterMesh(std::vector<DATA_TYPE> *vertices, ChunkData &chunk, ChunkData *neightboursChunks[6], const uint8_t &LOD) {
 	uint64_t	waterBitmask[(CHUNK_WIDTH + 2) * (CHUNK_HEIGHT + 2)] = {0};
 
+	if (chunk.Wpos.y != -1)
+		return ;
+
 	// Set the bitmasks of all the axis
 	for (uint64_t y = 0; y < CHUNK_HEIGHT; y += LOD)
 		for (uint64_t z = 0; z < CHUNK_WIDTH; z += LOD)

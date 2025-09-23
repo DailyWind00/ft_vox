@@ -14,6 +14,7 @@ uniform mat4		spView;
 uniform mat4		spProj;
 uniform mat4		lpMat;
 
+uniform float	renderDistance;
 uniform vec3	camPos;
 uniform vec3	sunPos;
 uniform vec2	screenSize;
@@ -151,7 +152,8 @@ vec3	computeLighting(const vec3 texCol, const vec3 Normal, const float shadow, c
 }
 
 float	computeFogFactor(const float scDepth) {
-	float	lerpFactor = scDepth * 0.001;
+	float	dist = 1.0f / (renderDistance * 48.0f);
+	float	lerpFactor = scDepth * dist;
 
 	lerpFactor = pow(lerpFactor, 1.2f);
 	lerpFactor = clamp(lerpFactor, 0.0, 1.0f);

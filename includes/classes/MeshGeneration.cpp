@@ -33,8 +33,16 @@ void	VoxelSystem::_meshGenerationRoutine() {
 			if (_chunks.find(Wpos) == _chunks.end())
 				continue;
 
+			// glm::ivec3	camPos = _camera.getCameraInfo().position;
+			//
+			// camPos /= 32;
+			_chunks[Wpos].LOD = 1;
+			// if (distance((vec3)camPos, (vec3)Wpos) >= 12)
+			// 	_chunks[Wpos].LOD = 2;
+			// else if (distance((vec3)camPos, (vec3)Wpos) >= 24)
+			// 	_chunks[Wpos].LOD = 4;
+			//
 			// Calculate the LOD of the chunk (cause crashes for now)
-			_chunks[Wpos].LOD = 1; // TODO: implement LOD
 
 			ChunkData &data = _chunks[Wpos];
 

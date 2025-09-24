@@ -59,7 +59,7 @@ target_link_libraries(ft_vox PRIVATE
 
 set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 -fsanitize=address -lasan" CACHE STRING "Debug build flags" FORCE)
 set(CMAKE_CXX_FLAGS_RELEASE "-O3" CACHE STRING "Release build flags" FORCE)
-target_compile_options(ft_vox PRIVATE -Wall -Wextra -fPIE)
+target_compile_options(ft_vox PRIVATE -Wall -Wextra -Wno-unknown-pragmas -fPIE)
 
 set_target_properties(ft_vox PROPERTIES
 	CXX_STANDARD 17

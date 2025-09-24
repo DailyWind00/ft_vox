@@ -5,15 +5,15 @@ PriorityMutex::~PriorityMutex() {}
 
 void	PriorityMutex::lock(const Priority &priority) {
 	if (priority == Priority::HIGHT) {
-		_nextToAcces.lock();
+		_nextToAccess.lock();
 		_dataMutex.lock();
-		_nextToAcces.unlock();
+		_nextToAccess.unlock();
 	}
 	else if (priority == Priority::LOW) {
 		_lowPriorityAccess.lock();
-		_nextToAcces.lock();
+		_nextToAccess.lock();
 		_dataMutex.lock();
-		_nextToAcces.unlock();
+		_nextToAccess.unlock();
 	}
 }
 

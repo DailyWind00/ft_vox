@@ -11,7 +11,7 @@ enum class Priority {
 class PriorityMutex {
 	private:
 		std::mutex	_lowPriorityAccess;
-		std::mutex	_nextToAcces;
+		std::mutex	_nextToAccess;
 		std::mutex	_dataMutex;
 	
 	public:

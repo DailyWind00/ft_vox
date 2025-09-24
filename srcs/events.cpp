@@ -180,7 +180,8 @@ void	handleEvents(GameData &gameData) {
 	shaders.setUniform((*shaders[2])->getID(), "gPosition", 0);
 	shaders.setUniform((*shaders[2])->getID(), "gNormal", 1);
 	shaders.setUniform((*shaders[2])->getID(), "gColor", 2);
-	shaders.setUniform((*shaders[2])->getID(), "shadowMap", 3);
+	shaders.setUniform((*shaders[2])->getID(), "gEmissive", 3);
+	shaders.setUniform((*shaders[2])->getID(), "shadowMap", 4);
 	shaders.setUniform((*shaders[2])->getID(), "screenSize", vec2(WINDOW_WIDTH, WINDOW_HEIGHT));
 
 	shaders.setUniform((*shaders[4])->getID(), "postProcBuffer", 0);

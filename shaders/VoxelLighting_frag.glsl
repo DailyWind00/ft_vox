@@ -8,6 +8,7 @@ in vec2		uv;
 uniform sampler2D	gPosition;
 uniform sampler2D	gNormal;
 uniform sampler2D	gColor;
+uniform sampler2D	gEmissive;
 uniform sampler2D	shadowMap;
 
 uniform mat4		spView;
@@ -176,6 +177,7 @@ void	main() {
 	vec4	lpFragPos = lpMat * fragPos;
 	vec4	Normal = texture(gNormal, uv);
 	vec3	texCol = texture(gColor, uv).rgb;
+	vec3	emissiveColor = texture(gEmissive, uv).rgb;
 
 	float	shadow = computeShadows(lpFragPos, Normal.xyz);
 	vec3	lightColor = computeLighting(texCol, Normal.rgb, shadow, fragPos.rgb);
@@ -193,5 +195,5 @@ void	main() {
 		depthColor = vec3(64.0f, 32.0f, 16.0f);
 	}
 
-	ScreenColor = max(vec4(mix(mix(lightColor, fogColor, fogFactor), depthColor, waterFogFactor), 1.0f), crosshair);
+	ScreenColor = max(vec4(mix(mix(lightColor, fogColor, fogFactor), depthColor, waterFogFactor) + emissiveColor, 1.0f), crosshair);
 }

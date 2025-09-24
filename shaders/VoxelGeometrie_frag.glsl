@@ -3,6 +3,7 @@
 layout (location = 0) out vec4 gPosition;
 layout (location = 1) out vec4 gNormal;
 layout (location = 2) out vec4 gColor;
+layout (location = 3) out vec4 gEmissive;
 
 in vec3	fragPos;
 in vec3	Normal;
@@ -11,6 +12,7 @@ in vec2	l;
 flat in uint	texID;
 flat in uint	face;
 
+uniform mat4	view;
 uniform float		time;
 uniform vec3		sunPos;
 uniform vec3		camPos;
@@ -104,33 +106,32 @@ vec3 getMoonColor(vec3 direction, vec3 moonPos) {
 }
 
 float random (in vec2 st) {
-    return fract(sin(dot(st.xy,
-                         vec2(12.9898,78.233)))
-                 * 43758.5453123);
+	return fract(sin(dot(st.xy, vec2(12.9898,78.233)))
+			* 43758.5453123);
 }
 
 // 2D Noise based on Morgan McGuire @morgan3d
 // https://www.shadertoy.com/view/4dS3Wd
-float noise (in vec2 st) {
-    vec2 i = floor(st);
-    vec2 f = fract(st);
+float	noise(in vec2 st) {
+	vec2	i = floor(st);
+	vec2	f = fract(st);
 
-    // Four corners in 2D of a tile
-    float a = random(i);
-    float b = random(i + vec2(1.0, 0.0));
-    float c = random(i + vec2(0.0, 1.0));
-    float d = random(i + vec2(1.0, 1.0));
+	// Four corners in 2D of a tile
+	float	a = random(i);
+	float	b = random(i + vec2(1.0, 0.0));
+	float	c = random(i + vec2(0.0, 1.0));
+	float	d = random(i + vec2(1.0, 1.0));
 
-    // Smooth Interpolation
+	// Smooth Interpolation
 
-    // Cubic Hermine Curve.  Same as SmoothStep()
-    vec2 u = f*f*(3.0-2.0*f);
-    // u = smoothstep(0.,1.,f);
+	// Cubic Hermine Curve.  Same as SmoothStep()
+	vec2	u = f * f * (3.0 - 2.0 * f);
+	// u = smoothstep(0.,1.,f);
 
-    // Mix 4 coorners percentages
-    return mix(a, b, u.x) +
-            (c - a)* u.y * (1.0 - u.x) +
-            (d - b) * u.x * u.y;
+	// Mix 4 coorners percentages
+	return mix(a, b, u.x) +
+		(c - a)* u.y * (1.0 - u.x) +
+		(d - b) * u.x * u.y;
 }
 
 float	noise3D(const vec3 stb) {
@@ -147,12 +148,14 @@ void	main()
 {
 	gPosition = vec4(fragPos, 1.0f);
 	gNormal = vec4(Normal, 1.0f);
+	gEmissive = vec4(0.0);
 
 	uint	xOff = texID % 16;
 	uint	yOff = texID / 16;
 
-	float	thickness = 0.01 / ((l.x + l.y) / 2.0f);
-	float	roughness = 0.01 / ((l.x + l.y) / 2.0f);
+	vec4	viewFPos = view * vec4(fragPos, 1.0f);
+	float	thickness = (0.0003 / ((l.x + l.y) / 2.0f)) * (-viewFPos.z * 4);
+	float	roughness = 0.003 / ((l.x + l.y) / 2.0f) * (-viewFPos.z * 2);
 
 	vec3	color = texture(atlas, vec2((fract(uv.x * l.x) + xOff) / 16, (fract(uv.y * l.y) + yOff) / 16)).rgb ;
 
@@ -165,7 +168,7 @@ void	main()
 		float	sm = 1.0f - smoothstep(thickness, (thickness + roughness), d);
 		vec3	polygonColor = (1.0f - color) * sm;
 		color *= 1.0f - sm;
-		color += polygonColor;
+		gEmissive = vec4(polygonColor, 1.0f);
 	}
 
 	float	alpha = 1.0f;
@@ -175,12 +178,11 @@ void	main()
 
 		vec3	waveNormal = Normal * vec3(largeNoise);
 		gNormal = vec4(waveNormal, 1.0f);
-		// vec3	reflectedColor = mix(getSkyGradient(vec3(0, 1, 0), sunPos.y), color, 0.1);
 		vec3	reflectedColor = getSkyGradient(vec3(0, 1, 0), sunPos.y);
 
 		vec3	viewVector = normalize(camPos - fragPos);
 		float	fresnel = clamp(pow(1.0f - dot(viewVector, waveNormal), 1.4f), 0.0f, 1.0f);
-		finalColor = mix(vec4(color, 0.75), vec4(reflectedColor, 1.0f), fresnel);
+		finalColor = mix(vec4(color, 0.45), vec4(reflectedColor, 1.0f), fresnel);
 	}
 
 	gColor = finalColor;

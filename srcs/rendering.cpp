@@ -9,6 +9,8 @@ static void	lightingPass(const ShadowMappingData &shadowMapData, const GeoFrameB
 	glActiveTexture(GL_TEXTURE2);
 	glBindTexture(GL_TEXTURE_2D, gBuffer.gColor);
 	glActiveTexture(GL_TEXTURE3);
+	glBindTexture(GL_TEXTURE_2D, gBuffer.gEmissive);
+	glActiveTexture(GL_TEXTURE4);
 	glBindTexture(GL_TEXTURE_2D, shadowMapData.depthMap);
 
 	// Rendering to the renderQuad

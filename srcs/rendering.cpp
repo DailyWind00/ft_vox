@@ -34,10 +34,12 @@ static void	lightingPass(const ShadowMappingData &shadowMapData, const GeoFrameB
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-static void	postProcessingPass(const PostProcessingData &postProcData, GLuint &renderQuadVAO) {
+static void	postProcessingPass(const PostProcessingData &postProcData, const GeoFrameBuffers &gBuffer, GLuint &renderQuadVAO) {
 	// Binding the post processing texture
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, postProcData.postProcBuffer);
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, postProcData.postProcDepthBuffer);
 
 	// Rendering to the renderQuad
 	glDisable(GL_CULL_FACE);
@@ -52,6 +54,8 @@ static void	postProcessingPass(const PostProcessingData &postProcData, GLuint &r
 	glBlitFramebuffer(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
+
+GLuint	test3Dtext;
 
 // Keep the window alive, exiting this function should mean closing the window
 static void program_loop(GameData &gameData) {
@@ -82,48 +86,16 @@ static void program_loop(GameData &gameData) {
 	skybox.draw();
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_3D, test3Dtext);
 	shaders.use(shaders[4]);
-	postProcessingPass(postProcData, renderDatas.renderQuadVAO);
+	postProcessingPass(postProcData, gBuffer, renderDatas.renderQuadVAO);
 
 	handleEvents(gameData);
 	window.setTitle("ft_vox | FPS: " + to_string(window.getFPS()) + " | FrameTime: " + to_string(window.getFrameTime()) + "ms");
 }
 
-// Setup variables and call the program loop
-void	Rendering(Window &window, const uint64_t &seed) {
-	// Mouse Parameters
-	if (glfwRawMouseMotionSupported())
-		glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
-	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-	glfwSetCursorPos(window, (float)WINDOW_WIDTH / 2, (float)WINDOW_HEIGHT / 2);
-
-	// OpenGL Parameters
-	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	glEnable(GL_CULL_FACE);
-
-	// Systemes Initialization
-	Camera	camera(
-		(CameraInfo){{0, 0, 0}, {0, 0, 1}, {0, 1, 0}},
-		(ProjectionInfo){FOV, {(float)WINDOW_WIDTH, (float)WINDOW_HEIGHT}, {0.0f, 0.0f}, 0.1f, 10000.0f},
-		ProjectionType::PERSPECTIVE
-	);
-	Camera	shadowMapCam(
-		(CameraInfo){{100, 100, 0}, {0, 0, 0}, {0, 1, 0}},
-		(ProjectionInfo){FOV, {SHADOW_FRUSTUM_SIZE / 2, SHADOW_FRUSTUM_SIZE / 2}, {-SHADOW_FRUSTUM_SIZE / 2, -SHADOW_FRUSTUM_SIZE / 2}, 0.1f, 1200.0f},
-		ProjectionType::ORTHOGRAPHIC
-	);
-	VoxelSystem		voxelSystem(seed, camera, shadowMapCam);
-	SkyBox			skybox;
-	ShaderHandler	shaders; // Skybox -> Voxels Geometrie -> Voxels Lighting
-	shaders.add_shader("shaders/Skybox_vert.glsl", "shaders/Skybox_frag.glsl"); // Used by default
-	shaders.add_shader("shaders/VoxelGeometrie_vert.glsl", "shaders/VoxelGeometrie_frag.glsl");
-	shaders.add_shader("shaders/VoxelLighting_vert.glsl", "shaders/VoxelLighting_frag.glsl");
-	shaders.add_shader("shaders/ShadowMap_vert.glsl", "shaders/ShadowMap_frag.glsl");
-	shaders.add_shader("shaders/PostProcessing_vert.glsl", "shaders/PostProcessing_frag.glsl");
-
+static RenderData	initScreenQuad() {
 	// Rendering Quad Initialization
 	RenderData	renderDatas;
 	unsigned int	screenQuadVBO = 0;
@@ -147,6 +119,62 @@ void	Rendering(Window &window, const uint64_t &seed) {
 	glEnableVertexAttribArray(1);
 
 	glBindVertexArray(0);
+	return renderDatas;
+}
+
+// Setup variables and call the program loop
+void	Rendering(Window &window, const uint64_t &seed) {
+	// Mouse Parameters
+	if (glfwRawMouseMotionSupported())
+		glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	glfwSetCursorPos(window, (float)WINDOW_WIDTH / 2, (float)WINDOW_HEIGHT / 2);
+
+	// OpenGL Parameters
+	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glEnable(GL_CULL_FACE);
+
+	// Systemes Initialization
+	Camera	camera(
+		(CameraInfo){{0, 0, -3.0}, {0, 0, 1}, {0, 1, 0}},
+		(ProjectionInfo){FOV, {(float)WINDOW_WIDTH, (float)WINDOW_HEIGHT}, {0.0f, 0.0f}, 0.1f, 10000.0f},
+		ProjectionType::PERSPECTIVE
+	);
+	Camera	shadowMapCam(
+		(CameraInfo){{100, 100, 0}, {0, 0, 0}, {0, 1, 0}},
+		(ProjectionInfo){FOV, {SHADOW_FRUSTUM_SIZE / 2, SHADOW_FRUSTUM_SIZE / 2}, {-SHADOW_FRUSTUM_SIZE / 2, -SHADOW_FRUSTUM_SIZE / 2}, 0.1f, 1200.0f},
+		ProjectionType::ORTHOGRAPHIC
+	);
+	VoxelSystem		voxelSystem(seed, camera, shadowMapCam);
+	SkyBox			skybox;
+	ShaderHandler	shaders; // Skybox -> Voxels Geometrie -> Voxels Lighting
+	shaders.add_shader("shaders/Skybox_vert.glsl", "shaders/Skybox_frag.glsl"); // Used by default
+	shaders.add_shader("shaders/VoxelGeometrie_vert.glsl", "shaders/VoxelGeometrie_frag.glsl");
+	shaders.add_shader("shaders/VoxelLighting_vert.glsl", "shaders/VoxelLighting_frag.glsl");
+	shaders.add_shader("shaders/ShadowMap_vert.glsl", "shaders/ShadowMap_frag.glsl");
+	shaders.add_shader("shaders/PostProcessing_vert.glsl", "shaders/PostProcessing_frag.glsl");
+	RenderData	renderDatas = initScreenQuad();
+
+	float	data[128 * 128 * 128] = {0};
+
+	for (int i = 0; i < 128; i++)
+		for (int j = 0; j < 128; j++)
+			for (int k = 0; k < 128; k++)
+				data[k + 128 * (j + 128 * i)] = 1.0f / distance(vec3{(float)i, (float)j, (float)k}, vec3{64, 64, 64});
+
+	glGenTextures(1, &test3Dtext);
+	glBindTexture(GL_TEXTURE_3D, test3Dtext);
+
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	glTexImage3D(GL_TEXTURE_3D, 0, GL_R16F, 128, 128, 128, 0, GL_RED, GL_FLOAT, data);
 
 	// Setting Game Datas to send to the game loop
 	GameData gameData = {

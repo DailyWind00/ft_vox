@@ -3,8 +3,16 @@
 out vec4	ScreenColor;
 in vec2		uv;
 
+uniform vec3	camPos;
+uniform vec3	camDir;
+uniform float	time;
+
+uniform sampler2D	depthBuffer;
 uniform sampler2D	postProcBuffer;
+uniform sampler3D	test3D;
 uniform bool		flashlightOn;
+uniform mat4		view;
+uniform mat4		projection;
 
 /// --- FXAA PARAMETERS
 const float	EDGE_THRESHOLD_MIN = 0.0312;
@@ -219,12 +227,71 @@ vec3	posterizationFilter(vec3 baseColor) {
 	return	baseColor;
 }
 
+mat2	rot2D(float angle) {
+	return mat2(cos(angle), sin(angle), sin(angle), cos(angle));
+}
+
+const float	densityThreshold = 0.017f;
+const float	densityMultiplier = 2.5f;
+const float	cloudScale = 0.0041f;
+
+float	sampleDensity(vec3 position) {
+	vec3	uvw = position * cloudScale + vec3(time * 0.1, -0.3, time * 0.1);
+	vec4	shape = texture(test3D, uvw);
+	return max(0, shape.r - densityThreshold) * densityMultiplier;
+}
+
+vec2	rayBoxDist(vec3 boundsMin, vec3 boundsMax, vec3 ro, vec3 rd) {
+	vec3	t0 = (boundsMin - ro) / rd;
+	vec3	t1 = (boundsMax - ro) / rd;
+	vec3	tmin = min(t0, t1);
+	vec3	tmax = max(t0, t1);
+
+	float	dstA = max(max(tmin.x, tmin.y), tmin.z);
+	float	dstB = min(tmax.x, min(tmax.y, tmax.z));
+
+	float	dstToBox = max(0, dstA);
+	return vec2(max(0, dstA), max(0, dstB - dstToBox));
+}
+
+float	screenToEyeDepth(float d, float near, float far) {
+	float	depth = d * 2.0 - 1.0;
+	return (2.0 * near * far) / (far + near - depth * (far - near));
+}
+
 void	main() {
 	vec2	filterdUV = fxaaFiltering(textureSize(postProcBuffer, 0));
 	vec3	color = chromaticAberationFilter(filterdUV).rgb;
 
+	vec4	spFragPos = texture(depthBuffer, uv);
+
 	color = posterizationFilter(color);
+	vec2	lUV = filterdUV * 2.0f - 1.0;
+	lUV.x *= 1920.0 / 1080.0;
+
+	float	d = 1.0 / tan(1.3962634 / 2.0);
+	vec3	ro = camPos;
+	vec4	rd = normalize(vec4(lUV, -d, 1.0f)) * view;
+
+	vec3	boundsMin = vec3(camPos.x, 200, camPos.z) - vec3(1000, 55, 1000);
+	vec3	boundsMax = vec3(camPos.x, 200, camPos.z) + vec3(1000, 55, 1000);
+
+	vec2	rayBoxInfo = rayBoxDist(boundsMin, boundsMax, ro, rd.xyz);
+
+	float	travel = 0;
+	float	stepSize = rayBoxInfo.y / 32.0;
+	float	depth = screenToEyeDepth(spFragPos.r, 0.1f, 10000.0f);
+	float	limit = min(depth - rayBoxInfo.x, rayBoxInfo.y);
+
+	float	density = 0;
+	while (travel < limit) {
+		vec3	rayPos = ro + rd.xyz * vec3(rayBoxInfo.x + travel);
+		density += sampleDensity(rayPos) * stepSize;
+		travel += stepSize;
+	}
+	float	transmittance = exp(-density);
 
 	/// --- FINAL COLOR CALCULATION
-	ScreenColor = vec4(color, 1.0f);
+	ScreenColor = vec4(color * transmittance, 1.0f);
+	// ScreenColor = vec4(vec3(depth), 1.0f);
 }

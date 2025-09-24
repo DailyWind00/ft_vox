@@ -37,7 +37,7 @@ static inline bool MouseButtonPressedOnce(GLFWwindow *window, int button) {
 #pragma endregion
 
 // Handle the camera movements/interactions
-static void	cameraMovement(Window &window, Camera &camera) {
+static vec3	cameraMovement(Window &window, Camera &camera) {
 	CameraInfo	cameraInfo = camera.getCameraInfo();
 
 	# pragma region Camera controls
@@ -84,6 +84,7 @@ static void	cameraMovement(Window &window, Camera &camera) {
 	# pragma endregion
 	
 	camera.setCameraInfo(cameraInfo);
+	return normalize(cameraDir);
 }
 
 // Handle the inputs for the game
@@ -136,7 +137,7 @@ void	handleEvents(GameData &gameData) {
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
 
-	cameraMovement(window, camera);
+	glm::vec3	camDir = cameraMovement(window, camera);
 	inputs(gameData);
 
 	// Skybox Shader parameters
@@ -184,5 +185,12 @@ void	handleEvents(GameData &gameData) {
 	shaders.setUniform((*shaders[2])->getID(), "shadowMap", 4);
 	shaders.setUniform((*shaders[2])->getID(), "screenSize", vec2(WINDOW_WIDTH, WINDOW_HEIGHT));
 
+	shaders.setUniform((*shaders[4])->getID(), "time", time);
 	shaders.setUniform((*shaders[4])->getID(), "postProcBuffer", 0);
+	shaders.setUniform((*shaders[4])->getID(), "depthBuffer", 1);
+	shaders.setUniform((*shaders[4])->getID(), "test3D", 2);
+	shaders.setUniform((*shaders[4])->getID(), "view", camera.getViewMatrix());
+	shaders.setUniform((*shaders[4])->getID(), "projection", camera.getProjectionMatrix());
+	shaders.setUniform((*shaders[4])->getID(), "camPos", camPos);
+	shaders.setUniform((*shaders[4])->getID(), "camDir", camDir);
 }

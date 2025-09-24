@@ -54,6 +54,7 @@ typedef struct ShadowMappingData {
 typedef struct PostProcessingData {
 	unsigned int	postProcFBO;
 	unsigned int	postProcBuffer;
+	unsigned int	postProcDepthBuffer;
 } PostProcessingData;
 
 typedef struct ChunkData {

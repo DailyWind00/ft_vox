@@ -47,7 +47,7 @@ class	Profiler {
 		// | int	foo(int, int, char);
 		// | int returnValue = profilerObject.evaluate("foo", &foo, 4 5, 'c');
 		template <typename T, typename... U>
-		T	evaluate(const std::string &funcName,T (func)(U...),
+		T	evaluate(const std::string &funcName, T (func)(U...),
 				U... arg1) {
 			T	returnValue;
 
@@ -71,7 +71,7 @@ class	Profiler {
 		// Use that method if the function passed in argument does not return anything.
 		// Please refere to it for more details.
 		template <typename T, typename... U>
-		void	evaluateNoReturn(const std::string &funcName,T (func)(U...), U... arg) {
+		void	evaluateNoReturn(const std::string &funcName, T (func)(U...), U&&... arg) {
 			auto	start = std::chrono::steady_clock::now();
 			func(arg...);
 			auto	end = std::chrono::steady_clock::now();
@@ -87,7 +87,7 @@ class	Profiler {
 				this->_logs[funcName].av = (this->_logs[funcName].av + mill) / 2.0f;
 		}
 		template <typename T>
-		void	evaluateNoReturn(const std::string &funcName,T (func)()) {
+		void	evaluateNoReturn(const std::string &funcName, T (func)()) {
 			auto	start = std::chrono::steady_clock::now();
 			func();
 			auto	end = std::chrono::steady_clock::now();

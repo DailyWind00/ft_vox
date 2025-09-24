@@ -178,6 +178,7 @@ void	handleEvents(GameData &gameData) {
 	cameraMovement(window, camera);
 	inputs(gameData);
 	dynamicChunkLoading(gameData.voxelSystem, camera.getCameraInfo());
+
 	// Skybox Shader parameters
 	float		dayDuration = 360;
 	float		angle = (time / dayDuration) * M_PI;

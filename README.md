@@ -46,7 +46,7 @@ Esc          # Close the window
 <p align="center">
   <img src="./assets/previews/ft_vox-preview1.png"/>
   <img src="./assets/previews/ft_vox-preview2.png"/>
-  <img src=""/>
+  <img src="./assets/previews/ft_vox-preview3.png"/>
 </p>
 
 ###### Don't forget to leave a star ! 🌟

@@ -190,7 +190,7 @@ void	handleEvents(GameData &gameData) {
 	shaders.setUniform((*shaders[4])->getID(), "depthBuffer", 1);
 	shaders.setUniform((*shaders[4])->getID(), "test3D", 2);
 	shaders.setUniform((*shaders[4])->getID(), "view", camera.getViewMatrix());
-	shaders.setUniform((*shaders[4])->getID(), "projection", camera.getProjectionMatrix());
+	shaders.setUniform((*shaders[4])->getID(), "sunPos", sunPos);
 	shaders.setUniform((*shaders[4])->getID(), "camPos", camPos);
 	shaders.setUniform((*shaders[4])->getID(), "camDir", camDir);
 }

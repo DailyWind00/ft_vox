@@ -158,12 +158,13 @@ void	Rendering(Window &window, const uint64_t &seed) {
 	shaders.add_shader("shaders/PostProcessing_vert.glsl", "shaders/PostProcessing_frag.glsl");
 	RenderData	renderDatas = initScreenQuad();
 
-	float	data[128 * 128 * 128] = {0};
+	const size_t	texSize = 256;
+	std::vector<float>	data;
 
-	for (int i = 0; i < 128; i++)
-		for (int j = 0; j < 128; j++)
-			for (int k = 0; k < 128; k++)
-				data[k + 128 * (j + 128 * i)] = 1.0f / distance(vec3{(float)i, (float)j, (float)k}, vec3{64, 64, 64});
+	for (size_t i = 0; i < texSize; i++)
+		for (size_t j = 0; j < texSize / 8.0f; j++)
+			for (size_t k = 0; k < texSize; k++)
+				data.push_back(Noise::perlin2D({(float)i / 8.0, (float)k / 8.0f}) * 4096.0f);
 
 	glGenTextures(1, &test3Dtext);
 	glBindTexture(GL_TEXTURE_3D, test3Dtext);
@@ -174,7 +175,7 @@ void	Rendering(Window &window, const uint64_t &seed) {
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-	glTexImage3D(GL_TEXTURE_3D, 0, GL_R16F, 128, 128, 128, 0, GL_RED, GL_FLOAT, data);
+	glTexImage3D(GL_TEXTURE_3D, 0, GL_R16F, texSize, texSize / 8.0f, texSize, 0, GL_RED, GL_FLOAT, data.data());
 
 	// Setting Game Datas to send to the game loop
 	GameData gameData = {

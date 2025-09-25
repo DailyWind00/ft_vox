@@ -3,6 +3,7 @@
 out vec4	ScreenColor;
 in vec2		uv;
 
+uniform vec3	sunPos;
 uniform vec3	camPos;
 uniform vec3	camDir;
 uniform float	time;
@@ -12,17 +13,13 @@ uniform sampler2D	postProcBuffer;
 uniform sampler3D	test3D;
 uniform bool		flashlightOn;
 uniform mat4		view;
-uniform mat4		projection;
 
-/// --- FXAA PARAMETERS
+/// --- ANTI-ALIASING FILTERING
+
 const float	EDGE_THRESHOLD_MIN = 0.0312;
 const float	EDGE_THRESHOLD_MAX = 0.125;
 const float	SUBPIXEL_QUALITY = 0.75;
 const vec2	inverseScreenSize = vec2(1.0f / 1920.0f, 1.0f / 1080.0f);
-
-/// --- POSTERIZATION PARAMETERS
-const float	GAMMA = 0.6f;
-const float	COLOR_NUM = 128.0f;
 
 float	rgbToLuma(const vec3 rgb) {
 	return sqrt(dot(rgb, vec3(0.299, 0.587, 0.114)));
@@ -208,6 +205,8 @@ vec2	fxaaFiltering(const vec2 screenSize) {
 	return finalUv;
 }
 
+/// --- COSMETIC FILTERING
+
 vec3	chromaticAberationFilter(vec2 localUV) {
 	vec2	center = vec2(0.5);
 	float	d = pow(distance(localUV, center) * 0.75, 2.3f);
@@ -218,6 +217,9 @@ vec3	chromaticAberationFilter(vec2 localUV) {
 	return vec3(red, texture(postProcBuffer, localUV).g, blue);
 }
 
+const float	GAMMA = 0.6f;
+const float	COLOR_NUM = 256.0f;
+
 vec3	posterizationFilter(vec3 baseColor) {
 	baseColor = pow(baseColor, vec3(GAMMA));
 	baseColor *= COLOR_NUM;
@@ -227,18 +229,34 @@ vec3	posterizationFilter(vec3 baseColor) {
 	return	baseColor;
 }
 
-mat2	rot2D(float angle) {
-	return mat2(cos(angle), sin(angle), sin(angle), cos(angle));
-}
+/// --- CLOUD RENDERING
 
-const float	densityThreshold = 0.017f;
-const float	densityMultiplier = 2.5f;
-const float	cloudScale = 0.0041f;
+// Cloud bounding box parameters
+const vec3	boundingBoxPosition = vec3(0, 450, 0);
+const vec3	boundingBoxSize = vec3(5000, 35, 5000);
+
+// Cloud Noise parameters
+const float	densityThreshold = 350.0f;
+const float	densityMultiplier = 0.00005f;
+const float	cloudScale = 0.00015f;
+const float	cloudSpeed = 0.002;
+
+// Cloud parameters
+const float	phaseVal = 0.08;
+const float	cloudLightAbsorbtion =  1.14;
+const float	numStepRay = 512.0f;
+
+// Light parameters
+float	numStepLight = 16.0f;
+float	sunLightAbsorbtion = 0.06f;
+float	darknessThreshold = 12.018f;
 
 float	sampleDensity(vec3 position) {
-	vec3	uvw = position * cloudScale + vec3(time * 0.1, -0.3, time * 0.1);
-	vec4	shape = texture(test3D, uvw);
-	return max(0, shape.r - densityThreshold) * densityMultiplier;
+	vec3	uvw1 = position * cloudScale + vec3(time * cloudSpeed, 0.0, time * cloudSpeed);
+	vec3	uvw2 = position * (cloudScale * 2.0f) + vec3(time * 0.02, 10.0, time * 0.02);
+	vec4	shape1 = texture(test3D, uvw1);
+	vec4	shape2 = texture(test3D, uvw2);
+	return max(0, shape1.r - densityThreshold) * densityMultiplier;
 }
 
 vec2	rayBoxDist(vec3 boundsMin, vec3 boundsMax, vec3 ro, vec3 rd) {
@@ -259,39 +277,60 @@ float	screenToEyeDepth(float d, float near, float far) {
 	return (2.0 * near * far) / (far + near - depth * (far - near));
 }
 
-void	main() {
-	vec2	filterdUV = fxaaFiltering(textureSize(postProcBuffer, 0));
-	vec3	color = chromaticAberationFilter(filterdUV).rgb;
+vec3	cloudRayMarching(vec2 localUV) {
+	// Account for aspect ratio
+	localUV.x *= 1920.0 / 1080.0;
 
-	vec4	spFragPos = texture(depthBuffer, uv);
-
-	color = posterizationFilter(color);
-	vec2	lUV = filterdUV * 2.0f - 1.0;
-	lUV.x *= 1920.0 / 1080.0;
-
-	float	d = 1.0 / tan(1.3962634 / 2.0);
+	// Raymarch camera initialization
+	vec4	sampledDepthBuffer = texture(depthBuffer, uv);
 	vec3	ro = camPos;
-	vec4	rd = normalize(vec4(lUV, -d, 1.0f)) * view;
+	float	d = 1.0 / tan(1.3962634 / 2.0);
+	vec4	rd = normalize(vec4(localUV, -d, 1.0f)) * view;
 
-	vec3	boundsMin = vec3(camPos.x, 200, camPos.z) - vec3(1000, 55, 1000);
-	vec3	boundsMax = vec3(camPos.x, 200, camPos.z) + vec3(1000, 55, 1000);
-
+	// Cloud bounding box initialization
+	vec3	boundsMin = boundingBoxPosition - boundingBoxSize;
+	vec3	boundsMax = boundingBoxPosition + boundingBoxSize;
 	vec2	rayBoxInfo = rayBoxDist(boundsMin, boundsMax, ro, rd.xyz);
 
+	// Ray initialization
 	float	travel = 0;
-	float	stepSize = rayBoxInfo.y / 32.0;
-	float	depth = screenToEyeDepth(spFragPos.r, 0.1f, 10000.0f);
+	float	stepSize = rayBoxInfo.y / numStepRay;
+	float	depth = screenToEyeDepth(sampledDepthBuffer.r, 0.1f, 10000.0f);
 	float	limit = min(depth - rayBoxInfo.x, rayBoxInfo.y);
 
-	float	density = 0;
+	float	transmittance = 1.0f;
+	float	lightEnergy = 0.0;
+	
 	while (travel < limit) {
 		vec3	rayPos = ro + rd.xyz * vec3(rayBoxInfo.x + travel);
-		density += sampleDensity(rayPos) * stepSize;
+		float	density = sampleDensity(rayPos);
+
+		if (density > 0) {
+			float	lightTransmittance = (rayPos.y * sunLightAbsorbtion) - darknessThreshold;
+			lightEnergy += density * stepSize * transmittance * lightTransmittance * phaseVal;
+			transmittance *= exp(-density * stepSize * cloudLightAbsorbtion);
+
+			if (transmittance < 0.01)
+				break ;
+		}
+
 		travel += stepSize;
 	}
-	float	transmittance = exp(-density);
+	vec3	cloudColor = vec3(lightEnergy);
+	return vec3(transmittance) + cloudColor;
+}
+
+/// --- SHADER MAIN FUNCTION
+
+void	main() {
+	vec2	filterdUV = fxaaFiltering(textureSize(postProcBuffer, 0));
+	vec3	color = texture(postProcBuffer, filterdUV).rgb;
+
+	color = posterizationFilter(color);
+	color *= cloudRayMarching(filterdUV * 2.0 - 1.0);
 
 	/// --- FINAL COLOR CALCULATION
-	ScreenColor = vec4(color * transmittance, 1.0f);
+
+	ScreenColor = vec4(color, 1.0f);
 	// ScreenColor = vec4(vec3(depth), 1.0f);
 }

@@ -238,8 +238,8 @@ const vec3	boundingBoxSize = vec3(5000, 35, 5000);
 // Cloud Noise parameters
 const float	densityThreshold = 350.0f;
 const float	densityMultiplier = 0.00005f;
-const float	cloudScale = 0.00015f;
-const float	cloudSpeed = 0.002;
+const float	cloudScale = 0.00001875f;
+const float	cloudSpeed = 0.00025;
 
 // Cloud parameters
 const float	phaseVal = 0.08;

@@ -34,12 +34,14 @@ static void	lightingPass(const ShadowMappingData &shadowMapData, const GeoFrameB
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-static void	postProcessingPass(const PostProcessingData &postProcData, const GeoFrameBuffers &gBuffer, GLuint &renderQuadVAO) {
+static void	postProcessingPass(const PostProcessingData &postProcData, const GLuint &cloudSampleTexture, GLuint &renderQuadVAO) {
 	// Binding the post processing texture
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, postProcData.postProcBuffer);
 	glActiveTexture(GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_2D, postProcData.postProcDepthBuffer);
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_3D, cloudSampleTexture);
 
 	// Rendering to the renderQuad
 	glDisable(GL_CULL_FACE);
@@ -54,8 +56,6 @@ static void	postProcessingPass(const PostProcessingData &postProcData, const Geo
 	glBlitFramebuffer(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
-
-GLuint	test3Dtext;
 
 // Keep the window alive, exiting this function should mean closing the window
 static void program_loop(GameData &gameData) {
@@ -86,10 +86,8 @@ static void program_loop(GameData &gameData) {
 	skybox.draw();
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-	glActiveTexture(GL_TEXTURE2);
-	glBindTexture(GL_TEXTURE_3D, test3Dtext);
 	shaders.use(shaders[4]);
-	postProcessingPass(postProcData, gBuffer, renderDatas.renderQuadVAO);
+	postProcessingPass(postProcData, gameData.cloudSytem.getCloudNoiseSample(), renderDatas.renderQuadVAO);
 
 	handleEvents(gameData);
 	window.setTitle("ft_vox | FPS: " + to_string(window.getFPS()) + " | FrameTime: " + to_string(window.getFrameTime()) + "ms");
@@ -157,31 +155,14 @@ void	Rendering(Window &window, const uint64_t &seed) {
 	shaders.add_shader("shaders/ShadowMap_vert.glsl", "shaders/ShadowMap_frag.glsl");
 	shaders.add_shader("shaders/PostProcessing_vert.glsl", "shaders/PostProcessing_frag.glsl");
 	RenderData	renderDatas = initScreenQuad();
-
-	const size_t	texSize = 256;
-	std::vector<float>	data;
-
-	for (size_t i = 0; i < texSize; i++)
-		for (size_t j = 0; j < texSize / 8.0f; j++)
-			for (size_t k = 0; k < texSize; k++)
-				data.push_back(Noise::perlin2D({(float)i / 8.0, (float)k / 8.0f}) * 4096.0f);
-
-	glGenTextures(1, &test3Dtext);
-	glBindTexture(GL_TEXTURE_3D, test3Dtext);
-
-	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-	glTexImage3D(GL_TEXTURE_3D, 0, GL_R16F, texSize, texSize / 8.0f, texSize, 0, GL_RED, GL_FLOAT, data.data());
+	CloudSystem	cloudSystem(2048);
 
 	// Setting Game Datas to send to the game loop
 	GameData gameData = {
 		window,
 		shaders,
 		voxelSystem,
+		cloudSystem,
 		skybox,
 		camera,
 		shadowMapCam,

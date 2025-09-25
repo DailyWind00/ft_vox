@@ -24,6 +24,7 @@ add_executable(ft_vox
 
 	# Includes
 	includes/classes/VoxelSystem.cpp
+	includes/classes/CloudSystem.cpp
 	includes/classes/ChunkGeneration.cpp
 	includes/classes/MeshGeneration.cpp
 	includes/classes/MeshBGM.cpp

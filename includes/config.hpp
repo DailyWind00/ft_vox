@@ -29,6 +29,7 @@
 
 /// Custom includes (*.hpp & *.tpp)
 # include "VoxelSystem.hpp"
+# include "CloudSystem.hpp"
 
 /// Global variables
 using namespace std;
@@ -46,6 +47,7 @@ typedef struct GameData {
 	Window			&window;
 	ShaderHandler	&shaders;
 	VoxelSystem		&voxelSystem;
+	CloudSystem		&cloudSytem;
 	SkyBox			&skybox;
 	Camera			&camera;
 	Camera			&shadowMapCam;

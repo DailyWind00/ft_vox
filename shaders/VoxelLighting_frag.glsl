@@ -183,7 +183,8 @@ void	main() {
 	vec3	lightColor = computeLighting(texCol, Normal.rgb, shadow, fragPos.rgb);
 
 	float	fogFactor = computeFogFactor(-spFragPos.z);
-	float	waterFogFactor = computeFogFactor(log(-fragPos.y / 8.0f) * 250.0f);
+	// float	waterFogFactor = computeFogFactor(log(-fragPos.y / 8.0f) * 250.0f);
+	float	waterFogFactor = 0.0f;
 
 	vec4	crosshair = vec4(1.0f - computeCrosshair(), 0.75);
 

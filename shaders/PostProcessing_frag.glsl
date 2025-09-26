@@ -233,7 +233,7 @@ vec3	posterizationFilter(vec3 baseColor) {
 
 // Cloud bounding box parameters
 const vec3	boundingBoxPosition = vec3(0, 450, 0);
-const vec3	boundingBoxSize = vec3(5000, 35, 5000);
+const vec3	boundingBoxSize = vec3(1000, 35, 1000);
 
 // Cloud Noise parameters
 const float	densityThreshold = 350.0f;
@@ -244,7 +244,7 @@ const float	cloudSpeed = 0.00025;
 // Cloud parameters
 const float	phaseVal = 0.08;
 const float	cloudLightAbsorbtion =  1.14;
-const float	numStepRay = 512.0f;
+const float	numStepRay = 32.0f;
 
 // Light parameters
 float	numStepLight = 16.0f;

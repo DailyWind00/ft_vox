@@ -188,7 +188,7 @@ void	main() {
 	float	fogFactor = (inWater) ? clamp(computeFogFactor(-spFragPos.z) * 8.0f, 0.0f, 0.9f) : computeFogFactor(-spFragPos.z);
 
 	// Depth fog
-	float	gradientSteepness = (inWater) ? 16.0f : 1024.0f;
+	float	gradientSteepness = (inWater) ? 64.0f : 1024.0f;
 	float	gradientStrength = (inWater) ? 5.0f : 150.0f;
 	float	depth = max(log((-fragPos.y / gradientSteepness) + 1.0f) * gradientStrength, 0.0f);
 	float	waterFogFactor = (inWater) ? -computeFogFactor(depth) : clamp(computeFogFactor(depth), 0.0f, 0.60);

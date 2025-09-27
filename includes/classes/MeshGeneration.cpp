@@ -23,7 +23,9 @@ void	VoxelSystem::_meshGenerationRoutine() {
 
 		while (_chunksMutex.try_lock() == false)
 			this_thread::sleep_for(chrono::milliseconds(THREAD_SLEEP_DURATION));
-		_meshToDeleteMutex.lock();
+
+		MeshMap	localMeshes;
+		list<glm::ivec3>	localDeletion;
 
 		for (ChunkRequest request : localRequestedMeshes) {
 			if (batchCount >= MESH_BATCH_LIMIT)
@@ -34,9 +36,6 @@ void	VoxelSystem::_meshGenerationRoutine() {
 			ivec3	Wpos = request.first;
 			if (_chunks.find(Wpos) == _chunks.end())
 				continue;
-
-			// Calculate the LOD of the chunk (cause crashes for now)
-			_chunks[Wpos].LOD = 1; // TODO: implement LOD
 
 			ChunkData &data = _chunks[Wpos];
 
@@ -55,24 +54,58 @@ void	VoxelSystem::_meshGenerationRoutine() {
 					neightboursChunks[i] = &_chunks[neightboursPos[i]];
 			}
 
+			ChunkMesh *	newMesh = nullptr;
+			bool		deletePrevMesh = false;
 
 			// Execute the requested action on the chunk mesh
 			switch (request.second) {
 				case ChunkAction::CREATE_UPDATE:
-					_generateMesh(data, neightboursChunks, data.LOD);
+					newMesh = _generateMesh(data, neightboursChunks, 1, deletePrevMesh);
+					if (newMesh)
+						localMeshes[data.Wpos].mesh = newMesh;
+					if (deletePrevMesh)
+						localDeletion.push_back(data.Wpos);
 					break;
 
 				case ChunkAction::DELETE:
-					_deleteMesh(data, neightboursChunks);
+					if (_deleteMesh(data, neightboursChunks))
+						localDeletion.push_back(data.Wpos);
 					break;
 			}
 
 			data.inCreation = false;
 		}
 
-		_meshToDeleteMutex.unlock();
-		_chunksMutex.unlock();
+		// Chunk data is deleted here to avoid missing needed chunk data while deleting meshes
+		for (ChunkMap::iterator it = _chunks.begin(); it != _chunks.end(); it++) {
+			if (!it->second.chunk) {
+				ChunkMap::iterator	next = it; next++;
+				_chunks.erase(it);
+				it = next;
+			}
+			if (it == _chunks.end())
+				break ;
+		}
 
+		_chunksMutex.unlock();
+		
+		_meshesMutex.lock();
+		_meshesToDeleteMutex.lock();
+
+		for (list<glm::ivec3>::iterator it = localDeletion.begin(); it != localDeletion.end(); it++) {
+			_meshesToDelete.push_back(_meshes[*it].mesh);
+			_meshes.erase(*it);
+		}
+
+		_meshesToDeleteMutex.unlock();
+
+		
+		for (MeshMap::iterator it = localMeshes.begin(); it != localMeshes.end(); it++) {
+			if (!_meshes.count(it->first))
+				_meshes[it->first].mesh = it->second.mesh;
+		}
+		
+		_meshesMutex.unlock();
 
 		// Remove the generated meshes from the requested list
 		_requestedMeshesMutex.lock();
@@ -86,16 +119,18 @@ void	VoxelSystem::_meshGenerationRoutine() {
 
 // Create/update the mesh of the given chunk
 // The data will be stored in the main thread at the end of OpenGL buffers
-void	VoxelSystem::_generateMesh(ChunkData &chunk, ChunkData *neightboursChunks[6], const uint8_t &LOD) {
+ChunkMesh *	VoxelSystem::_generateMesh(ChunkData &chunk, ChunkData *neightboursChunks[6], const uint8_t &LOD, bool &deletePrevMesh) {
 	// Check if the chunk already have a mesh (in case of update)
-	if (chunk.mesh)
-		_deleteMesh(chunk, neightboursChunks);
+	if (_meshes.count(chunk.Wpos) && _meshes[chunk.Wpos].mesh) {
+		if (_deleteMesh(chunk, neightboursChunks))
+			deletePrevMesh = true;
+	}
 
 	chunk.neigthbourUpdated = false;
 
 	// Check if the chunk completely empty
 	if (!chunk.chunk || (IS_CHUNK_COMPRESSED(chunk.chunk) && !BLOCK_AT(chunk.chunk, 0, 0, 0)))
-		return;
+		return nullptr;
 
 	vector<DATA_TYPE>	vertices;
 	size_t		maxDataSizePerChunk = (pow(CHUNK_SIZE, 3) / 2) * 6 * sizeof(DATA_TYPE);
@@ -104,22 +139,16 @@ void	VoxelSystem::_generateMesh(ChunkData &chunk, ChunkData *neightboursChunks[6
 
 	_constructChunkMesh(&vertices, chunk, neightboursChunks, LOD);
 
-	_chunks[chunk.Wpos].mesh = new ChunkMesh(vertices);
+	return new ChunkMesh(vertices);
 }
 
 // Delete the first mesh
-void	VoxelSystem::_deleteMesh(ChunkData &chunk, ChunkData *neightboursChunks[6]) {
-	if (_chunks.find(chunk.Wpos) == _chunks.end() || !chunk.mesh)
-		return;
-
-	if (!chunk.mesh)
-		return ;
-
-	_meshToDelete.push_back(chunk.mesh);
-	chunk.mesh = nullptr;
+bool	VoxelSystem::_deleteMesh(ChunkData &chunk, ChunkData *neightboursChunks[6]) {
+	if (_chunks.find(chunk.Wpos) == _chunks.end() || (_meshes.count(chunk.Wpos) && !_meshes[chunk.Wpos].mesh))
+		return false;
 
 	if (chunk.neigthbourUpdated)
-		return;
+		return true;
 
 	// Request the update of neighbouring chunks
 	list<ChunkRequest>	neightboursRequests;
@@ -132,6 +161,7 @@ void	VoxelSystem::_deleteMesh(ChunkData &chunk, ChunkData *neightboursChunks[6])
 	}
 
 	requestMesh(neightboursRequests);
+	return true;
 }
 /// ---
 

@@ -52,10 +52,10 @@ VoxelSystem::~VoxelSystem() {
 	delete[] _chunkGenerationThreads;
 
 	// Delete all chunks
-	for (const ChunkMap::value_type &chunk : _chunks) {
+	for (const ChunkMap::value_type &chunk : _chunks)
 		if (chunk.second.chunk) delete chunk.second.chunk;
-		if (chunk.second.mesh)  delete chunk.second.mesh;
-	}
+	for (const MeshMap::value_type &mesh : _meshes)
+		if (mesh.second.mesh) delete mesh.second.mesh;
 
 	_chunks.clear();
 	g_pendingFeatures.clear();
@@ -215,8 +215,7 @@ void	VoxelSystem::findChunksToDelete(list<ChunkRequest> &requestReturnList) {
 
 /// @brief Try to destroy a block on where the currently set camera is looking at.
 /// @details Raycast a ray from the camera position to the lookAt position, until it hits a block or PLAYER_REACH is reached.
-void VoxelSystem::tryDestroyBlock()
-{
+void VoxelSystem::tryDestroyBlock() {
 	const CameraInfo &camInfo = _camera.getCameraInfo();
 	vec3 worldCamPos = toVoxelCoords(camInfo.position);
 	vec3 currentPos = toVoxelCoords(camInfo.position);
@@ -234,7 +233,7 @@ void VoxelSystem::tryDestroyBlock()
 		if (it == _chunks.end())
 			return ;
 		ChunkData &chunkData = it->second;
-		if (!chunkData.chunk || !chunkData.mesh)
+		if (!chunkData.chunk)
 			return ;
 
 		// Get the position of the current block in the chunk
@@ -297,11 +296,12 @@ static bool isChunkInFrustrum(ivec3 chunkWorldPos, array<vec4, 6> &frustumPlanes
 // Draw all chunks using batched rendering
 const GeoFrameBuffers	&VoxelSystem::draw(ShaderHandler &shader) {
 	// Delete old meshes if needed
-	if (_meshToDelete.size() &&  _meshToDeleteMutex.try_lock()) {
-		for (ChunkMesh *mesh : _meshToDelete)
-			delete mesh;
-		_meshToDelete.clear();
-		_meshToDeleteMutex.unlock();
+	if (_meshesToDelete.size() && _meshesToDeleteMutex.try_lock()) {
+		for (ChunkMesh *mesh : _meshesToDelete)
+			if (mesh)
+				delete mesh;
+		_meshesToDelete.clear();
+		_meshesToDeleteMutex.unlock();
 	}
 
 	// Bind the gBuffer
@@ -324,20 +324,9 @@ const GeoFrameBuffers	&VoxelSystem::draw(ShaderHandler &shader) {
 	frustumPlanes[5] = extractPlane(VP, 2, -1); // Far
 
 	// Draw all chunks
-	_chunksMutex.lock();
-	for (ChunkMap::iterator it = _chunks.begin(); it != _chunks.end(); it++)
+	_meshesMutex.lock();
+	for (MeshMap::iterator it = _meshes.begin(); it != _meshes.end(); it++)
 	{
-		// Remove empty chunks marked for deletion
-		while (it != _chunks.end() && it->second.shouldBeDeleted()) {
-			ChunkMap::iterator next = it; next++;
-			_chunks.erase(it);
-			it = next;
-			continue ;
-		}
-
-		if (it == _chunks.end())
-			break ;
-
 		if (!it->second.mesh || !isChunkInFrustrum(it->first, frustumPlanes))
 			continue ;
 
@@ -345,12 +334,12 @@ const GeoFrameBuffers	&VoxelSystem::draw(ShaderHandler &shader) {
 		if (!it->second.mesh->getVAO())
 			it->second.mesh->updateMesh();
 
-		vec3	wPos = it->second.Wpos;
+		vec3	wPos = it->first;
 		shader.setUniform((*shader[1])->getID(), "worldPos", wPos);
 
 		it->second.mesh->draw();
 	}
-	_chunksMutex.unlock();
+	_meshesMutex.unlock();
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 

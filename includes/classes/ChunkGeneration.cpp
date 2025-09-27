@@ -51,7 +51,7 @@ void VoxelSystem::_chunkGenerationRoutine() {
 					float dist2 = dot(diff, diff);
 
 					if (dist2 < HORIZONTAL_RENDER_DISTANCE * HORIZONTAL_RENDER_DISTANCE)
-						generatedChunks[pos] = ChunkData{nullptr, ChunkHandler::createChunk(pos), pos, MAX_LOD};
+						generatedChunks[pos] = ChunkData{ChunkHandler::createChunk(pos), pos, MAX_LOD};
 					break;
 				}
 				case ChunkAction::DELETE:

@@ -2,7 +2,7 @@
 
 // Check if a neighbour chunk mesh is loaded
 static inline bool	isNeightbourLoaded(ChunkData *neightbour) {
-	return neightbour && neightbour->chunk && (neightbour->mesh || neightbour->inCreation);
+	return neightbour && neightbour->chunk && neightbour->inCreation;
 }
 
 // function to quickly count the number of trailing zeros in a 32-bit binary number representation

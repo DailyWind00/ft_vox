@@ -4,8 +4,8 @@
 # define GLM_ENABLE_EXPERIMENTAL
 # define DATA_TYPE uint64_t
 # define CHUNK_SIZE 32
-# define HORIZONTAL_RENDER_DISTANCE 8
-# define VERTICAL_RENDER_DISTANCE 4
+# define HORIZONTAL_RENDER_DISTANCE 12
+# define VERTICAL_RENDER_DISTANCE 6
 # define SPAWN_LOCATION_SIZE	3
 # define MESH_BATCH_LIMIT (size_t)2048
 # define CHUNK_BATCH_LIMIT (size_t)128
@@ -45,19 +45,19 @@ typedef struct GeoFrameBuffers {
 	GLuint	gColor;
 } GeoFrameBuffers;
 
-typedef struct ChunkData {
+typedef struct MeshData {
 	ChunkMesh *	mesh;
+	bool		toBeDeleted = false;
+} MeshData;
+typedef unordered_map<glm::ivec3, MeshData>	MeshMap;
+
+typedef struct ChunkData {
 	AChunk *	chunk;
-	ivec3		Wpos;
-	size_t		LOD = 0;
+	glm::ivec3	Wpos;
 	bool		neigthbourUpdated = false;
 	bool		inCreation = true;
-
-	inline bool shouldBeDeleted() const {
-		return !chunk && !mesh;
-	}
 } ChunkData;
-typedef unordered_map<ivec3, ChunkData> ChunkMap; // Wpos -> ChunkData ptr
+typedef unordered_map<glm::ivec3, ChunkData>	ChunkMap; // Wpos -> ChunkData ptr
 
 // Interface for chunk & mesh modifications
 enum class ChunkAction {
@@ -70,7 +70,8 @@ typedef pair<ivec3, ChunkAction> ChunkRequest; // Wpos, Action
 // It have 2 child threads: ChunkGeneration & MeshGeneration
 class VoxelSystem {
 	private:
-		list<ChunkMesh *>	_meshToDelete;
+		list<ChunkMesh *>	_meshesToDelete;
+		MeshMap		_meshes; // MeshGeneration output
 		ChunkMap	_chunks; // ChunkGeneration output
 		Camera &	_camera;
 
@@ -90,7 +91,8 @@ class VoxelSystem {
 		mutex	_requestedChunksMutex;
 		mutex	_requestedMeshesMutex;
 		mutex	_chunksMutex;
-		mutex	_meshToDeleteMutex;
+		mutex	_meshesMutex;
+		mutex	_meshesToDeleteMutex;
 
 		/// Private functions
 
@@ -107,9 +109,9 @@ class VoxelSystem {
 		void	_generateChunk(ChunkMap::value_type &chunk);
 		void	_deleteChunk  (const ivec3 &pos);
 
-		void	_generateMesh(ChunkData &chunk, ChunkData *neightboursChunks[6], const uint8_t &LOD);
+		ChunkMesh *	_generateMesh(ChunkData &chunk, ChunkData *neightboursChunks[6], const uint8_t &LOD, bool &deletePrevMesh);
 		void	_constructChunkMesh(std::vector<DATA_TYPE> *vertices, ChunkData &chunk, ChunkData *neightboursChunks[6], const uint8_t &LOD);
-		void	_deleteMesh  (ChunkData &chunk, ChunkData *neightboursChunks[6]);
+		bool	_deleteMesh(ChunkData &chunk, ChunkData *neightboursChunks[6]);
 
 	public:
 		VoxelSystem(const uint64_t &seed, Camera &camera); // seed 0 = random seed

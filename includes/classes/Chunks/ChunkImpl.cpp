@@ -48,12 +48,13 @@ float *	LayeredChunk::_computeHeatMap(const glm::ivec3 &pos)
 		float	factor = 0;
 		float	amp = 64.0f;
 	
-		for (int j = 0; j < 8; j++) {	
+		for (int j = 0; j < 4; j++) {	
 			factor += Noise::perlin2D(glm::vec2{(2048.0f + pos.x + (i % CHUNK_WIDTH)) / (amp * 32.0f),
 					(2048.0f + pos.z+ ((float)i / CHUNK_WIDTH)) / (amp * 32.0f)}) * amp;
 			amp -= amp / 2.0f;
 		}
-		factors[i] = factor;
+		int	r = rand() % 2;
+		factors[i] = factor + r;
 	}
 	return (factors);
 }
@@ -66,12 +67,13 @@ float *	LayeredChunk::_computeHumidityMap(const glm::ivec3 &pos)
 		float	factor = 0;
 		float	amp = 64.0f;
 	
-		for (int j = 0; j < 8; j++) {	
+		for (int j = 0; j < 4; j++) {	
 			factor += Noise::perlin2D(glm::vec2{(1024.0f + pos.x + (i % CHUNK_WIDTH)) / (amp * 32.0f),
 					(1024.0f + pos.z+ ((float)i / CHUNK_WIDTH)) / (amp * 32.0f)}) * amp;
 			amp -= amp / 2.0f;
 		}
-		factors[i] = factor;
+		int	r = rand() % 2;
+		factors[i] = factor + r;
 	}
 	return (factors);
 }
@@ -84,8 +86,13 @@ float *	LayeredChunk::_computeFeatureMap(const glm::ivec3 &pos)
 	for (int i = 0; i < pow(CHUNK_WIDTH, 2); i++) {
 		float	factor = 0;
 
+
 		factor += Noise::perlin2D(glm::vec2{(maxPos + pos.x + (i % CHUNK_WIDTH)) / 2.0f,
 				(maxPos + pos.z+ ((float)i / CHUNK_WIDTH)) / 2.0f}) * 2.0f;
+		if ((i % CHUNK_WIDTH) < 2 || (i % CHUNK_WIDTH) > 30 || (i / CHUNK_WIDTH) < 2 || (i / CHUNK_WIDTH) > 30) {
+			factors[i] = 0;
+			continue; 
+		}
 		factors[i] = pow(factor, 16.0f);
 	}
 	return (factors);

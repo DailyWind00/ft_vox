@@ -141,9 +141,16 @@ void	handleEvents(GameData &gameData) {
 	inputs(gameData);
 
 	// Skybox Shader parameters
-	float		dayDuration = 360;
-	float		angle = (time / dayDuration) * M_PI;
-	vec3		sunPos = normalize(vec3(cos(angle), sin(angle), 0.0f));
+	float		dayDuration = 10;
+	vec2		angles = {(time / dayDuration) * M_PI, 25.0f};
+	// vec3		sunPos = normalize(vec3(cos(angle), sin(angle), 0.0f));
+
+	vec3	sunPos {
+		cos(radians(angles.x)) * cos(radians(angles.y)),
+		sin(radians(angles.x)) * cos(radians(angles.y)),
+		sin(radians(angles.y)),
+	};
+
 	mat4		skyboxView = camera.getProjectionMatrix() * mat4(mat3(camera.getViewMatrix())); // Get rid of the translation part
 	vec3		camPos = camera.getCameraInfo().position;
 	bool		inWater = (gameData.voxelSystem.getBlockAt(camPos) == 9) ? true : false;

@@ -133,9 +133,9 @@ vec3	computeLighting(const vec3 texCol, const vec3 Normal, const float shadow, c
 	float	dist = length(camPos - fragPos);
 	float	attenuation = (flashlightOn) ? 1.0 / (constant + linear * dist + quadratic * (dist * dist)) : 0.0f;
 
-	vec3	colorModifier = vec3(1.0f, 1.0f, 1.0f);
+	vec3	colorModifier = vec3(0.8f, 0.8f, 0.8f);
 	if (inWater)
-		colorModifier = vec3(0.55, 0.75, 1.0f);
+		colorModifier = vec3(0.35, 0.55, 0.75f);
 	
 	vec3	skyCol = getSkyGradient(vec3(1.0), sunPos.y);
 	vec3	Color = pow(clampedSunHeight, 0.7) * texCol + (1.0f - pow(clampedSunHeight, 0.7)) * skyCol * colorModifier;

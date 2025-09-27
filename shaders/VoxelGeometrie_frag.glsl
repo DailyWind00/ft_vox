@@ -144,8 +144,7 @@ float	noise3D(const vec3 stb) {
 	return (a + b + c + d + e + f) / 6.0f;
 }
 
-void	main()
-{
+void	main() {
 	gPosition = vec4(fragPos, 1.0f);
 	gNormal = vec4(Normal, 1.0f);
 	gEmissive = vec4(0.0);
@@ -174,7 +173,12 @@ void	main()
 	float	alpha = 1.0f;
 	vec4	finalColor = vec4(color, 1.0f);
 	if (texID == 8) {
-		float	largeNoise = noise3D(vec3(fragPos.x + time * 6.0f, fragPos.y + time * 12.0f, fragPos.z + time * 6.0f) * 0.05) * 0.5;
+		// float	largeNoise = noise3D(vec3(fragPos.x + time * 6.0f, fragPos.y + time * 12.0f, fragPos.z + time * 6.0f) * 0.05) * 0.5;
+		float	largeNoise = sin(0.015625f * (fragPos.x - fragPos.z) + time * 0.0625) * 0.125f;
+		largeNoise += sin(0.5f * (fragPos.x - fragPos.z) + time * 0.125) * 0.125f;
+		largeNoise += sin(fragPos.x + time * 0.25) * 0.0625f;
+		largeNoise += sin(2.0f * (fragPos.x + fragPos.z) + time * 0.5) * 0.03125f;
+		largeNoise += sin(4.0f * fragPos.x + time) * 0.015625f;
 
 		vec3	waveNormal = Normal * vec3(largeNoise);
 		gNormal = vec4(waveNormal, 1.0f);

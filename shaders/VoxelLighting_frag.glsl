@@ -152,8 +152,7 @@ vec3	computeLighting(const vec3 texCol, const vec3 Normal, const float shadow, c
 	return ambColor + shadowCol * diffColor;
 }
 
-float	computeFogFactor(const float scDepth) {
-	float	dist = 1.0f / (renderDistance * 48.0f);
+float	computeFogFactor(const float scDepth, const float dist) {
 	float	lerpFactor = scDepth * dist;
 
 	lerpFactor = pow(lerpFactor, 1.2f);
@@ -185,13 +184,13 @@ void	main() {
 	vec4	crosshair = vec4(1.0f - computeCrosshair(), 0.75);
 
 	// Distance fog
-	float	fogFactor = (inWater) ? clamp(computeFogFactor(-spFragPos.z) * 8.0f, 0.0f, 0.9f) : computeFogFactor(-spFragPos.z);
+	float	fogFactor = (inWater) ? clamp(computeFogFactor(-spFragPos.z, 1.0f / 48.0f) * 8.0f, 0.0f, 0.9f) : computeFogFactor(-spFragPos.z, 1.0f / (renderDistance * 48.0f));
 
 	// Depth fog
 	float	gradientSteepness = (inWater) ? 64.0f : 1024.0f;
 	float	gradientStrength = (inWater) ? 5.0f : 150.0f;
 	float	depth = max(log((-fragPos.y / gradientSteepness) + 1.0f) * gradientStrength, 0.0f);
-	float	waterFogFactor = (inWater) ? -computeFogFactor(depth) : clamp(computeFogFactor(depth), 0.0f, 0.60);
+	float	waterFogFactor = (inWater) ? -computeFogFactor(depth, 1.0f / 96.0f) : clamp(computeFogFactor(depth, 1.0f / 24.0f), 0.0f, 0.60);
 
 	vec3	depthColor = (inWater) ? vec3(64.0f, 32.0f, 16.0f) : vec3(45.0f, 25.0f, 20.0f) / 255.0f;
 	vec3	fogColor = (inWater) ? vec3(16.0f / 255.0f, 32.0f / 255.0f, 64.0f / 255.0f) : getSkyGradient(vec3(0, 0, 0), sunPos.y);

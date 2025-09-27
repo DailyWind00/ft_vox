@@ -182,19 +182,19 @@ void	main() {
 	float	shadow = computeShadows(lpFragPos, Normal.xyz);
 	vec3	lightColor = computeLighting(texCol, Normal.rgb, shadow, fragPos.rgb);
 
-	float	fogFactor = computeFogFactor(-spFragPos.z);
-	// float	waterFogFactor = computeFogFactor(log(-fragPos.y / 8.0f) * 250.0f);
-	float	waterFogFactor = 0.0f;
-
 	vec4	crosshair = vec4(1.0f - computeCrosshair(), 0.75);
 
-	vec3	depthColor = vec3(45.0f, 25.0f, 20.0f) / 255.0f;
+	// Distance fog
+	float	fogFactor = (inWater) ? clamp(computeFogFactor(-spFragPos.z) * 8.0f, 0.0f, 0.9f) : computeFogFactor(-spFragPos.z);
+
+	// Depth fog
+	float	gradientSteepness = (inWater) ? 16.0f : 1024.0f;
+	float	gradientStrength = (inWater) ? 5.0f : 150.0f;
+	float	depth = max(log((-fragPos.y / gradientSteepness) + 1.0f) * gradientStrength, 0.0f);
+	float	waterFogFactor = (inWater) ? -computeFogFactor(depth) : clamp(computeFogFactor(depth), 0.0f, 0.60);
+
+	vec3	depthColor = (inWater) ? vec3(64.0f, 32.0f, 16.0f) : vec3(45.0f, 25.0f, 20.0f) / 255.0f;
 	vec3	fogColor = (inWater) ? vec3(16.0f / 255.0f, 32.0f / 255.0f, 64.0f / 255.0f) : getSkyGradient(vec3(0, 0, 0), sunPos.y);
-	if (inWater) {
-		fogFactor = clamp(fogFactor * 16.0f, 0.0f, 1.0f);
-		waterFogFactor = -computeFogFactor(log(-fragPos.y / 6.0f) * 5.0f);
-		depthColor = vec3(64.0f, 32.0f, 16.0f);
-	}
 
 	ScreenColor = max(vec4(mix(mix(lightColor, fogColor, fogFactor), depthColor, waterFogFactor) + emissiveColor, 1.0f), crosshair);
 }

@@ -37,7 +37,7 @@ static inline bool MouseButtonPressedOnce(GLFWwindow *window, int button) {
 #pragma endregion
 
 // Handle the camera movements/interactions
-static void	cameraMovement(Window &window, Camera &camera) {
+static vec3	cameraMovement(Window &window, Camera &camera) {
 	CameraInfo	cameraInfo = camera.getCameraInfo();
 
 	# pragma region Camera controls
@@ -84,6 +84,7 @@ static void	cameraMovement(Window &window, Camera &camera) {
 	# pragma endregion
 	
 	camera.setCameraInfo(cameraInfo);
+	return normalize(cameraDir);
 }
 
 // Handle the inputs for the game
@@ -179,37 +180,89 @@ void	handleEvents(GameData &gameData) {
 	Window			&window  = gameData.window;
 	ShaderHandler	&shaders = gameData.shaders;
 	Camera			&camera  = gameData.camera;
+	Camera			&shadowMapCam = gameData.shadowMapCam;
 
 	static float time = 20; time += 0.001 * window.getFrameTime(); // Start at early daytime
+	static bool		flashlightOn = false;
+
+	if (keyPressedOnce(window, GLFW_KEY_P)) {
+		std::cout << "recompiling\n";
+		(*shaders[0])->recompile();
+		(*shaders[1])->recompile();
+		(*shaders[2])->recompile();
+		(*shaders[3])->recompile();
+		(*shaders[4])->recompile();
+	}
+
+	if (keyPressedOnce(window, GLFW_KEY_F))
+		flashlightOn = (flashlightOn) ? false : true;
 
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
 
-	cameraMovement(window, camera);
+	glm::vec3	camDir = cameraMovement(window, camera);
 	inputs(gameData);
 	dynamicChunkLoading(gameData.voxelSystem, camera.getCameraInfo());
 
 	// Skybox Shader parameters
-	float		dayDuration = 360;
-	float		angle = (time / dayDuration) * M_PI;
-	vec3		sunPos = normalize(vec3(cos(angle), sin(angle), 0.0f));
-	mat4		skyboxView = camera.getProjectionMatrix() * mat4(mat3(camera.getViewMatrix())); // Get rid of the translation part
+	float		dayDuration = 10;
+	vec2		angles = {(time / dayDuration) * M_PI, 25.0f};
+	// vec3		sunPos = normalize(vec3(cos(angle), sin(angle), 0.0f));
 
+	vec3	sunPos {
+		cos(radians(angles.x)) * cos(radians(angles.y)),
+		sin(radians(angles.x)) * cos(radians(angles.y)),
+		sin(radians(angles.y)),
+	};
+
+	mat4		skyboxView = camera.getProjectionMatrix() * mat4(mat3(camera.getViewMatrix())); // Get rid of the translation part
+	vec3		camPos = camera.getCameraInfo().position;
+	bool		inWater = (gameData.voxelSystem.getBlockAt(camPos) == 9) ? true : false;
+
+	shadowMapCam.setPosition({camPos.x + sunPos.x * 600, camPos.y + sunPos.y * 600, camPos.z + sunPos.z * 600});
+	shadowMapCam.setLookAt(camPos);
+
+	// Skybox Pass Shader Parameters
 	shaders.setUniform((*shaders[0])->getID(), "time", time);
 	shaders.setUniform((*shaders[0])->getID(), "camera", skyboxView);
 	shaders.setUniform((*shaders[0])->getID(), "sunPos", sunPos);
 
 	// Geometrie Pass Shader parameters
+	shaders.setUniform((*shaders[1])->getID(), "time", time);
+	shaders.setUniform((*shaders[1])->getID(), "sunPos", sunPos);
 	shaders.setUniform((*shaders[1])->getID(), "projection", camera.getProjectionMatrix());
 	shaders.setUniform((*shaders[1])->getID(), "view", camera.getViewMatrix());
 	shaders.setUniform((*shaders[1])->getID(), "polygonVisible", POLYGON);
+	shaders.setUniform((*shaders[1])->getID(), "camPos", camPos);
+
+	// Shadow Mapping Pass Shader parameters
+	shaders.setUniform((*shaders[3])->getID(), "projection", shadowMapCam.getProjectionMatrix());
+	shaders.setUniform((*shaders[3])->getID(), "view", shadowMapCam.getViewMatrix());
 
 	// Lighting Pass Shader Parameters
-	shaders.setUniform((*shaders[2])->getID(), "time", time);
+	shaders.setUniform((*shaders[2])->getID(), "camPos", camPos);
+	shaders.setUniform((*shaders[2])->getID(), "renderDistance", (float)HORIZONTAL_RENDER_DISTANCE);
+	shaders.setUniform((*shaders[2])->getID(), "inWater", inWater);
+	shaders.setUniform((*shaders[2])->getID(), "flashlightOn", flashlightOn);
+	shaders.setUniform((*shaders[2])->getID(), "spView", camera.getViewMatrix());
+	shaders.setUniform((*shaders[2])->getID(), "spProj", camera.getProjectionMatrix());
+	shaders.setUniform((*shaders[2])->getID(), "lpMat", shadowMapCam.getProjectionMatrix() * shadowMapCam.getViewMatrix());
 	shaders.setUniform((*shaders[2])->getID(), "camera", skyboxView);
 	shaders.setUniform((*shaders[2])->getID(), "sunPos", sunPos);
 	shaders.setUniform((*shaders[2])->getID(), "gPosition", 0);
 	shaders.setUniform((*shaders[2])->getID(), "gNormal", 1);
 	shaders.setUniform((*shaders[2])->getID(), "gColor", 2);
+	shaders.setUniform((*shaders[2])->getID(), "gEmissive", 3);
+	shaders.setUniform((*shaders[2])->getID(), "shadowMap", 4);
 	shaders.setUniform((*shaders[2])->getID(), "screenSize", vec2(WINDOW_WIDTH, WINDOW_HEIGHT));
+
+	shaders.setUniform((*shaders[4])->getID(), "time", time);
+	shaders.setUniform((*shaders[4])->getID(), "postProcBuffer", 0);
+	shaders.setUniform((*shaders[4])->getID(), "depthBuffer", 1);
+	shaders.setUniform((*shaders[4])->getID(), "test3D", 2);
+	shaders.setUniform((*shaders[4])->getID(), "view", camera.getViewMatrix());
+	shaders.setUniform((*shaders[4])->getID(), "sunPos", sunPos);
+	shaders.setUniform((*shaders[4])->getID(), "camPos", camPos);
+	shaders.setUniform((*shaders[4])->getID(), "camDir", camDir);
+	shaders.setUniform((*shaders[4])->getID(), "screenSize", vec2(WINDOW_WIDTH, WINDOW_HEIGHT));
 }

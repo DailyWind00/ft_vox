@@ -4,8 +4,8 @@
 # define GLM_ENABLE_EXPERIMENTAL
 # define DATA_TYPE uint64_t
 # define CHUNK_SIZE 32
-# define HORIZONTAL_RENDER_DISTANCE 12
-# define VERTICAL_RENDER_DISTANCE 6
+# define HORIZONTAL_RENDER_DISTANCE 16
+# define VERTICAL_RENDER_DISTANCE 8
 # define SPAWN_LOCATION_SIZE	3
 # define MESH_BATCH_LIMIT (size_t)2048
 # define CHUNK_BATCH_LIMIT (size_t)128
@@ -43,7 +43,19 @@ typedef struct GeoFrameBuffers {
 	GLuint	gPosition;
 	GLuint	gNormal;
 	GLuint	gColor;
+	GLuint	gEmissive;
 } GeoFrameBuffers;
+
+typedef struct ShadowMappingData {
+	unsigned int	depthMapFBO;
+	unsigned int	depthMap;
+} ShadowMappingData;
+
+typedef struct PostProcessingData {
+	unsigned int	postProcFBO;
+	unsigned int	postProcBuffer;
+	unsigned int	postProcDepthBuffer;
+} PostProcessingData;
 
 typedef struct MeshData {
 	ChunkMesh *	mesh;
@@ -74,10 +86,13 @@ class VoxelSystem {
 		MeshMap		_meshes; // MeshGeneration output
 		ChunkMap	_chunks; // ChunkGeneration output
 		Camera &	_camera;
+		Camera &	_shadowMapCam;
 
 		// OpenGL variables
-		GLuint		_textureAtlas;
-		GeoFrameBuffers	_gBuffer;
+		GLuint			_textureAtlas;
+		GeoFrameBuffers		_gBuffer;
+		ShadowMappingData	_shadowMapData;
+		PostProcessingData	_postProcData;
 
 		// Multi-threading
 		thread *	_chunkGenerationThreads;
@@ -100,6 +115,8 @@ class VoxelSystem {
 		void	_genWorldSpawn();
 		void	_initThreads();
 		void	_initDefferedRenderingPipeline();
+		void	_initShadowMappingPipeline();
+		void	_initPostProcessingComponents();
 		void	_loadTextureAtlas();
 
 		// Thread routines
@@ -111,10 +128,11 @@ class VoxelSystem {
 
 		ChunkMesh *	_generateMesh(ChunkData &chunk, ChunkData *neightboursChunks[6], const uint8_t &LOD, bool &deletePrevMesh);
 		void	_constructChunkMesh(std::vector<DATA_TYPE> *vertices, ChunkData &chunk, ChunkData *neightboursChunks[6], const uint8_t &LOD);
+		void	_constructWaterMesh(std::vector<DATA_TYPE> *vertices, ChunkData &chunk, ChunkData *neightboursChunks[6], const uint8_t &LOD);
 		bool	_deleteMesh(ChunkData &chunk, ChunkData *neightboursChunks[6]);
 
 	public:
-		VoxelSystem(const uint64_t &seed, Camera &camera); // seed 0 = random seed
+		VoxelSystem(const uint64_t &seed, Camera &camera, Camera &shadowMapCam); // seed 0 = random seed
 		~VoxelSystem();
 
 		/// Public functions
@@ -124,14 +142,18 @@ class VoxelSystem {
 		void	findChunksToDelete(list<ChunkRequest> &requestReturnList);
 
 		void	tryDestroyBlock();
-		const GeoFrameBuffers &	draw(ShaderHandler &shader);
+		uint8_t	getBlockAt(const glm::ivec3 &pos);
+		const GeoFrameBuffers &		renderGeometryPass(ShaderHandler &shader);
+		const ShadowMappingData &	renderShadowMapPass(ShaderHandler &shader);
 
 		/// Setters
 
 		void	setCamera(Camera &cam);
+		void	setShadowMapCam(Camera &cam);
 
 		/// Getters
 
+		const PostProcessingData &	getPostProcData();
 		size_t	getChunkRequestCount();
 		size_t	getMeshRequestCount();
 };

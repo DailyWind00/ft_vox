@@ -264,4 +264,5 @@ void	handleEvents(GameData &gameData) {
 	shaders.setUniform((*shaders[4])->getID(), "sunPos", sunPos);
 	shaders.setUniform((*shaders[4])->getID(), "camPos", camPos);
 	shaders.setUniform((*shaders[4])->getID(), "camDir", camDir);
+	shaders.setUniform((*shaders[4])->getID(), "screenSize", vec2(WINDOW_WIDTH, WINDOW_HEIGHT));
 }

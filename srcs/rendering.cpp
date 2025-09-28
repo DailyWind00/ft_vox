@@ -87,7 +87,7 @@ static void program_loop(GameData &gameData) {
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	shaders.use(shaders[4]);
-	postProcessingPass(postProcData, gameData.cloudSytem.getCloudNoiseSample(), renderDatas.renderQuadVAO);
+	postProcessingPass(postProcData, gameData.cloudSystem.getCloudNoiseSample(), renderDatas.renderQuadVAO);
 
 	handleEvents(gameData);
 	window.setTitle("ft_vox | FPS: " + to_string(window.getFPS()) + " | FrameTime: " + to_string(window.getFrameTime()) + "ms");

@@ -28,7 +28,7 @@ CloudSystem::CloudSystem(const size_t &sampleSize) {
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-	glTexImage3D(GL_TEXTURE_3D, 0, GL_R16F, _cloudSampleSize, 1.0f, _cloudSampleSize, 0, GL_RED, GL_FLOAT, data.data());
+	glTexImage3D(GL_TEXTURE_3D, 0, GL_R16F, _cloudSampleSize, 1, _cloudSampleSize, 0, GL_RED, GL_FLOAT, data.data());
 }
 
 CloudSystem::~CloudSystem() {

@@ -3,6 +3,7 @@
 out vec4	ScreenColor;
 in vec2		uv;
 
+uniform vec2	screenSize;
 uniform vec3	sunPos;
 uniform vec3	camPos;
 uniform vec3	camDir;
@@ -19,7 +20,6 @@ uniform mat4		view;
 const float	EDGE_THRESHOLD_MIN = 0.0312;
 const float	EDGE_THRESHOLD_MAX = 0.125;
 const float	SUBPIXEL_QUALITY = 0.75;
-const vec2	inverseScreenSize = vec2(1.0f / 1920.0f, 1.0f / 1080.0f);
 
 float	rgbToLuma(const vec3 rgb) {
 	return sqrt(dot(rgb, vec3(0.299, 0.587, 0.114)));
@@ -86,7 +86,7 @@ vec2	fxaaFiltering(const vec2 screenSize) {
 	float	gradientScaled = 0.25 * max(abs(gradient1), abs(gradient2));
 
 	// Choose the step size (one pixel) according to the edge direction.
-	float	stepLength = isHorizontal ? inverseScreenSize.y : inverseScreenSize.x;
+	float	stepLength = isHorizontal ? 1.0f / screenSize.y : 1.0f / screenSize.x;
 
 	// Average luma in the correct direction.
 	float	lumaLocalAverage = 0.0;
@@ -107,7 +107,7 @@ vec2	fxaaFiltering(const vec2 screenSize) {
 		currentUv.x += stepLength * 0.5;
 
 	// Compute off (for each iteration step) in the right direction.
-	vec2	off = isHorizontal ? vec2(inverseScreenSize.x, 0.0) : vec2(0.0, inverseScreenSize.y);
+	vec2	off = isHorizontal ? vec2(1.0f / screenSize.x, 0.0) : vec2(0.0, 1.0f / screenSize.y);
 	// Compute UVs to explore on each side of the edge, orthogonally. The QUALITY allows us to step faster.
 	vec2	uv1 = currentUv - off;
 	vec2	uv2 = currentUv + off;

@@ -78,7 +78,7 @@ void	VoxelSystem::_meshGenerationRoutine() {
 
 		// Chunk data is deleted here to avoid missing needed chunk data while deleting meshes
 		for (ChunkMap::iterator it = _chunks.begin(); it != _chunks.end(); it++) {
-			if (!it->second.chunk) {
+			if (!it->second.chunk && !_meshes.count(it->first)) {
 				ChunkMap::iterator	next = it; next++;
 				_chunks.erase(it);
 				it = next;

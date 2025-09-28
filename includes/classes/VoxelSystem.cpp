@@ -204,12 +204,15 @@ void	VoxelSystem::findChunksToDelete(list<ChunkRequest> &requestReturnList) {
 	vec3			camChunkPos = floor(camInfo.position / (float)CHUNK_SIZE);
 
 	// Find chunks to delete
+	if (_chunksMutex.try_lock()) {
 	for (const ChunkMap::value_type &chunk : _chunks) { 
 		vec3 diff = (vec3)chunk.first - camChunkPos;
 		float dist2 = dot(diff, diff);
 
 		if (dist2 > HORIZONTAL_RENDER_DISTANCE * HORIZONTAL_RENDER_DISTANCE)
 			requestReturnList.push_front({chunk.first, ChunkAction::DELETE}); // Push front to avoid loading too many chunks at once
+	}
+	_chunksMutex.unlock();
 	}
 }
 

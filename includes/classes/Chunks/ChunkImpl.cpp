@@ -48,12 +48,13 @@ float *	LayeredChunk::_computeHeatMap(const glm::ivec3 &pos)
 		float	factor = 0;
 		float	amp = 64.0f;
 	
-		for (int j = 0; j < 8; j++) {	
+		for (int j = 0; j < 4; j++) {	
 			factor += Noise::perlin2D(glm::vec2{(2048.0f + pos.x + (i % CHUNK_WIDTH)) / (amp * 32.0f),
 					(2048.0f + pos.z+ ((float)i / CHUNK_WIDTH)) / (amp * 32.0f)}) * amp;
 			amp -= amp / 2.0f;
 		}
-		factors[i] = factor;
+		int	r = rand() % 2;
+		factors[i] = factor + r;
 	}
 	return (factors);
 }
@@ -66,12 +67,13 @@ float *	LayeredChunk::_computeHumidityMap(const glm::ivec3 &pos)
 		float	factor = 0;
 		float	amp = 64.0f;
 	
-		for (int j = 0; j < 8; j++) {	
+		for (int j = 0; j < 4; j++) {	
 			factor += Noise::perlin2D(glm::vec2{(1024.0f + pos.x + (i % CHUNK_WIDTH)) / (amp * 32.0f),
 					(1024.0f + pos.z+ ((float)i / CHUNK_WIDTH)) / (amp * 32.0f)}) * amp;
 			amp -= amp / 2.0f;
 		}
-		factors[i] = factor;
+		int	r = rand() % 2;
+		factors[i] = factor + r;
 	}
 	return (factors);
 }
@@ -84,8 +86,13 @@ float *	LayeredChunk::_computeFeatureMap(const glm::ivec3 &pos)
 	for (int i = 0; i < pow(CHUNK_WIDTH, 2); i++) {
 		float	factor = 0;
 
+
 		factor += Noise::perlin2D(glm::vec2{(maxPos + pos.x + (i % CHUNK_WIDTH)) / 2.0f,
 				(maxPos + pos.z+ ((float)i / CHUNK_WIDTH)) / 2.0f}) * 2.0f;
+		if ((i % CHUNK_WIDTH) < 2 || (i % CHUNK_WIDTH) > 30 || (i / CHUNK_WIDTH) < 2 || (i / CHUNK_WIDTH) > 30) {
+			factors[i] = 0;
+			continue; 
+		}
 		factors[i] = pow(factor, 16.0f);
 	}
 	return (factors);
@@ -117,8 +124,8 @@ float *	LayeredChunk::_computeHeightMap(const glm::ivec3 &pos)
 		else
 			factor = factor * 0.2;
 
-		factor += Noise::perlin2D(glm::vec2{(pos.x + (i % CHUNK_WIDTH)) / 2048,
-				(pos.z+ ((float)i / CHUNK_WIDTH)) / 2048}) * 512;
+		factor += Noise::perlin2D(glm::vec2{(pos.x + (i % CHUNK_WIDTH)) / 8192,
+				(pos.z+ ((float)i / CHUNK_WIDTH)) / 8192}) * 1024;
 
 		factors[i] = factor;
 	}
@@ -351,7 +358,7 @@ void	LayeredChunk::generate(const glm::ivec3 &pos)
 				// Get the current blockID according to the pre-computed factors
 				uint8_t	id = (NO_CAVES) ? _getBlockFromBiome(noises.heightMap[idx], k, biomeID) * ((k < noises.heightMap[idx])) : _getBlockFromBiome(noises.heightMap[idx], k, biomeID) * ((k < noises.heightMap[idx] && caveFactors[idx][k - pos.y] < 0.01f));
 
-				if (k >= (int)noises.heightMap[idx] && k <= 0) {
+				if (k >= (int)noises.heightMap[idx] - 1 && k <= -1) {
 					if (id == 0)
 						id = 9;
 					else if (id == 1 || id == 2)

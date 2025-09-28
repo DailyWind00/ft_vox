@@ -5,9 +5,8 @@ layout (location = 1) in vec2 UV;
 
 out vec2	uv;
 
-void	main()
-{
+void	main() {
 	uv = UV;
-	
+
 	gl_Position = vec4(quad, 1.0f);
 }

@@ -26,7 +26,8 @@ typedef struct CameraInfo {
 // Struct to store the projection information (projection matrix)
 typedef struct ProjectionInfo {
 	float	fov          = 45.0f;
-	float	aspectRatio  = 16.0f / 9.0f;
+	glm::vec2	resolution;
+	glm::vec2	resolutionOffset;
 	float	near         = 0.1f;
 	float	far          = 100.0f;
 } ProjectionInfo;
@@ -48,7 +49,7 @@ class Camera {
 		void	_updateProjectionMatrix();
 
 	public:
-		Camera(const CameraInfo &cameraInfo, const ProjectionInfo &projectionInfo);
+		Camera(const CameraInfo &cameraInfo, const ProjectionInfo &projectionInfo, const ProjectionType &type);
 		Camera(const Camera &camera);
 		Camera &operator=(const Camera &camera);
 		~Camera();

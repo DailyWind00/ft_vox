@@ -6,17 +6,11 @@ BufferGL::BufferGL(GLenum type, GLenum usage, size_t size, const void *data)
     glGenBuffers(1, &_id);
     glBindBuffer(_type, _id);
     glBufferData(_type, size, data, _usage);
-
-	if (VERBOSE)
-		std::cout << "Created BufferGL with a capacity of " << size << " bytes" << std::endl;
 }
 
 BufferGL::~BufferGL() {
 	if (_id)
 		glDeleteBuffers(1, &_id);
-
-	if (VERBOSE)
-		std::cout << "Destroyed BufferGL\n";
 }
 /// ---
 

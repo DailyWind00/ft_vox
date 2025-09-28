@@ -111,6 +111,69 @@ static void inputs(GameData &gameData) {
 	}
 }
 
+// Add condition to the function VoxelSystem::loadChunksAroundCamera to avoid calling it every frame
+static void dynamicChunkLoading(VoxelSystem &voxelSystem, const CameraInfo &camInfo) {
+	// Camera data initialization
+	ivec3		chunkPos = {
+		camInfo.position.x / CHUNK_SIZE,
+		camInfo.position.y / CHUNK_SIZE,
+		camInfo.position.z / CHUNK_SIZE
+	};
+	static ivec3	lastChunkPos = vec3(chunkPos);
+
+	// Request distance data initialization
+	static int		horRequestDistance = glm::min(SPAWN_LOCATION_SIZE, HORIZONTAL_RENDER_DISTANCE);
+	static int		vertRequestDistance = glm::min(SPAWN_LOCATION_SIZE, VERTICAL_RENDER_DISTANCE);
+	list<ChunkRequest>	chunkRequests;
+
+	// Only requests new chunks if Threads are free
+	if (voxelSystem.getChunkRequestCount() != 0)
+		return ;
+
+	horRequestDistance = glm::clamp(horRequestDistance, 0, HORIZONTAL_RENDER_DISTANCE - 1);
+	vertRequestDistance = glm::clamp(vertRequestDistance, 0, VERTICAL_RENDER_DISTANCE);
+	if (chunkPos == lastChunkPos) {
+		if (horRequestDistance >= HORIZONTAL_RENDER_DISTANCE || vertRequestDistance >= VERTICAL_RENDER_DISTANCE)
+			return ;
+		for (int i = -horRequestDistance; i <= horRequestDistance; i++) {
+			for (int j = -vertRequestDistance; j < vertRequestDistance; j++) {
+				chunkRequests.push_back({{i + chunkPos.x, j + chunkPos.y, -horRequestDistance + chunkPos.z}, ChunkAction::CREATE_UPDATE});
+				chunkRequests.push_back({{i + chunkPos.x, j + chunkPos.y, horRequestDistance + chunkPos.z}, ChunkAction::CREATE_UPDATE});
+				chunkRequests.push_back({{-horRequestDistance + chunkPos.x, j + chunkPos.y, i + chunkPos.z}, ChunkAction::CREATE_UPDATE});
+				chunkRequests.push_back({{horRequestDistance + chunkPos.x, j + chunkPos.y, i + chunkPos.z}, ChunkAction::CREATE_UPDATE});
+			}
+		}
+		for (int i = -horRequestDistance; i <= horRequestDistance; i++) {
+			for (int j = -horRequestDistance; j < horRequestDistance; j++) {
+				chunkRequests.push_back({{i + chunkPos.x, -vertRequestDistance + chunkPos.y, j + chunkPos.z}, ChunkAction::CREATE_UPDATE});
+				chunkRequests.push_back({{i + chunkPos.x, vertRequestDistance + chunkPos.y, j + chunkPos.z}, ChunkAction::CREATE_UPDATE});
+			}
+		}
+		horRequestDistance++;
+		vertRequestDistance++;
+	}
+	else {
+		horRequestDistance -= abs(lastChunkPos.y - chunkPos.y) + abs(lastChunkPos.x - chunkPos.x) + abs(lastChunkPos.z - chunkPos.z);
+		vertRequestDistance -= abs(lastChunkPos.y - chunkPos.y) + abs(lastChunkPos.x - chunkPos.x) + abs(lastChunkPos.z - chunkPos.z);
+	}
+	
+	// Updating last chunk position to current
+
+	// Sort the requests by distance to the camera, to load the closest chunks first
+	chunkRequests.sort(
+		[&chunkPos](const ChunkRequest &a, const ChunkRequest &b) {
+			vec3 da = (vec3)a.first - (vec3)chunkPos;
+			vec3 db = (vec3)b.first - (vec3)chunkPos;
+			return dot(da, da) < dot(db, db);
+		});
+
+
+	// Searching for chunk to delete and send all the requests
+	voxelSystem.findChunksToDelete(chunkRequests);
+	voxelSystem.requestChunk(chunkRequests);
+	lastChunkPos = chunkPos;
+}
+
 // Handle all keyboard & other events
 void	handleEvents(GameData &gameData) {
 	Window			&window  = gameData.window;
@@ -124,6 +187,7 @@ void	handleEvents(GameData &gameData) {
 
 	cameraMovement(window, camera);
 	inputs(gameData);
+	dynamicChunkLoading(gameData.voxelSystem, camera.getCameraInfo());
 
 	// Skybox Shader parameters
 	float		dayDuration = 360;

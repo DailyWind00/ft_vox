@@ -1,9 +1,8 @@
 #include "VoxelSystem.hpp"
 #include "config.hpp" // Get the window size
 
-# include <Shader.hpp>
+# pragma region Constructor / Destructor
 
-/// Constructors & Destructors
 VoxelSystem::VoxelSystem(const uint64_t &seed, Camera &camera) : _camera(camera) {
 	if (VERBOSE)
 		cout << "Creating VoxelSystem\n";
@@ -14,24 +13,17 @@ VoxelSystem::VoxelSystem(const uint64_t &seed, Camera &camera) : _camera(camera)
 
 		int	rSeed = rand();
 
-		std::cout << "Loading ft_vox with the random seed: " << rSeed << std::endl;
+		if (VERBOSE)
+			cout << "Loading ft_vox with the random seed: " << rSeed << endl;
 
 		Noise::setSeed(rSeed);
 	}
 	else
 		Noise::setSeed(seed);
 
-	// Load the texture atlas
-	_textureAtlas = 0;
 	_loadTextureAtlas();
-
-	// Initialize the rendering pipeline
 	_initDefferedRenderingPipeline();
-
-	// Initialize the threads
 	_initThreads();
-
-	// Generate chunks around the spawn location
 	_genWorldSpawn();
 
 	if (VERBOSE)
@@ -57,11 +49,13 @@ VoxelSystem::~VoxelSystem() {
 	for (uint32_t i = 0; i < _cpuCoreCount / CHUNKGEN_CORE_RATIO; i++)
 		_chunkGenerationThreads[i].join();
 	_meshGenerationThread.join();
+	delete[] _chunkGenerationThreads;
 
 	// Delete all chunks
 	for (const ChunkMap::value_type &chunk : _chunks)
-		if (chunk.second.chunk)
-			delete chunk.second.chunk;
+		if (chunk.second.chunk) delete chunk.second.chunk;
+	for (const MeshMap::value_type &mesh : _meshes)
+		if (mesh.second.mesh) delete mesh.second.mesh;
 
 	_chunks.clear();
 	g_pendingFeatures.clear();
@@ -69,15 +63,14 @@ VoxelSystem::~VoxelSystem() {
 	if (VERBOSE)
 		cout << "VoxelSystem destroyed\n";
 }
-/// ---
 
+# pragma endregion
 
-
-/// Private functions
+# pragma region Private functions
 
 // Generate chunks around the spawn location in a 3 or less chunk radius
 void	VoxelSystem::_genWorldSpawn() {
-	vector<ChunkRequest>	spawnChunks;
+	list<ChunkRequest>	spawnChunks;
 	const int		horizontalSpawnSize = glm::min(SPAWN_LOCATION_SIZE, HORIZONTAL_RENDER_DISTANCE);
 
 	for (int i = VERTICAL_RENDER_DISTANCE; i >= -VERTICAL_RENDER_DISTANCE; i--)
@@ -154,6 +147,8 @@ void	VoxelSystem::_loadTextureAtlas() {
 	if (VERBOSE)
 		cout << "> Loading texture atlas -> ";
 
+	_textureAtlas = 0;
+
 	// Load the texture atlas
 	//-stbi_set_flip_vertically_on_load(true);
 	int width, height, nrChannels;
@@ -193,21 +188,37 @@ void	VoxelSystem::_loadTextureAtlas() {
 
 static inline vec3 toVoxelCoords(const vec3 &vector) {
 	return vec3 (
-		vector.z,
+		vector.x,
 		vector.y,
-		vector.x
+		vector.z
 	);
 }
-/// ---
 
+# pragma endregion
 
+# pragma region Public functions
 
-/// Public functions
+/// @brief Load chunks around the current camera position, and delete chunks that are too far away.
+void	VoxelSystem::findChunksToDelete(list<ChunkRequest> &requestReturnList) {
+	const CameraInfo &	camInfo = _camera.getCameraInfo();
+	vec3			camChunkPos = floor(camInfo.position / (float)CHUNK_SIZE);
+
+	// Find chunks to delete
+	if (_chunksMutex.try_lock()) {
+	for (const ChunkMap::value_type &chunk : _chunks) { 
+		vec3 diff = (vec3)chunk.first - camChunkPos;
+		float dist2 = dot(diff, diff);
+
+		if (dist2 > HORIZONTAL_RENDER_DISTANCE * HORIZONTAL_RENDER_DISTANCE)
+			requestReturnList.push_front({chunk.first, ChunkAction::DELETE}); // Push front to avoid loading too many chunks at once
+	}
+	_chunksMutex.unlock();
+	}
+}
 
 /// @brief Try to destroy a block on where the currently set camera is looking at.
 /// @details Raycast a ray from the camera position to the lookAt position, until it hits a block or PLAYER_REACH is reached.
-void VoxelSystem::tryDestroyBlock()
-{
+void VoxelSystem::tryDestroyBlock() {
 	const CameraInfo &camInfo = _camera.getCameraInfo();
 	vec3 worldCamPos = toVoxelCoords(camInfo.position);
 	vec3 currentPos = toVoxelCoords(camInfo.position);
@@ -225,7 +236,7 @@ void VoxelSystem::tryDestroyBlock()
 		if (it == _chunks.end())
 			return ;
 		ChunkData &chunkData = it->second;
-		if (!chunkData.chunk || !chunkData.mesh)
+		if (!chunkData.chunk)
 			return ;
 
 		// Get the position of the current block in the chunk
@@ -268,13 +279,32 @@ static inline const vec4	extractPlane(const mat4& m, int row, int sign) {
 	return plane / len;
 }
 
+/// @brief Check if a chunk is in the camera frustum
+/// @param chunkWorldPos The chunk world position (in chunks, not in blocks)
+/// @param frustumPlanes The frustum planes, extracted from the View-Projection matrix with extractPlane()
+/// @return True if the chunk is in the frustum, false otherwise
+static bool isChunkInFrustrum(ivec3 chunkWorldPos, array<vec4, 6> &frustumPlanes) {
+	const float chunkRadius = CHUNK_SIZE * sqrt(3) / 2.0f;
+	vec3 chunkCenter = vec3(chunkWorldPos * CHUNK_SIZE + CHUNK_SIZE / 2);
+
+	for (auto& plane : frustumPlanes) {
+		float distance = dot(vec3(plane), chunkCenter) + plane.w;
+		if (distance < -chunkRadius) // sphere outside
+			return false;
+	}
+
+	return true;
+}
+
 // Draw all chunks using batched rendering
 const GeoFrameBuffers	&VoxelSystem::draw(ShaderHandler &shader) {
-	if (_meshToDelete.size() &&  _meshToDeleteMutex.try_lock()) {
-		for (ChunkMesh *mesh : _meshToDelete)
-			delete mesh;
-		_meshToDelete.clear();
-		_meshToDeleteMutex.unlock();
+	// Delete old meshes if needed
+	if (_meshesToDelete.size() && _meshesToDeleteMutex.try_lock()) {
+		for (ChunkMesh *mesh : _meshesToDelete)
+			if (mesh)
+				delete mesh;
+		_meshesToDelete.clear();
+		_meshesToDeleteMutex.unlock();
 	}
 
 	// Bind the gBuffer
@@ -287,8 +317,8 @@ const GeoFrameBuffers	&VoxelSystem::draw(ShaderHandler &shader) {
 
 	// Setup frustum culling
 	mat4 VP = _camera; // Get the View-Projection matrix
-
 	array<vec4, 6> frustumPlanes;
+
 	frustumPlanes[0] = extractPlane(VP, 0, +1); // Left
 	frustumPlanes[1] = extractPlane(VP, 0, -1); // Right
 	frustumPlanes[2] = extractPlane(VP, 1, +1); // Bottom
@@ -296,53 +326,41 @@ const GeoFrameBuffers	&VoxelSystem::draw(ShaderHandler &shader) {
 	frustumPlanes[4] = extractPlane(VP, 2, +1); // Near
 	frustumPlanes[5] = extractPlane(VP, 2, -1); // Far
 
-	for (ChunkMap::iterator it = _chunks.begin(); it != _chunks.end(); it++) {
-		if (!it->second.mesh)
+	// Draw all chunks
+	_meshesMutex.lock();
+	for (MeshMap::iterator it = _meshes.begin(); it != _meshes.end(); it++)
+	{
+		if (!it->second.mesh || !isChunkInFrustrum(it->first, frustumPlanes))
 			continue ;
-
-		// Frustum culling
-		vec3 chunkCenter = vec3(it->first * CHUNK_SIZE + CHUNK_SIZE / 2);
-		float chunkRadius = CHUNK_SIZE * sqrt(3) / 2.0f;
-
-		bool inFrustrum = true;
-		for (auto& plane : frustumPlanes) {
-			float distance = dot(vec3(plane), chunkCenter) + plane.w;
-			if (distance < -chunkRadius) { // sphere outside
-				inFrustrum = false;
-				break;
-			}
-		}
-		if (!inFrustrum) continue;
 
 		// Draw the chunk
 		if (!it->second.mesh->getVAO())
 			it->second.mesh->updateMesh();
 
-		vec3	wPos = it->second.Wpos;
+		vec3	wPos = it->first;
 		shader.setUniform((*shader[1])->getID(), "worldPos", wPos);
 
 		it->second.mesh->draw();
 	}
+	_meshesMutex.unlock();
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	return _gBuffer;
 }
-/// ---
 
+# pragma endregion
 
-
-/// Setters
+# pragma region Setters
 
 // Set the camera
 void	VoxelSystem::setCamera(Camera &camera) {
 	_camera = camera;
 }
-/// ---
 
+# pragma endregion
 
-
-/// Getters
+# pragma region Getters
 
 size_t	VoxelSystem::getChunkRequestCount()
 {
@@ -354,4 +372,4 @@ size_t	VoxelSystem::getMeshRequestCount()
 	return _requestedMeshes.size();
 }
 
-/// ---
+# pragma endregion

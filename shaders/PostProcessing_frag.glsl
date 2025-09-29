@@ -320,17 +320,33 @@ vec3	cloudRayMarching(vec2 localUV) {
 	return vec3(transmittance) + cloudColor;
 }
 
+/// --- UI Shader
+
+const float	crossThickness = 1.0f;
+const float 	crossLength = 10.0f;
+
+vec3	computeCrosshair() {
+	// Crosshair
+	vec2 pixelCoord = uv * screenSize;
+	vec2 center = screenSize * 0.5;
+	vec2 deltaFromCenter = abs(pixelCoord - center);
+	float	d1 = max(step(crossThickness, deltaFromCenter.x), step(crossLength, deltaFromCenter.y));
+	float	d2 = max(step(crossThickness, deltaFromCenter.y), step(crossLength, deltaFromCenter.x));
+	return vec3(min(d1, d2));
+}
+
 /// --- SHADER MAIN FUNCTION
 
 void	main() {
 	vec2	filterdUV = fxaaFiltering(textureSize(postProcBuffer, 0));
 	vec3	color = texture(postProcBuffer, filterdUV).rgb;
 
-	color = posterizationFilter(color);
+	vec4	crosshair = vec4(1.0f - computeCrosshair(), 0.75);
+
 	color *= cloudRayMarching(filterdUV * 2.0 - 1.0);
 
-	/// --- FINAL COLOR CALCULATION
+	// Contrast and brightness filtering
+	color = 1.25f * (color - 0.5f) + 0.5f + 0.0f;
 
-	ScreenColor = vec4(color, 1.0f);
-	// ScreenColor = vec4(vec3(depth), 1.0f);
+	ScreenColor = max(vec4(color, 1.0f), crosshair);
 }

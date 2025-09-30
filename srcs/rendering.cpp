@@ -76,6 +76,14 @@ static void program_loop(GameData &gameData) {
 	glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
 	GeoFrameBuffers	gBuffer = voxelSystem.renderGeometryPass(shaders);
 
+	// Bounding box (for debug)
+	if (POLYGON) {
+		glBindFramebuffer(GL_FRAMEBUFFER, gBuffer.gBuffer);
+		shaders.use(shaders[5]);
+		gameData.cameraBoundingBox.draw();
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	}
+
 	// Deferred rendering lighting
 	shaders.use(shaders[2]);
 	lightingPass(shadowMapData, gBuffer, postProcData, renderDatas.renderQuadVAO);
@@ -138,7 +146,7 @@ void	Rendering(Window &window, const uint64_t &seed) {
 
 	// Systemes Initialization
 	Camera	camera(
-		(CameraInfo){{0, 0, -3.0}, {0, 0, 1}, {0, 1, 0}},
+		(CameraInfo){{0, 0, 0}, {0, 0, 1}, {0, 1, 0}},
 		(ProjectionInfo){FOV, {(float)WINDOW_WIDTH, (float)WINDOW_HEIGHT}, {0.0f, 0.0f}, 0.1f, 10000.0f},
 		ProjectionType::PERSPECTIVE
 	);
@@ -147,6 +155,7 @@ void	Rendering(Window &window, const uint64_t &seed) {
 		(ProjectionInfo){FOV, {SHADOW_FRUSTUM_SIZE / 2, SHADOW_FRUSTUM_SIZE / 2}, {-SHADOW_FRUSTUM_SIZE / 2, -SHADOW_FRUSTUM_SIZE / 2}, 0.1f, 1200.0f},
 		ProjectionType::ORTHOGRAPHIC
 	);
+	AABB			cameraBoundingBox(vec3(0.30f, 0.20f, 0.30f), vec3(-0.30f, -1.50f, -0.30f));
 	VoxelSystem		voxelSystem(seed, camera, shadowMapCam);
 	SkyBox			skybox;
 	ShaderHandler	shaders; // Skybox -> Voxels Geometrie -> Voxels Lighting -> Shadow Mapping -> Post Processing
@@ -155,6 +164,8 @@ void	Rendering(Window &window, const uint64_t &seed) {
 	shaders.add_shader("shaders/VoxelLighting_vert.glsl", "shaders/VoxelLighting_frag.glsl");
 	shaders.add_shader("shaders/ShadowMap_vert.glsl", "shaders/ShadowMap_frag.glsl");
 	shaders.add_shader("shaders/PostProcessing_vert.glsl", "shaders/PostProcessing_frag.glsl");
+	shaders.add_shader("shaders/BoundingBox_vert.glsl", "shaders/BoundingBox_frag.glsl");
+
 	RenderData	renderDatas = initScreenQuad();
 	CloudSystem	cloudSystem(2048);
 
@@ -167,6 +178,7 @@ void	Rendering(Window &window, const uint64_t &seed) {
 		skybox,
 		camera,
 		shadowMapCam,
+		cameraBoundingBox,
 		renderDatas
 	};
 

@@ -317,7 +317,7 @@ void VoxelSystem::tryDestroyBlock() {
 			requestMesh({{chunkPos, ChunkAction::CREATE_UPDATE}});
 
 			if (VERBOSE)
-				cout << BGreen << "Block destroyed at " << (int)currentPos.x << ", " << (int)currentPos.y << ", " << (int)currentPos.z << ResetColor << endl;
+				cout << "Block destroyed at " << (int)currentPos.x << ", " << (int)currentPos.y << ", " << (int)currentPos.z << endl;
 
 			return ;
 		}
@@ -326,9 +326,6 @@ void VoxelSystem::tryDestroyBlock() {
 		currentPos -= glm::normalize(worldCamPos - lookAt) * 0.1f;
 	}
 	while (distance(currentPos, worldCamPos) < PLAYER_REACH);
-
-	if (VERBOSE)
-		cout << BRed << "No block found" << ResetColor << endl;
 }
 
 uint8_t	VoxelSystem::getBlockAt(const glm::ivec3 &pos) {

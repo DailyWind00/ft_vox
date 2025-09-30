@@ -25,6 +25,7 @@
 # include "Profiler.hpp"
 # include "SkyBox.hpp"
 # include "Camera.hpp"
+# include "BoundingBox.hpp"
 # include "color.h"
 
 /// Custom includes (*.hpp & *.tpp)
@@ -51,6 +52,7 @@ typedef struct GameData {
 	SkyBox			&skybox;
 	Camera			&camera;
 	Camera			&shadowMapCam;
+	AABB			&cameraBoundingBox;
 	RenderData		&renderDatas;
 } GameData;
 

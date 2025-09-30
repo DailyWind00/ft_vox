@@ -21,6 +21,7 @@ add_executable(ft_vox
 	framework/classes/SkyBox.cpp
 	framework/classes/PMapBufferGL.cpp
 	framework/classes/BufferGL.cpp
+	framework/classes/BoundingBox.cpp
 
 	# Includes
 	includes/classes/VoxelSystem.cpp

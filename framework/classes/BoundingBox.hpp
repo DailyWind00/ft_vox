@@ -7,6 +7,8 @@
 # include <iostream>
 
 /// Dependencies
+# include <glad/glad.h>
+# include <glfw/glfw3.h>
 # include <glm/glm.hpp>
 # include "color.h"
 
@@ -45,16 +47,16 @@ class BoundingBox {
 
 // Axis-Aligned Bounding Box (AABB) class
 class AABB : public BoundingBox {
-	private:
+	public:
 		glm::vec3 min;
 		glm::vec3 max;
 
-	public:
-		AABB(const glm::vec3& min = glm::vec3(0.0f), const glm::vec3& max = glm::vec3(1.0f));
+		AABB(const glm::vec3& min, const glm::vec3& max);
 		~AABB() override = default;
 
 		/// Public functions
 
+		void draw() const;
 		bool intersects(const BoundingBox& other) const override;
 		inline bool contains(const glm::vec3& point) const override;
 

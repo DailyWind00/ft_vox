@@ -6,6 +6,51 @@ AABB::AABB(const glm::vec3& min, const glm::vec3& max) : min(min), max(max) {}
 
 /// Public functions
 
+// Draw the AABB (generally used for debugging)
+void AABB::draw() const {
+	const std::array<glm::vec3, 8> corners = {
+		glm::vec3(min.x, min.y, min.z), // 0
+		glm::vec3(max.x, min.y, min.z), // 1
+		glm::vec3(max.x, max.y, min.z), // 2
+		glm::vec3(min.x, max.y, min.z), // 3
+		glm::vec3(min.x, min.y, max.z), // 4
+		glm::vec3(max.x, min.y, max.z), // 5
+		glm::vec3(max.x, max.y, max.z), // 6
+		glm::vec3(min.x, max.y, max.z)  // 7
+	};
+    const unsigned int indices[24] = {
+        0,1, 1,2, 2,3, 3,0, // Back face
+        4,5, 5,6, 6,7, 7,4, // Front face
+        0,4, 1,5, 2,6, 3,7  // Connectors
+    };
+
+	// Generate temporary VAO/VBO (fine for debug)
+    GLuint VAO, VBO, EBO;
+    glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &VBO);
+    glGenBuffers(1, &EBO);
+
+    glBindVertexArray(VAO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, corners.size() * sizeof(glm::vec3), corners.data(), GL_DYNAMIC_DRAW);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), nullptr);
+    glEnableVertexAttribArray(0);
+
+	// Draw the box
+	glDrawElements(GL_LINES, 24, GL_UNSIGNED_INT, 0);
+
+	// Cleanup
+	glBindVertexArray(0);
+    glDeleteBuffers(1, &VBO);
+    glDeleteBuffers(1, &EBO);
+    glDeleteVertexArrays(1, &VAO);
+}
+
 // Check if this AABB intersects with another bounding box
 bool AABB::intersects(const BoundingBox& other) const {
 	if (other.getType() == Type::AABB) {

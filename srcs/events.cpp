@@ -78,7 +78,9 @@ static vec3	cameraMovement(Window &window, Camera &camera) {
 		sin(radians(angles.x)) * cos(radians(angles.y))
 	};
 
-	cameraInfo.lookAt = cameraInfo.position + cameraDir;
+	// Prevent camera flicking
+	if (dot(cameraDir, cameraFront) >= 0)
+		cameraInfo.lookAt = cameraInfo.position + cameraDir;
 
 	glfwSetCursorPos(window, (float)WINDOW_WIDTH / 2, (float)WINDOW_HEIGHT / 2);
 	# pragma endregion

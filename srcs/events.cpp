@@ -37,7 +37,7 @@ static inline bool MouseButtonPressedOnce(GLFWwindow *window, int button) {
 #pragma endregion
 
 // Handle the camera movements/interactions
-static vec3	cameraMovement(Window &window, Camera &camera) {
+static void	cameraMovement(Window &window, Camera &camera) {
 	CameraInfo	cameraInfo = camera.getCameraInfo();
 
 	# pragma region Camera controls
@@ -78,22 +78,24 @@ static vec3	cameraMovement(Window &window, Camera &camera) {
 		sin(radians(angles.x)) * cos(radians(angles.y))
 	};
 
-	// Prevent camera flicking
-	if (dot(cameraDir, cameraFront) >= 0)
-		cameraInfo.lookAt = cameraInfo.position + cameraDir;
+	cameraInfo.lookAt = cameraInfo.position + cameraDir;
 
 	glfwSetCursorPos(window, (float)WINDOW_WIDTH / 2, (float)WINDOW_HEIGHT / 2);
 	# pragma endregion
 	
 	camera.setCameraInfo(cameraInfo);
-	return normalize(cameraDir);
 }
 
 // Handle the inputs for the game
-static void inputs(GameData &gameData) {
-	VoxelSystem &voxelSystem = gameData.voxelSystem;
-	Window 		&window 	 = gameData.window;
-	Camera 		&camera 	 = gameData.camera;
+static void inputs(GameData &gameData, bool &flashlightOn) {
+	VoxelSystem 	&voxelSystem = gameData.voxelSystem;
+	Window 			&window 	 = gameData.window;
+	Camera 			&camera 	 = gameData.camera;
+	ShaderHandler	&shaders	 = gameData.shaders;
+
+	// Exit the program, ESC key
+	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+		glfwSetWindowShouldClose(window, true);
 
 	// Delete a chunk, F key
 	if (keyPressedOnce(window, GLFW_KEY_F)) {
@@ -109,9 +111,26 @@ static void inputs(GameData &gameData) {
 	}
 
 	// Destroy a block, left click
-	if (MouseButtonPressedOnce(window, GLFW_MOUSE_BUTTON_LEFT)) {
+	if (MouseButtonPressedOnce(window, GLFW_MOUSE_BUTTON_LEFT))
 		voxelSystem.tryDestroyBlock();
+
+	// Recompile shaders, P key
+	if (keyPressedOnce(window, GLFW_KEY_P)) {
+		std::cout << "recompiling\n";
+		(*shaders[0])->recompile();
+		(*shaders[1])->recompile();
+		(*shaders[2])->recompile();
+		(*shaders[3])->recompile();
+		(*shaders[4])->recompile();
 	}
+
+	// Toggle flashlight, F key
+	if (keyPressedOnce(window, GLFW_KEY_F))
+		flashlightOn = !flashlightOn;
+
+	// Change polygon mode, L key
+	if (keyPressedOnce(window, GLFW_KEY_L))
+		POLYGON = !POLYGON;
 }
 
 // Add condition to the function VoxelSystem::loadChunksAroundCamera to avoid calling it every frame
@@ -184,33 +203,21 @@ void	handleEvents(GameData &gameData) {
 	Camera			&camera  = gameData.camera;
 	Camera			&shadowMapCam = gameData.shadowMapCam;
 
-	static float time = 20; time += 0.001 * window.getFrameTime(); // Start at early daytime
-	static bool		flashlightOn = false;
+	static float	time = 20; // Start at early daytime
+	static bool 	flashlightOn = false;
 
-	if (keyPressedOnce(window, GLFW_KEY_P)) {
-		std::cout << "recompiling\n";
-		(*shaders[0])->recompile();
-		(*shaders[1])->recompile();
-		(*shaders[2])->recompile();
-		(*shaders[3])->recompile();
-		(*shaders[4])->recompile();
+	// Simulation pause if the window is not focused
+	if (window.isFocused()) {
+		time += 0.1 * window.getFrameTime();
+
+		cameraMovement(window, camera);
+		inputs(gameData, flashlightOn);
+		dynamicChunkLoading(gameData.voxelSystem, camera.getCameraInfo());
 	}
 
-	if (keyPressedOnce(window, GLFW_KEY_F))
-		flashlightOn = (flashlightOn) ? false : true;
-
-	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-		glfwSetWindowShouldClose(window, true);
-
-	glm::vec3	camDir = cameraMovement(window, camera);
-	inputs(gameData);
-	dynamicChunkLoading(gameData.voxelSystem, camera.getCameraInfo());
-
 	// Skybox Shader parameters
-	float		dayDuration = 10;
-	vec2		angles = {(time / dayDuration) * M_PI, 25.0f};
-	// vec3		sunPos = normalize(vec3(cos(angle), sin(angle), 0.0f));
-
+	float	dayDuration = 10;
+	vec2	angles = {(time / dayDuration) * M_PI, 25.0f};
 	vec3	sunPos {
 		cos(radians(angles.x)) * cos(radians(angles.y)),
 		sin(radians(angles.x)) * cos(radians(angles.y)),
@@ -237,10 +244,6 @@ void	handleEvents(GameData &gameData) {
 	shaders.setUniform((*shaders[1])->getID(), "polygonVisible", POLYGON);
 	shaders.setUniform((*shaders[1])->getID(), "camPos", camPos);
 
-	// Shadow Mapping Pass Shader parameters
-	shaders.setUniform((*shaders[3])->getID(), "projection", shadowMapCam.getProjectionMatrix());
-	shaders.setUniform((*shaders[3])->getID(), "view", shadowMapCam.getViewMatrix());
-
 	// Lighting Pass Shader Parameters
 	shaders.setUniform((*shaders[2])->getID(), "camPos", camPos);
 	shaders.setUniform((*shaders[2])->getID(), "renderDistance", (float)HORIZONTAL_RENDER_DISTANCE);
@@ -258,6 +261,11 @@ void	handleEvents(GameData &gameData) {
 	shaders.setUniform((*shaders[2])->getID(), "shadowMap", 4);
 	shaders.setUniform((*shaders[2])->getID(), "screenSize", vec2(WINDOW_WIDTH, WINDOW_HEIGHT));
 
+	// Shadow Mapping Pass Shader parameters
+	shaders.setUniform((*shaders[3])->getID(), "projection", shadowMapCam.getProjectionMatrix());
+	shaders.setUniform((*shaders[3])->getID(), "view", shadowMapCam.getViewMatrix());
+
+	// Post Processing Pass Shader Parameters
 	shaders.setUniform((*shaders[4])->getID(), "time", time);
 	shaders.setUniform((*shaders[4])->getID(), "postProcBuffer", 0);
 	shaders.setUniform((*shaders[4])->getID(), "depthBuffer", 1);
@@ -265,6 +273,6 @@ void	handleEvents(GameData &gameData) {
 	shaders.setUniform((*shaders[4])->getID(), "view", camera.getViewMatrix());
 	shaders.setUniform((*shaders[4])->getID(), "sunPos", sunPos);
 	shaders.setUniform((*shaders[4])->getID(), "camPos", camPos);
-	shaders.setUniform((*shaders[4])->getID(), "camDir", camDir);
+	shaders.setUniform((*shaders[4])->getID(), "camDir", camera.getCameraInfo().lookAt - camera.getCameraInfo().position);
 	shaders.setUniform((*shaders[4])->getID(), "screenSize", vec2(WINDOW_WIDTH, WINDOW_HEIGHT));
 }

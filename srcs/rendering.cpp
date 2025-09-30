@@ -86,6 +86,7 @@ static void program_loop(GameData &gameData) {
 	skybox.draw();
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
+	// Post processing
 	shaders.use(shaders[4]);
 	postProcessingPass(postProcData, gameData.cloudSystem.getCloudNoiseSample(), renderDatas.renderQuadVAO);
 
@@ -148,7 +149,7 @@ void	Rendering(Window &window, const uint64_t &seed) {
 	);
 	VoxelSystem		voxelSystem(seed, camera, shadowMapCam);
 	SkyBox			skybox;
-	ShaderHandler	shaders; // Skybox -> Voxels Geometrie -> Voxels Lighting
+	ShaderHandler	shaders; // Skybox -> Voxels Geometrie -> Voxels Lighting -> Shadow Mapping -> Post Processing
 	shaders.add_shader("shaders/Skybox_vert.glsl", "shaders/Skybox_frag.glsl"); // Used by default
 	shaders.add_shader("shaders/VoxelGeometrie_vert.glsl", "shaders/VoxelGeometrie_frag.glsl");
 	shaders.add_shader("shaders/VoxelLighting_vert.glsl", "shaders/VoxelLighting_frag.glsl");

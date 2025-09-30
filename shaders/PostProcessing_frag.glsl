@@ -231,10 +231,6 @@ vec3	posterizationFilter(vec3 baseColor) {
 
 /// --- CLOUD RENDERING
 
-// Cloud bounding box parameters
-const vec3	boundingBoxPosition = vec3(0, 450, 0);
-const vec3	boundingBoxSize = vec3(1000, 35, 1000);
-
 // Cloud Noise parameters
 const float	densityThreshold = 350.0f;
 const float	densityMultiplier = 0.00005f;
@@ -244,7 +240,7 @@ const float	cloudSpeed = 0.00025;
 // Cloud parameters
 const float	phaseVal = 0.08;
 const float	cloudLightAbsorbtion =  1.14;
-const float	numStepRay = 32.0f;
+const float	numStepRay = 24.0f;
 
 // Light parameters
 float	numStepLight = 16.0f;
@@ -288,6 +284,8 @@ vec3	cloudRayMarching(vec2 localUV) {
 	vec4	rd = normalize(vec4(localUV, -d, 1.0f)) * view;
 
 	// Cloud bounding box initialization
+	vec3	boundingBoxPosition = vec3(camPos.x, 450, camPos.z);
+	vec3	boundingBoxSize = vec3(1000, 35, 1000);
 	vec3	boundsMin = boundingBoxPosition - boundingBoxSize;
 	vec3	boundsMax = boundingBoxPosition + boundingBoxSize;
 	vec2	rayBoxInfo = rayBoxDist(boundsMin, boundsMax, ro, rd.xyz);
@@ -346,7 +344,10 @@ void	main() {
 	color *= cloudRayMarching(filterdUV * 2.0 - 1.0);
 
 	// Contrast and brightness filtering
-	color = 1.25f * (color - 0.5f) + 0.5f + 0.0f;
+	color = 2.85f * (color - 0.5f) + 0.5f + 0.45f;
+
+	// Tone Mapping
+	color = vec3(1.0) - exp(-color * 1.05);
 
 	ScreenColor = max(vec4(color, 1.0f), crosshair);
 }

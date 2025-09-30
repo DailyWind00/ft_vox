@@ -209,11 +209,11 @@ void	handleEvents(GameData &gameData) {
 	vec2		angles = {(time / dayDuration) * M_PI, 25.0f};
 	// vec3		sunPos = normalize(vec3(cos(angle), sin(angle), 0.0f));
 
-	vec3	sunPos {
+	vec3	sunPos = normalize(vec3{
 		cos(radians(angles.x)) * cos(radians(angles.y)),
 		sin(radians(angles.x)) * cos(radians(angles.y)),
 		sin(radians(angles.y)),
-	};
+	});
 
 	mat4		skyboxView = camera.getProjectionMatrix() * mat4(mat3(camera.getViewMatrix())); // Get rid of the translation part
 	vec3		camPos = camera.getCameraInfo().position;

@@ -17,6 +17,7 @@ class Player {
 		AABB	&cameraBox;
 		bool 	hasNoclip = false;
 		bool 	hasFlashlight = false;
+		bool 	isSprinting = false;
 
 		// Gravity variables
 		float gravity = 0.0f;
@@ -34,6 +35,7 @@ class Player {
 		AABB		&getCameraBox();
 		bool		HaveNoclip() const;
 		bool		HaveFlashlight() const;
+		bool		IsSprinting() const;
 		float		getGravity() const;
 		bool		CanJump() const;
 		bool		IsFalling() const;
@@ -46,6 +48,7 @@ class Player {
 		void	setCameraBox(const AABB &box);
 		void	setNoclip(const bool &value);
 		void	setFlashlight(const bool &value);
+		void	setSprinting(const bool &value);
 		void	setGravity(const float &value);
 		void	setCanJump(const bool &value);
 		void	setIsFalling(const bool &value);

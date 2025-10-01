@@ -41,6 +41,13 @@ bool 	Player::HaveFlashlight() const {
 	return hasFlashlight;
 }
 
+/// @brief Check if the player is sprinting
+/// @return True if the player is sprinting, false otherwise
+bool 	Player::IsSprinting() const {
+	return isSprinting;
+}
+
+
 /// @brief Get the player's gravity
 /// @return The player's gravity as a float
 float Player::getGravity() const {
@@ -100,6 +107,12 @@ void	Player::setNoclip(const bool &value) {
 /// @param value Boolean value to set flashlight state (true to enable, false to disable)
 void	Player::setFlashlight(const bool &value) {
 	hasFlashlight = value;
+}
+
+/// @brief Enable or disable sprinting for the player
+/// @param value Boolean value to set sprinting state (true to enable, false to disable
+void	Player::setSprinting(const bool &value) {
+	isSprinting = value;
 }
 
 /// @brief Set the player's gravity

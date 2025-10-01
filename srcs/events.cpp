@@ -95,7 +95,10 @@ static void	cameraMovement(GameData &gameData) {
 	cameraFront = normalize(cameraFront);
 	cameraRight = normalize(cameraRight);
 
-	const float camSpeed = (CAMERA_SPEED + (CAMERA_SPRINT_BOOST * (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS))) * window.getFrameTime();
+	const float camSpeed = (CAMERA_SPEED + (CAMERA_SPRINT_BOOST * player.IsSprinting())) * window.getFrameTime();
+
+	if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+		player.setSprinting(true);
 
 	vec3 move = vec3(0);
 	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) move += cameraFront;
@@ -111,6 +114,9 @@ static void	cameraMovement(GameData &gameData) {
 		move += cameraInfo.up;
 	if ((player.HaveNoclip() || playerInWater(player, voxelSystem)) && glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
 		move -= cameraInfo.up;
+
+	if (length(move) == 0.0f) // No movement
+		player.setSprinting(false);
 
 	if (length(move) > 1.0f)
 		move = normalize(move);

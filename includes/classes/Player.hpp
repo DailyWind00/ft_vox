@@ -15,7 +15,7 @@ class Player {
 	private:
 		Camera	&camera;
 		AABB	&cameraBox;
-		bool 	hasNoclip = false;
+		bool 	hasNoclip = true;
 		bool 	hasFlashlight = false;
 		bool 	isSprinting = false;
 

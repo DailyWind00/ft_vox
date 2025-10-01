@@ -219,7 +219,7 @@ void	handleEvents(GameData &gameData) {
 	vec3		camPos = camera.getCameraInfo().position;
 	bool		inWater = (gameData.voxelSystem.getBlockAt(camPos) == 9) ? true : false;
 
-	shadowMapCam.setPosition({camPos.x + sunPos.x * 600, camPos.y + sunPos.y * 600, camPos.z + sunPos.z * 600});
+	shadowMapCam.setPosition({camPos.x + sunPos.x * 200, camPos.y + sunPos.y * 200, camPos.z + sunPos.z * 200});
 	shadowMapCam.setLookAt(camPos);
 
 	// Skybox Pass Shader Parameters

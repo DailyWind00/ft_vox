@@ -98,7 +98,7 @@ vec3 getSkyGradient(vec3 direction, float sunHeight) {
 	return mix(horizonColor, mixedSkyColor, t);
 }
 
-const float	SFSampleSize = 1.0f;
+const float	SFSampleSize = 3.0f;
 
 float	computeShadows(const vec4 lpFragPos, const vec3 normal) {
 	vec3	projCoords = lpFragPos.xyz / lpFragPos.w;
@@ -174,7 +174,7 @@ void	main() {
 	vec3	lightColor = computeLighting(texCol, Normal.rgb, shadow, fragPos.rgb);
 
 	// Distance fog
-	float	fogFactor = (inWater) ? clamp(computeFogFactor(-spFragPos.z, 1.0f / 48.0f) * 8.0f, 0.0f, 0.9f) : computeFogFactor(-spFragPos.z, 1.0f / (renderDistance * 48.0f));
+	float	fogFactor = (inWater) ? clamp(computeFogFactor(-spFragPos.z, 1.0f / ((0.25 * renderDistance) * 16.0f)) * 8.0f, 0.0f, 0.9f) : computeFogFactor(-spFragPos.z, 1.0f / (renderDistance * 16.0f));
 
 	// Depth fog
 	float	gradientSteepness = (inWater) ? 64.0f : 1024.0f;

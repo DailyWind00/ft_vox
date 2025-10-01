@@ -240,7 +240,7 @@ const float	cloudSpeed = 0.00025;
 // Cloud parameters
 const float	phaseVal = 0.08;
 const float	cloudLightAbsorbtion =  1.14;
-const float	numStepRay = 24.0f;
+const float	numStepRay = 16.0f;
 
 // Light parameters
 float	numStepLight = 16.0f;
@@ -285,7 +285,7 @@ vec3	cloudRayMarching(vec2 localUV) {
 
 	// Cloud bounding box initialization
 	vec3	boundingBoxPosition = vec3(camPos.x, 450, camPos.z);
-	vec3	boundingBoxSize = vec3(1000, 35, 1000);
+	vec3	boundingBoxSize = vec3(12 * 64, 35, 12 * 64);
 	vec3	boundsMin = boundingBoxPosition - boundingBoxSize;
 	vec3	boundsMax = boundingBoxPosition + boundingBoxSize;
 	vec2	rayBoxInfo = rayBoxDist(boundsMin, boundsMax, ro, rd.xyz);

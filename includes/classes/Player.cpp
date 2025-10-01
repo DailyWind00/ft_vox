@@ -2,7 +2,7 @@
 
 #pragma region Constructor / Destructor
 
-Player::Player(const vec3 &startPos, const Camera &cam, const AABB &box) : camera(cam), cameraBox(box) {
+Player::Player(const vec3 &startPos, Camera &cam, AABB &box) : camera(cam), cameraBox(box) {
 	camera.setPosition(startPos);
 	cameraBox.setPosition(startPos);
 }
@@ -39,6 +39,24 @@ bool 	Player::HaveNoclip() const {
 /// @return True if the flashlight is enabled, false otherwise
 bool 	Player::HaveFlashlight() const {
 	return hasFlashlight;
+}
+
+/// @brief Get the player's gravity
+/// @return The player's gravity as a float
+float Player::getGravity() const {
+	return gravity;
+}
+
+/// @brief Check if the player can jump
+/// @return True if the player can jump, false otherwise
+bool Player::CanJump() const {
+	return canJump;
+}
+
+/// @brief Check if the player is falling
+/// @return True if the player is falling, false otherwise
+bool Player::IsFalling() const {
+	return isFalling;
 }
 
 # pragma endregion
@@ -82,6 +100,24 @@ void	Player::setNoclip(const bool &value) {
 /// @param value Boolean value to set flashlight state (true to enable, false to disable)
 void	Player::setFlashlight(const bool &value) {
 	hasFlashlight = value;
+}
+
+/// @brief Set the player's gravity
+/// @param value New gravity value to be set for the player
+void	Player::setGravity(const float &value) {
+	gravity = value;
+}
+
+/// @brief Set whether the player can jump
+/// @param value Boolean value to set jump ability (true to allow jumping, false to disable)
+void	Player::setCanJump(const bool &value) {
+	canJump = value;
+}
+
+/// @brief Set whether the player is falling
+/// @param value Boolean value to set falling state (true to enable falling, false to disable)
+void	Player::setIsFalling(const bool &value) {
+	isFalling = value;
 }
 
 # pragma endregion

@@ -52,9 +52,30 @@ static bool isColliding(Player &player, VoxelSystem &voxelSystem) {
 		};
 		for (const auto& corner : corners) {
 			uint8_t block = voxelSystem.getBlockAt(floor(corner));
-			if (block != 0 && block != 9) // Skip air and water
+			if (block != 0 && block != WATER) // Skip air and water
 				return true;
 		}
+	}
+	return false;
+}
+
+static bool playerInWater(Player &player, VoxelSystem &voxelSystem) {
+	AABB box = player.getCameraBox();
+
+	array<vec3, 8> corners = {
+		vec3(box.min.x, box.min.y, box.min.z),
+		vec3(box.max.x, box.min.y, box.min.z),
+		vec3(box.min.x, box.max.y, box.min.z),
+		vec3(box.max.x, box.max.y, box.min.z),
+		vec3(box.min.x, box.min.y, box.max.z),
+		vec3(box.max.x, box.min.y, box.max.z),
+		vec3(box.min.x, box.max.y, box.max.z),
+		vec3(box.max.x, box.max.y, box.max.z)
+	};
+	for (const auto& corner : corners) {
+		uint8_t block = voxelSystem.getBlockAt(floor(corner));
+		if (block == WATER) // Water block
+			return true;
 	}
 	return false;
 }
@@ -81,29 +102,68 @@ static void	cameraMovement(GameData &gameData) {
 	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) move -= cameraFront;
 	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) move -= cameraRight;
 	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) move += cameraRight;
-	if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) move += cameraInfo.up;
-	if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) move -= cameraInfo.up;
+	if (!player.HaveNoclip() && (player.CanJump() || playerInWater(player, voxelSystem)) && glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
+		player.setCanJump(false);
+		player.setIsFalling(false);
+		player.setGravity(GRAVITY_MAX);
+	}
+	else if (player.HaveNoclip() && glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+		move += cameraInfo.up;
+	if ((player.HaveNoclip() || playerInWater(player, voxelSystem)) && glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+		move -= cameraInfo.up;
 
 	if (length(move) > 1.0f)
 		move = normalize(move);
 
 	vec3 translation = move * camSpeed;
 
-	// Try move on X
-	player.translate(vec3(translation.x, 0, 0));
-	if (isColliding(player, voxelSystem))
-		player.translate(vec3(-translation.x, 0, 0));
+	if (!player.HaveNoclip()) translation *= 0.25f; // 75% slower when not in noclip mode  
+	if (!player.HaveNoclip()) translation.y += player.getGravity();
+	if (playerInWater(player, voxelSystem)) {
+		translation.x *= 0.40f; // 60% slower in water
+		translation.y *= 0.20f; // 80% slower in water on Y axis
+		translation.z *= 0.40f; // 60% slower in water
+	}
+
+	bool hasCollided = false;
 
 	// Try move on Y
 	player.translate(vec3(0, translation.y, 0));
-	if (isColliding(player, voxelSystem))
+	if (isColliding(player, voxelSystem)) {
 		player.translate(vec3(0, -translation.y, 0));
-
+		hasCollided = true;
+		player.setGravity(0.0f); // landed
+	}
+	// Try move on X
+	player.translate(vec3(translation.x, 0, 0));
+	if (isColliding(player, voxelSystem)) {
+		player.translate(vec3(-translation.x, 0, 0));
+		hasCollided = true;
+	}
 	// Try move on Z
 	player.translate(vec3(0, 0, translation.z));
-	if (isColliding(player, voxelSystem))
+	if (isColliding(player, voxelSystem)) {
 		player.translate(vec3(0, 0, -translation.z));
+		hasCollided = true;
+	}
 	
+	// Gravity handling
+	if (!player.HaveNoclip()) {
+		if (playerInWater(player, voxelSystem)) { // In water
+			player.setCanJump(true);
+			player.setIsFalling(true);
+		}
+		else if (!hasCollided) { // Falling
+			player.setCanJump(false);
+			player.setIsFalling(true);
+		}
+		else if (hasCollided && !playerInWater(player, voxelSystem)) { // Landed
+			player.setCanJump(true);
+			player.setIsFalling(false);
+			player.setGravity(0.0f);
+		}
+	}
+
 	# pragma endregion
 
 	cameraInfo = player.getCamera().getCameraInfo(); // Refresh camera info after potential movement
@@ -168,6 +228,9 @@ static void inputs(GameData &gameData) {
 	// Noclip mode
 	if (keyPressedOnce(window, GLFW_KEY_N)) {
 		player.setNoclip(!player.HaveNoclip());
+		player.setCanJump(false);
+		player.setIsFalling(true);
+		player.setGravity(0.0f);
 		if (VERBOSE)
 			cout << "Noclip mode " << (player.HaveNoclip() ? "ON" : "OFF") << endl;
 	}
@@ -256,6 +319,24 @@ void	handleEvents(GameData &gameData) {
 	// Simulation pause if the window is not focused
 	if (window.isFocused()) {
 		time += 0.001 * window.getFrameTime();
+
+		// Gravity update
+		if (!player.HaveNoclip() && player.IsFalling()) {
+			float targetGravity = glm::clamp(
+				(float)(player.getGravity() - GRAVITY_STRENGTH * window.getFrameTime()),
+				GRAVITY_MIN,
+				GRAVITY_MAX
+			);
+
+			float smoothing = 10.0f;
+			float newGravity = glm::mix(
+				player.getGravity(), // current
+				targetGravity,       // target
+				1.0f - exp(-smoothing * window.getFrameTime()) // framerate independent lerp
+			);
+
+			player.setGravity(newGravity);
+		}
 
 		inputs(gameData);
 		cameraMovement(gameData);

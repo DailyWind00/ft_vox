@@ -51,10 +51,12 @@ VoxelSystem::~VoxelSystem() {
 
 	// waiting for threads to finish
 	_quitting = true;
-	for (uint32_t i = 0; i < _cpuCoreCount / CHUNKGEN_CORE_RATIO; i++)
+	for (uint32_t i = 0; i < (uint32_t)(_cpuCoreCount / CHUNKGEN_CORE_RATIO); i++)
 		_chunkGenerationThreads[i].join();
-	_meshGenerationThread.join();
+	for (uint32_t i = 0; i < (uint32_t)(_cpuCoreCount / MESHGEN_CORE_RATIO); i++)
+		_meshGenerationThread[i].join();
 	delete[] _chunkGenerationThreads;
+	delete[] _meshGenerationThread;
 
 	// Delete all chunks
 	for (const ChunkMap::value_type &chunk : _chunks)
@@ -63,7 +65,6 @@ VoxelSystem::~VoxelSystem() {
 		if (mesh.second.mesh) delete mesh.second.mesh;
 
 	_chunks.clear();
-	g_pendingFeatures.clear();
 
 	if (VERBOSE)
 		cout << "VoxelSystem destroyed\n";
@@ -94,12 +95,14 @@ void	VoxelSystem::_initThreads() {
 		cout << "System has: " << _cpuCoreCount << " CPU cores available.\n Allocating: " << _cpuCoreCount / CHUNKGEN_CORE_RATIO << " for chunk generation" << endl;
 
 	// Allocate and start chunk generation threads
-	_chunkGenerationThreads = new thread[_cpuCoreCount / CHUNKGEN_CORE_RATIO];
-	for (uint32_t i = 0; i < _cpuCoreCount / CHUNKGEN_CORE_RATIO; i++)
+	_chunkGenerationThreads = new thread[(int)(_cpuCoreCount / CHUNKGEN_CORE_RATIO)];
+	for (uint32_t i = 0; i < (uint32_t)(_cpuCoreCount / CHUNKGEN_CORE_RATIO); i++)
 		_chunkGenerationThreads[i] = thread(&VoxelSystem::_chunkGenerationRoutine, this);
 
 	// Start mesh generation thread
-	_meshGenerationThread = thread(&VoxelSystem::_meshGenerationRoutine, this);
+	_meshGenerationThread = new thread[(int)(_cpuCoreCount / MESHGEN_CORE_RATIO)];
+	for (uint32_t i = 0; i < (uint32_t)(_cpuCoreCount / MESHGEN_CORE_RATIO); i++)
+		_meshGenerationThread[i] = thread(&VoxelSystem::_meshGenerationRoutine, this);
 }
 
 // Will create and setup all the framebuffer and render texture necessary for rendering

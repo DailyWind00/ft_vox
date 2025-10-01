@@ -86,6 +86,13 @@ void AABB::set(const glm::vec3& min, const glm::vec3& max) {
 	this->max = max;
 }
 
+// Set the position of the center of the AABB to the given position
+void AABB::setPosition(const glm::vec3& position) {
+	glm::vec3 size = max - min;
+	this->min = position - size * 0.5f;
+	this->max = position + size * 0.5f;
+}
+
 // Translate the AABB by the given offset
 void AABB::translate(const glm::vec3& offset) {
 	this->min += offset;

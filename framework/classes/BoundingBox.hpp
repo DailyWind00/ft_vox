@@ -41,6 +41,7 @@ class BoundingBox {
 		/// Setters
 
 		virtual void set(const glm::vec3& min, const glm::vec3& max) = 0;
+		virtual void setPosition(const glm::vec3& position) = 0;
 		virtual void translate(const glm::vec3& offset) = 0;
 		
 };
@@ -67,5 +68,6 @@ class AABB : public BoundingBox {
 		/// Setters
 
 		void set(const glm::vec3& min, const glm::vec3& max) override;
+		void setPosition(const glm::vec3& position) override;
 		void translate(const glm::vec3& offset) override;
 };

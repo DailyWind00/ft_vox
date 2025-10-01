@@ -60,11 +60,11 @@ static void	postProcessingPass(const PostProcessingData &postProcData, const GLu
 // Keep the window alive, exiting this function should mean closing the window
 static void program_loop(GameData &gameData) {
 	static Window		&window      = gameData.window;
-	static ShaderHandler	&shaders     = gameData.shaders;
+	static ShaderHandler&shaders     = gameData.shaders;
 	static VoxelSystem	&voxelSystem = gameData.voxelSystem;
 	static SkyBox		&skybox      = gameData.skybox;
 	static RenderData	&renderDatas = gameData.renderDatas;
-
+	
 	PostProcessingData	postProcData = voxelSystem.getPostProcData();
 
 	shaders.use(shaders[3]);
@@ -80,7 +80,7 @@ static void program_loop(GameData &gameData) {
 	if (POLYGON) {
 		glBindFramebuffer(GL_FRAMEBUFFER, gBuffer.gBuffer);
 		shaders.use(shaders[5]);
-		gameData.cameraBoundingBox.draw();
+		gameData.player.getCameraBox().draw();
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 
@@ -144,7 +144,7 @@ void	Rendering(Window &window, const uint64_t &seed) {
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glEnable(GL_CULL_FACE);
 
-	// Systemes Initialization
+	// Systems Initialization
 	Camera	camera(
 		(CameraInfo){{0, 0, 0}, {0, 0, 1}, {0, 1, 0}},
 		(ProjectionInfo){FOV, {(float)WINDOW_WIDTH, (float)WINDOW_HEIGHT}, {0.0f, 0.0f}, 0.1f, 10000.0f},
@@ -169,6 +169,8 @@ void	Rendering(Window &window, const uint64_t &seed) {
 	RenderData	renderDatas = initScreenQuad();
 	CloudSystem	cloudSystem(2048);
 
+	Player	player({0,0,0}, camera, cameraBoundingBox);
+
 	// Setting Game Datas to send to the game loop
 	GameData gameData = {
 		window,
@@ -176,10 +178,9 @@ void	Rendering(Window &window, const uint64_t &seed) {
 		voxelSystem,
 		cloudSystem,
 		skybox,
-		camera,
 		shadowMapCam,
-		cameraBoundingBox,
-		renderDatas
+		renderDatas,
+		player
 	};
 
 	window.mainLoop(program_loop, gameData);

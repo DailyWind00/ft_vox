@@ -1,8 +1,5 @@
 #include "config.hpp"
 
-bool FLASHLIGHT_ON = false;
-bool NOCLIP = true;
-
 #pragma region Keys Pressed Once
 
 // Check if a key is pressed once
@@ -39,8 +36,10 @@ static inline bool MouseButtonPressedOnce(GLFWwindow *window, int button) {
 
 #pragma endregion
 
-static bool isColliding(const AABB& box, VoxelSystem& voxelSystem) {
-	if (!NOCLIP) {
+static bool isColliding(Player &player, VoxelSystem &voxelSystem) {
+	if (!player.HaveNoclip()) {
+		AABB box = player.getCameraBox();
+
 		array<vec3, 8> corners = {
 			vec3(box.min.x, box.min.y, box.min.z),
 			vec3(box.max.x, box.min.y, box.min.z),
@@ -62,10 +61,10 @@ static bool isColliding(const AABB& box, VoxelSystem& voxelSystem) {
 
 // Handle the camera movements/interactions
 static void	cameraMovement(GameData &gameData) {
-	CameraInfo	cameraInfo = gameData.camera.getCameraInfo();
+	Player		&player = gameData.player;
 	Window		&window = gameData.window;
-	AABB		&cameraBox = gameData.cameraBoundingBox;
 	VoxelSystem	&voxelSystem = gameData.voxelSystem;
+	CameraInfo	cameraInfo = player.getCamera().getCameraInfo();
 
 	# pragma region Camera controls
 
@@ -91,33 +90,26 @@ static void	cameraMovement(GameData &gameData) {
 	vec3 translation = move * camSpeed;
 
 	// Try move on X
-	cameraInfo.position.x += translation.x;
-	cameraBox.translate(vec3(translation.x, 0, 0));
-	if (isColliding(cameraBox, voxelSystem)) {
-		// Undo X move if collision
-		cameraInfo.position.x -= translation.x;
-		cameraBox.translate(vec3(-translation.x, 0, 0));
-	}
+	player.translate(vec3(translation.x, 0, 0));
+	if (isColliding(player, voxelSystem))
+		player.translate(vec3(-translation.x, 0, 0));
 
 	// Try move on Y
-	cameraInfo.position.y += translation.y;
-	cameraBox.translate(vec3(0, translation.y, 0));
-	if (isColliding(cameraBox, voxelSystem)) {
-		cameraInfo.position.y -= translation.y;
-		cameraBox.translate(vec3(0, -translation.y, 0));
-	}
+	player.translate(vec3(0, translation.y, 0));
+	if (isColliding(player, voxelSystem))
+		player.translate(vec3(0, -translation.y, 0));
 
 	// Try move on Z
-	cameraInfo.position.z += translation.z;
-	cameraBox.translate(vec3(0, 0, translation.z));
-	if (isColliding(cameraBox, voxelSystem)) {
-		cameraInfo.position.z -= translation.z;
-		cameraBox.translate(vec3(0, 0, -translation.z));
-	}
+	player.translate(vec3(0, 0, translation.z));
+	if (isColliding(player, voxelSystem))
+		player.translate(vec3(0, 0, -translation.z));
 	
 	# pragma endregion
 
+	cameraInfo = player.getCamera().getCameraInfo(); // Refresh camera info after potential movement
+
 	# pragma region Mouse
+
 	double mouseX, mouseY;
 	glfwGetCursorPos(window, &mouseX, &mouseY);
 
@@ -132,12 +124,11 @@ static void	cameraMovement(GameData &gameData) {
 		sin(radians(angles.x)) * cos(radians(angles.y))
 	};
 
-	cameraInfo.lookAt = cameraInfo.position + cameraDir;
-
 	glfwSetCursorPos(window, (float)WINDOW_WIDTH / 2, (float)WINDOW_HEIGHT / 2);
-	# pragma endregion
 
-	gameData.camera.setCameraInfo(cameraInfo);
+	player.getCamera().setLookAt(cameraInfo.position + cameraDir);
+
+	# pragma endregion
 }
 
 // Handle the inputs for the game
@@ -145,6 +136,7 @@ static void inputs(GameData &gameData) {
 	VoxelSystem 	&voxelSystem = gameData.voxelSystem;
 	Window 			&window 	 = gameData.window;
 	ShaderHandler	&shaders	 = gameData.shaders;
+	Player			&player		 = gameData.player;
 
 	// Close the window
 	if (keyPressedOnce(window, GLFW_KEY_ESCAPE))
@@ -168,9 +160,16 @@ static void inputs(GameData &gameData) {
 
 	// Flashlight
 	if (keyPressedOnce(window, GLFW_KEY_F)) {
-		FLASHLIGHT_ON = !FLASHLIGHT_ON;
+		player.setFlashlight(!player.HaveFlashlight());
 		if (VERBOSE)
-			cout << "Flashlight " << (FLASHLIGHT_ON ? "ON" : "OFF") << endl;
+			cout << "Flashlight " << (player.HaveFlashlight() ? "ON" : "OFF") << endl;
+	}
+
+	// Noclip mode
+	if (keyPressedOnce(window, GLFW_KEY_N)) {
+		player.setNoclip(!player.HaveNoclip());
+		if (VERBOSE)
+			cout << "Noclip mode " << (player.HaveNoclip() ? "ON" : "OFF") << endl;
 	}
 
 	// Polygon mode
@@ -178,13 +177,6 @@ static void inputs(GameData &gameData) {
 		POLYGON = !POLYGON;
 		if (VERBOSE)
 			cout << "Polygon mode " << (POLYGON ? "ON" : "OFF") << endl;
-	}
-
-	// Noclip mode
-	if (keyPressedOnce(window, GLFW_KEY_N)) {
-		NOCLIP = !NOCLIP;
-		if (VERBOSE)
-			cout << "Noclip mode " << (NOCLIP ? "ON" : "OFF") << endl;
 	}
 }
 
@@ -255,7 +247,8 @@ static void dynamicChunkLoading(VoxelSystem &voxelSystem, const CameraInfo &camI
 void	handleEvents(GameData &gameData) {
 	Window			&window  = gameData.window;
 	ShaderHandler	&shaders = gameData.shaders;
-	Camera			&camera  = gameData.camera;
+	Player			&player  = gameData.player;
+	Camera			&camera  = player.getCamera();
 	Camera			&shadowMapCam = gameData.shadowMapCam;
 
 	static float	time = 20; // Start at early daytime
@@ -302,7 +295,7 @@ void	handleEvents(GameData &gameData) {
 	shaders.setUniform((*shaders[2])->getID(), "camPos", camPos);
 	shaders.setUniform((*shaders[2])->getID(), "renderDistance", (float)HORIZONTAL_RENDER_DISTANCE);
 	shaders.setUniform((*shaders[2])->getID(), "inWater", inWater);
-	shaders.setUniform((*shaders[2])->getID(), "flashlightOn", FLASHLIGHT_ON);
+	shaders.setUniform((*shaders[2])->getID(), "flashlightOn", player.HaveFlashlight());
 	shaders.setUniform((*shaders[2])->getID(), "spView", camera.getViewMatrix());
 	shaders.setUniform((*shaders[2])->getID(), "spProj", camera.getProjectionMatrix());
 	shaders.setUniform((*shaders[2])->getID(), "lpMat", shadowMapCam.getProjectionMatrix() * shadowMapCam.getViewMatrix());

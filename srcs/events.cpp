@@ -36,34 +36,154 @@ static inline bool MouseButtonPressedOnce(GLFWwindow *window, int button) {
 
 #pragma endregion
 
+static bool isColliding(Player &player, VoxelSystem &voxelSystem) {
+	if (!player.HaveNoclip()) {
+		AABB box = player.getCameraBox();
+
+		array<vec3, 12> corners = {
+			vec3(box.min.x, box.min.y, box.min.z),
+			vec3(box.max.x, box.min.y, box.min.z),
+			vec3(box.min.x, box.max.y, box.min.z),
+			vec3(box.max.x, box.max.y, box.min.z),
+			vec3(box.min.x, box.min.y, box.max.z),
+			vec3(box.max.x, box.min.y, box.max.z),
+			vec3(box.min.x, box.max.y, box.max.z),
+			vec3(box.max.x, box.max.y, box.max.z),
+			vec3(box.min.x, (box.min.y + box.max.y) / 2 , box.min.z),
+			vec3(box.max.x, (box.min.y + box.max.y) / 2 , box.min.z),
+			vec3(box.min.x, (box.min.y + box.max.y) / 2 , box.max.z),
+			vec3(box.max.x, (box.min.y + box.max.y) / 2 , box.max.z)
+		};
+		for (const auto& corner : corners) {
+			uint8_t block = voxelSystem.getBlockAt(floor(corner));
+			if (block != 0 && block != WATER) // Skip air and water
+				return true;
+		}
+	}
+	return false;
+}
+
+static bool playerInWater(Player &player, VoxelSystem &voxelSystem) {
+	AABB box = player.getCameraBox();
+
+	array<vec3, 12> corners = {
+		vec3(box.min.x, box.min.y, box.min.z),
+		vec3(box.max.x, box.min.y, box.min.z),
+		vec3(box.min.x, box.max.y, box.min.z),
+		vec3(box.max.x, box.max.y, box.min.z),
+		vec3(box.min.x, box.min.y, box.max.z),
+		vec3(box.max.x, box.min.y, box.max.z),
+		vec3(box.min.x, box.max.y, box.max.z),
+		vec3(box.max.x, box.max.y, box.max.z),
+		vec3(box.min.x, (box.min.y + box.max.y) / 2 , box.min.z),
+		vec3(box.max.x, (box.min.y + box.max.y) / 2 , box.min.z),
+		vec3(box.min.x, (box.min.y + box.max.y) / 2 , box.max.z),
+		vec3(box.max.x, (box.min.y + box.max.y) / 2 , box.max.z)
+	};
+	for (const auto& corner : corners) {
+		uint8_t block = voxelSystem.getBlockAt(floor(corner));
+		if (block == WATER) // Water block
+			return true;
+	}
+	return false;
+}
+
 // Handle the camera movements/interactions
-static vec3	cameraMovement(Window &window, Camera &camera) {
-	CameraInfo	cameraInfo = camera.getCameraInfo();
+static void	cameraMovement(GameData &gameData) {
+	Player		&player = gameData.player;
+	Window		&window = gameData.window;
+	VoxelSystem	&voxelSystem = gameData.voxelSystem;
+	CameraInfo	cameraInfo = player.getCamera().getCameraInfo();
 
 	# pragma region Camera controls
+
 	vec3	cameraFront = cameraInfo.lookAt - cameraInfo.position;
 	vec3	cameraRight = normalize(cross(cameraFront, cameraInfo.up));
 	cameraFront.y = 0; cameraRight.y = 0; // Remove the Y axis
 	cameraFront = normalize(cameraFront);
 	cameraRight = normalize(cameraRight);
 
-	const float camSpeed = (CAMERA_SPEED + (CAMERA_SPRINT_BOOST * (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS))) * window.getFrameTime();
+	const float camSpeed = (CAMERA_SPEED + (CAMERA_SPRINT_BOOST * player.IsSprinting())) * window.getFrameTime();
+
+	if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+		player.setSprinting(true);
 
 	vec3 move = vec3(0);
 	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) move += cameraFront;
 	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) move -= cameraFront;
 	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) move -= cameraRight;
 	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) move += cameraRight;
-	if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) move += cameraInfo.up;
-	if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) move -= cameraInfo.up;
+	if (!player.HaveNoclip() && (player.CanJump() || playerInWater(player, voxelSystem)) && glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
+		player.setCanJump(false);
+		player.setIsFalling(false);
+		player.setGravity(GRAVITY_MAX);
+	}
+	else if (player.HaveNoclip() && glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+		move += cameraInfo.up;
+	if ((player.HaveNoclip() || playerInWater(player, voxelSystem)) && glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+		move -= cameraInfo.up;
+
+	if (length(move) == 0.0f) // No movement
+		player.setSprinting(false);
 
 	if (length(move) > 1.0f)
 		move = normalize(move);
 
-	cameraInfo.position += move * camSpeed;
+	vec3 translation = move * camSpeed;
+
+	if (!player.HaveNoclip()) translation *= 0.25f; // 75% slower when not in noclip mode  
+	if (!player.HaveNoclip()) translation.y += player.getGravity();
+	if (playerInWater(player, voxelSystem)) {
+		translation.x *= 0.40f; // 60% slower in water
+		translation.y *= 0.20f; // 80% slower in water on Y axis
+		translation.z *= 0.40f; // 60% slower in water
+	}
+
+	bool hasCollided = false;
+
+	// Try move on Y
+	player.translate(vec3(0, translation.y, 0));
+	if (isColliding(player, voxelSystem)) {
+		player.translate(vec3(0, -translation.y, 0));
+		hasCollided = true;
+		player.setGravity(0.0f); // landed
+	}
+	// Try move on X
+	player.translate(vec3(translation.x, 0, 0));
+	if (isColliding(player, voxelSystem)) {
+		player.translate(vec3(-translation.x, 0, 0));
+		hasCollided = true;
+	}
+	// Try move on Z
+	player.translate(vec3(0, 0, translation.z));
+	if (isColliding(player, voxelSystem)) {
+		player.translate(vec3(0, 0, -translation.z));
+		hasCollided = true;
+	}
+	
+	// Gravity handling
+	if (!player.HaveNoclip()) {
+		if (playerInWater(player, voxelSystem)) { // In water
+			player.setCanJump(true);
+			player.setIsFalling(true);
+		}
+		else if (!hasCollided) { // Falling
+			player.setCanJump(false);
+			player.setIsFalling(true);
+		}
+		else if (hasCollided && !playerInWater(player, voxelSystem)) { // Landed
+			player.setCanJump(true);
+			player.setIsFalling(false);
+			player.setGravity(0.0f);
+		}
+	}
+
 	# pragma endregion
 
+	cameraInfo = player.getCamera().getCameraInfo(); // Refresh camera info after potential movement
+
 	# pragma region Mouse
+
 	double mouseX, mouseY;
 	glfwGetCursorPos(window, &mouseX, &mouseY);
 
@@ -78,37 +198,62 @@ static vec3	cameraMovement(Window &window, Camera &camera) {
 		sin(radians(angles.x)) * cos(radians(angles.y))
 	};
 
-	cameraInfo.lookAt = cameraInfo.position + cameraDir;
-
 	glfwSetCursorPos(window, (float)WINDOW_WIDTH / 2, (float)WINDOW_HEIGHT / 2);
+
+	player.getCamera().setLookAt(cameraInfo.position + cameraDir);
+
 	# pragma endregion
-	
-	camera.setCameraInfo(cameraInfo);
-	return normalize(cameraDir);
 }
 
 // Handle the inputs for the game
 static void inputs(GameData &gameData) {
-	VoxelSystem &voxelSystem = gameData.voxelSystem;
-	Window 		&window 	 = gameData.window;
-	Camera 		&camera 	 = gameData.camera;
+	VoxelSystem 	&voxelSystem = gameData.voxelSystem;
+	Window 			&window 	 = gameData.window;
+	ShaderHandler	&shaders	 = gameData.shaders;
+	Player			&player		 = gameData.player;
 
-	// Delete a chunk, F key
-	if (keyPressedOnce(window, GLFW_KEY_F)) {
-		vec3 camPos = camera.getCameraInfo().position;
-		ivec3 chunkPos = ivec3(
-			camPos.z / CHUNK_SIZE,
-			camPos.y / CHUNK_SIZE,
-			camPos.x / CHUNK_SIZE
-		);
-		voxelSystem.requestChunk({ChunkRequest{chunkPos, ChunkAction::DELETE}});
-		if (VERBOSE)
-			cout << "Deleting chunk at worldPos : " << chunkPos.x << " " << chunkPos.y << " " << chunkPos.z << endl;
+	// Close the window
+	if (keyPressedOnce(window, GLFW_KEY_ESCAPE))
+		glfwSetWindowShouldClose(window, true);
+
+	// Recompile shaders
+	if (keyPressedOnce(window, GLFW_KEY_P)) {
+		cout << "Recompiling shaders...\n";
+		(*shaders[0])->recompile();
+		(*shaders[1])->recompile();
+		(*shaders[2])->recompile();
+		(*shaders[3])->recompile();
+		(*shaders[4])->recompile();
+		(*shaders[5])->recompile();
+		cout << "Shaders recompiled\n";
 	}
 
-	// Destroy a block, left click
-	if (MouseButtonPressedOnce(window, GLFW_MOUSE_BUTTON_LEFT)) {
+	// Destroy a block
+	if (MouseButtonPressedOnce(window, GLFW_MOUSE_BUTTON_LEFT))
 		voxelSystem.tryDestroyBlock();
+
+	// Flashlight
+	if (keyPressedOnce(window, GLFW_KEY_F)) {
+		player.setFlashlight(!player.HaveFlashlight());
+		if (VERBOSE)
+			cout << "Flashlight " << (player.HaveFlashlight() ? "ON" : "OFF") << endl;
+	}
+
+	// Noclip mode
+	if (keyPressedOnce(window, GLFW_KEY_N)) {
+		player.setNoclip(!player.HaveNoclip());
+		player.setCanJump(false);
+		player.setIsFalling(true);
+		player.setGravity(0.0f);
+		if (VERBOSE)
+			cout << "Noclip mode " << (player.HaveNoclip() ? "ON" : "OFF") << endl;
+	}
+
+	// Polygon mode
+	if (keyPressedOnce(window, GLFW_KEY_L)) {
+		POLYGON = !POLYGON;
+		if (VERBOSE)
+			cout << "Polygon mode " << (POLYGON ? "ON" : "OFF") << endl;
 	}
 }
 
@@ -179,36 +324,42 @@ static void dynamicChunkLoading(VoxelSystem &voxelSystem, const CameraInfo &camI
 void	handleEvents(GameData &gameData) {
 	Window			&window  = gameData.window;
 	ShaderHandler	&shaders = gameData.shaders;
-	Camera			&camera  = gameData.camera;
+	Player			&player  = gameData.player;
+	Camera			&camera  = player.getCamera();
 	Camera			&shadowMapCam = gameData.shadowMapCam;
 
-	static float time = 20; time += 0.001 * window.getFrameTime(); // Start at early daytime
-	static bool		flashlightOn = false;
+	static float	time = 20; // Start at early daytime
 
-	if (keyPressedOnce(window, GLFW_KEY_P)) {
-		std::cout << "recompiling\n";
-		(*shaders[0])->recompile();
-		(*shaders[1])->recompile();
-		(*shaders[2])->recompile();
-		(*shaders[3])->recompile();
-		(*shaders[4])->recompile();
+	// Simulation pause if the window is not focused
+	if (window.isFocused()) {
+		time += 0.001 * window.getFrameTime();
+
+		// Gravity update
+		if (!player.HaveNoclip() && player.IsFalling()) {
+			float targetGravity = glm::clamp(
+				(float)(player.getGravity() - GRAVITY_STRENGTH * window.getFrameTime()),
+				GRAVITY_MIN,
+				GRAVITY_MAX
+			);
+
+			float smoothing = 10.0f;
+			float newGravity = glm::mix(
+				player.getGravity(), // current
+				targetGravity,       // target
+				1.0f - exp(-smoothing * window.getFrameTime()) // framerate independent lerp
+			);
+
+			player.setGravity(newGravity);
+		}
+
+		inputs(gameData);
+		cameraMovement(gameData);
+		dynamicChunkLoading(gameData.voxelSystem, camera.getCameraInfo());
 	}
 
-	if (keyPressedOnce(window, GLFW_KEY_F))
-		flashlightOn = (flashlightOn) ? false : true;
-
-	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-		glfwSetWindowShouldClose(window, true);
-
-	glm::vec3	camDir = cameraMovement(window, camera);
-	inputs(gameData);
-	dynamicChunkLoading(gameData.voxelSystem, camera.getCameraInfo());
-
 	// Skybox Shader parameters
-	float		dayDuration = 10;
-	vec2		angles = {(time / dayDuration) * M_PI, 25.0f};
-	// vec3		sunPos = normalize(vec3(cos(angle), sin(angle), 0.0f));
-
+	float	dayDuration = 10;
+	vec2	angles = {(time / dayDuration) * M_PI, 25.0f};
 	vec3	sunPos {
 		cos(radians(angles.x)) * cos(radians(angles.y)),
 		sin(radians(angles.x)) * cos(radians(angles.y)),
@@ -235,15 +386,11 @@ void	handleEvents(GameData &gameData) {
 	shaders.setUniform((*shaders[1])->getID(), "polygonVisible", POLYGON);
 	shaders.setUniform((*shaders[1])->getID(), "camPos", camPos);
 
-	// Shadow Mapping Pass Shader parameters
-	shaders.setUniform((*shaders[3])->getID(), "projection", shadowMapCam.getProjectionMatrix());
-	shaders.setUniform((*shaders[3])->getID(), "view", shadowMapCam.getViewMatrix());
-
 	// Lighting Pass Shader Parameters
 	shaders.setUniform((*shaders[2])->getID(), "camPos", camPos);
 	shaders.setUniform((*shaders[2])->getID(), "renderDistance", (float)HORIZONTAL_RENDER_DISTANCE);
 	shaders.setUniform((*shaders[2])->getID(), "inWater", inWater);
-	shaders.setUniform((*shaders[2])->getID(), "flashlightOn", flashlightOn);
+	shaders.setUniform((*shaders[2])->getID(), "flashlightOn", player.HaveFlashlight());
 	shaders.setUniform((*shaders[2])->getID(), "spView", camera.getViewMatrix());
 	shaders.setUniform((*shaders[2])->getID(), "spProj", camera.getProjectionMatrix());
 	shaders.setUniform((*shaders[2])->getID(), "lpMat", shadowMapCam.getProjectionMatrix() * shadowMapCam.getViewMatrix());
@@ -256,6 +403,11 @@ void	handleEvents(GameData &gameData) {
 	shaders.setUniform((*shaders[2])->getID(), "shadowMap", 4);
 	shaders.setUniform((*shaders[2])->getID(), "screenSize", vec2(WINDOW_WIDTH, WINDOW_HEIGHT));
 
+	// Shadow Mapping Pass Shader parameters
+	shaders.setUniform((*shaders[3])->getID(), "projection", shadowMapCam.getProjectionMatrix());
+	shaders.setUniform((*shaders[3])->getID(), "view", shadowMapCam.getViewMatrix());
+
+	// Post Processing Pass Shader Parameters
 	shaders.setUniform((*shaders[4])->getID(), "time", time);
 	shaders.setUniform((*shaders[4])->getID(), "postProcBuffer", 0);
 	shaders.setUniform((*shaders[4])->getID(), "depthBuffer", 1);
@@ -263,6 +415,12 @@ void	handleEvents(GameData &gameData) {
 	shaders.setUniform((*shaders[4])->getID(), "view", camera.getViewMatrix());
 	shaders.setUniform((*shaders[4])->getID(), "sunPos", sunPos);
 	shaders.setUniform((*shaders[4])->getID(), "camPos", camPos);
-	shaders.setUniform((*shaders[4])->getID(), "camDir", camDir);
+	shaders.setUniform((*shaders[4])->getID(), "camDir", camera.getCameraInfo().lookAt - camera.getCameraInfo().position);
 	shaders.setUniform((*shaders[4])->getID(), "screenSize", vec2(WINDOW_WIDTH, WINDOW_HEIGHT));
+
+	// Bounding box (for debug)
+	if (POLYGON) {
+		shaders.setUniform((*shaders[5])->getID(), "view", camera.getViewMatrix());
+		shaders.setUniform((*shaders[5])->getID(), "projection", camera.getProjectionMatrix());
+	}
 }

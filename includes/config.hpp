@@ -25,11 +25,13 @@
 # include "Profiler.hpp"
 # include "SkyBox.hpp"
 # include "Camera.hpp"
+# include "BoundingBox.hpp"
 # include "color.h"
 
-/// Custom includes (*.hpp & *.tpp)
+/// Custom includes
 # include "VoxelSystem.hpp"
 # include "CloudSystem.hpp"
+# include "Player.hpp"
 
 /// Global variables
 using namespace std;
@@ -49,9 +51,9 @@ typedef struct GameData {
 	VoxelSystem		&voxelSystem;
 	CloudSystem		&cloudSystem;
 	SkyBox			&skybox;
-	Camera			&camera;
 	Camera			&shadowMapCam;
 	RenderData		&renderDatas;
+	Player			&player;
 } GameData;
 
 /// Functions

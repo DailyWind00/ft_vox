@@ -40,7 +40,7 @@ static bool isColliding(Player &player, VoxelSystem &voxelSystem) {
 	if (!player.HaveNoclip()) {
 		AABB box = player.getCameraBox();
 
-		array<vec3, 8> corners = {
+		array<vec3, 12> corners = {
 			vec3(box.min.x, box.min.y, box.min.z),
 			vec3(box.max.x, box.min.y, box.min.z),
 			vec3(box.min.x, box.max.y, box.min.z),
@@ -48,7 +48,11 @@ static bool isColliding(Player &player, VoxelSystem &voxelSystem) {
 			vec3(box.min.x, box.min.y, box.max.z),
 			vec3(box.max.x, box.min.y, box.max.z),
 			vec3(box.min.x, box.max.y, box.max.z),
-			vec3(box.max.x, box.max.y, box.max.z)
+			vec3(box.max.x, box.max.y, box.max.z),
+			vec3(box.min.x, (box.min.y + box.max.y) / 2 , box.min.z),
+			vec3(box.max.x, (box.min.y + box.max.y) / 2 , box.min.z),
+			vec3(box.min.x, (box.min.y + box.max.y) / 2 , box.max.z),
+			vec3(box.max.x, (box.min.y + box.max.y) / 2 , box.max.z)
 		};
 		for (const auto& corner : corners) {
 			uint8_t block = voxelSystem.getBlockAt(floor(corner));
@@ -62,7 +66,7 @@ static bool isColliding(Player &player, VoxelSystem &voxelSystem) {
 static bool playerInWater(Player &player, VoxelSystem &voxelSystem) {
 	AABB box = player.getCameraBox();
 
-	array<vec3, 8> corners = {
+	array<vec3, 12> corners = {
 		vec3(box.min.x, box.min.y, box.min.z),
 		vec3(box.max.x, box.min.y, box.min.z),
 		vec3(box.min.x, box.max.y, box.min.z),
@@ -70,7 +74,11 @@ static bool playerInWater(Player &player, VoxelSystem &voxelSystem) {
 		vec3(box.min.x, box.min.y, box.max.z),
 		vec3(box.max.x, box.min.y, box.max.z),
 		vec3(box.min.x, box.max.y, box.max.z),
-		vec3(box.max.x, box.max.y, box.max.z)
+		vec3(box.max.x, box.max.y, box.max.z),
+		vec3(box.min.x, (box.min.y + box.max.y) / 2 , box.min.z),
+		vec3(box.max.x, (box.min.y + box.max.y) / 2 , box.min.z),
+		vec3(box.min.x, (box.min.y + box.max.y) / 2 , box.max.z),
+		vec3(box.max.x, (box.min.y + box.max.y) / 2 , box.max.z)
 	};
 	for (const auto& corner : corners) {
 		uint8_t block = voxelSystem.getBlockAt(floor(corner));

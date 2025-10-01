@@ -1,14 +1,9 @@
 /// class idependant system includes
 # include <iostream>
-# include <mutex>
 
 # include "ChunkImpl.hpp"
 # include "Noise.hpp"
 # include "features_declaration.h"
-
-std::list<std::pair<glm::ivec3, WorldFeature> >	g_pendingFeatures;
-
-std::mutex	g_pendingFeaturesMutex;
 
 extern bool	NO_CAVES;
 
@@ -119,8 +114,8 @@ static float *	_computeHeightMap(const glm::ivec3 &pos) {
 		else
 			factor = factor * 0.2;
 
-		factor += Noise::perlin2D(glm::vec2{(pos.x + (i % CHUNK_WIDTH)) / 4096,
-				(pos.z+ ((float)i / CHUNK_WIDTH)) / 4096}) * 512;
+		factor += Noise::perlin2D(glm::vec2{(pos.x + (i % CHUNK_WIDTH)) / 2048,
+				(pos.z+ ((float)i / CHUNK_WIDTH)) / 2048}) * 512;
 
 		factors[i] = factor;
 	}

@@ -41,7 +41,7 @@ class Camera {
 		glm::mat4		_viewMatrix;
 		glm::mat4		_projectionMatrix;
 
-		ProjectionType	_type = ProjectionType::PERSPECTIVE;
+		ProjectionType	_type;
 
 		/// Private functions
 

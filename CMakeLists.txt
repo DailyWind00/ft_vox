@@ -21,17 +21,19 @@ add_executable(ft_vox
 	framework/classes/SkyBox.cpp
 	framework/classes/PMapBufferGL.cpp
 	framework/classes/BufferGL.cpp
+	framework/classes/BoundingBox.cpp
 
 	# Includes
-	includes/classes/VoxelSystem.cpp
 	includes/classes/CloudSystem.cpp
-	includes/classes/ChunkGeneration.cpp
-	includes/classes/MeshGeneration.cpp
-	includes/classes/MeshBGM.cpp
+	includes/classes/Player.cpp
 	includes/classes/Chunks/AChunk.cpp
 	includes/classes/Chunks/ChunkImpl.cpp
 	includes/classes/Chunks/ChunkMesh.cpp
 	includes/classes/Chunks/ChunkHandler.cpp
+	includes/classes/VoxelSystem/VoxelSystem.cpp
+	includes/classes/VoxelSystem/ChunkGeneration.cpp
+	includes/classes/VoxelSystem/MeshGeneration.cpp
+	includes/classes/VoxelSystem/MeshBGM.cpp
 
 	# Structure Definitions
 	assets/structures/features_definitions.cpp
@@ -50,6 +52,7 @@ target_include_directories(ft_vox PRIVATE
 	${CMAKE_SOURCE_DIR}/includes
 	${CMAKE_SOURCE_DIR}/includes/classes
 	${CMAKE_SOURCE_DIR}/includes/classes/Chunks
+	${CMAKE_SOURCE_DIR}/includes/classes/VoxelSystem
 	assets/structures/
 )
 

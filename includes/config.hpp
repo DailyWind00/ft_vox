@@ -8,7 +8,7 @@
 # define WINDOW_HEIGHT 1080
 # define SHADOW_RESOLUTION	2048.0f
 # define SHADOW_FRUSTUM_SIZE	256.0f
-# define CAMERA_SPEED  0.02f
+# define CAMERA_SPEED  0.01f
 # define CAMERA_SPRINT_BOOST  0.05f
 # define CAMERA_SENSITIVITY  0.015f
 
@@ -25,11 +25,13 @@
 # include "Profiler.hpp"
 # include "SkyBox.hpp"
 # include "Camera.hpp"
+# include "BoundingBox.hpp"
 # include "color.h"
 
-/// Custom includes (*.hpp & *.tpp)
+/// Custom includes
 # include "VoxelSystem.hpp"
 # include "CloudSystem.hpp"
+# include "Player.hpp"
 
 /// Global variables
 using namespace std;
@@ -49,9 +51,9 @@ typedef struct GameData {
 	VoxelSystem		&voxelSystem;
 	CloudSystem		&cloudSystem;
 	SkyBox			&skybox;
-	Camera			&camera;
 	Camera			&shadowMapCam;
 	RenderData		&renderDatas;
+	Player			&player;
 } GameData;
 
 /// Functions

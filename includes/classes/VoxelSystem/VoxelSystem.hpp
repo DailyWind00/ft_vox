@@ -15,6 +15,7 @@
 # define MIN_LOD (size_t)4
 # define MAX_LOD (size_t)1
 # define PLAYER_REACH 8 // in blocks
+# define WATER 9
 
 /// System includes
 # include <iostream>

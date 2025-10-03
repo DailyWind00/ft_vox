@@ -381,15 +381,6 @@ static bool isChunkInFrustrum(ivec3 chunkWorldPos, array<vec4, 6> &frustumPlanes
 
 // Draw all chunks
 const GeoFrameBuffers	&VoxelSystem::renderGeometryPass(ShaderHandler &shader) {
-	// Delete old meshes if needed
-	if (_meshesToDelete.size() && _meshesToDeleteMutex.try_lock()) {
-		for (ChunkMesh *mesh : _meshesToDelete)
-			if (mesh)
-				delete mesh;
-		_meshesToDelete.clear();
-		_meshesToDeleteMutex.unlock();
-	}
-
 	// Bind the gBuffer
 	glBindFramebuffer(GL_FRAMEBUFFER, _gBuffer.gBuffer);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -413,8 +404,12 @@ const GeoFrameBuffers	&VoxelSystem::renderGeometryPass(ShaderHandler &shader) {
 	// Draw all chunks
 	for (MeshMap::iterator it = _meshes.begin(); it != _meshes.end(); it++)
 	{
-		if (!it->second.mesh || !isChunkInFrustrum(it->first, frustumPlanes) || distance((vec3)it->first, (vec3)camPos) > VERTICAL_RENDER_DISTANCE)
+		if (!it->second.mesh || !isChunkInFrustrum(it->first, frustumPlanes) || distance((vec3)it->first, (vec3)camPos) > HORIZONTAL_RENDER_DISTANCE)
 			continue ;
+
+		// Draw the chunk
+		if (!it->second.mesh->getVAO() || !it->second.mesh->getWaterVAO())
+			it->second.mesh->updateMesh();
 
 		// Draw the chunk
 		if (!it->second.mesh->getVAO())
@@ -428,11 +423,7 @@ const GeoFrameBuffers	&VoxelSystem::renderGeometryPass(ShaderHandler &shader) {
 
 	glDisable(GL_CULL_FACE);
 	for (MeshMap::iterator it = _meshes.begin(); it != _meshes.end(); it++) {
-		if (!it->second.mesh || !isChunkInFrustrum(it->first, frustumPlanes) || distance((vec3)it->first, (vec3)camPos) > VERTICAL_RENDER_DISTANCE)
-			continue ;
-
-		// Draw the chunk
-		if (!it->second.mesh->getWaterVAO())
+		if (!it->second.mesh || !isChunkInFrustrum(it->first, frustumPlanes) || distance((vec3)it->first, (vec3)camPos) > HORIZONTAL_RENDER_DISTANCE)
 			continue ;
 
 		vec3	wPos = it->first;
@@ -450,6 +441,15 @@ const GeoFrameBuffers	&VoxelSystem::renderGeometryPass(ShaderHandler &shader) {
 
 // Draw all chunks
 const ShadowMappingData	&VoxelSystem::renderShadowMapPass(ShaderHandler &shader) {
+	// Delete old meshes if needed
+	if (_meshesToDelete.size() && _meshesToDeleteMutex.try_lock()) {
+		for (ChunkMesh *mesh : _meshesToDelete)
+			if (mesh)
+				delete mesh;
+		_meshesToDelete.clear();
+		_meshesToDeleteMutex.unlock();
+	}
+
 	// Bind the gBuffer
 	glBindFramebuffer(GL_FRAMEBUFFER, _shadowMapData.depthMapFBO);
 	glClear(GL_DEPTH_BUFFER_BIT);
@@ -471,8 +471,8 @@ const ShadowMappingData	&VoxelSystem::renderShadowMapPass(ShaderHandler &shader)
 			continue ;
 
 		// Draw the chunk
-		if (!it->second.mesh->getVAO() || !it->second.mesh->getWaterVAO())
-			it->second.mesh->updateMesh();
+		if (!it->second.mesh->getWaterVAO())
+			continue ;
 
 		vec3	wPos = it->first;
 		shader.setUniform((*shader[3])->getID(), "worldPos", wPos);

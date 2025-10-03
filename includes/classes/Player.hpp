@@ -2,8 +2,8 @@
 
 /// Defines
 # define GRAVITY_STRENGTH 0.0005f
-# define GRAVITY_MAX     0.25f
-# define GRAVITY_MIN    -1.0f
+# define GRAVITY_MAX     0.095f
+# define GRAVITY_MIN    -0.35f
 
 /// Dependencies
 # include "BoundingBox.hpp"

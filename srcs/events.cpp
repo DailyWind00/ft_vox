@@ -103,7 +103,7 @@ static void	cameraMovement(GameData &gameData) {
 	cameraFront = normalize(cameraFront);
 	cameraRight = normalize(cameraRight);
 
-	const float camSpeed = (CAMERA_SPEED + (player.HaveNoclip() * 0.5 * CAMERA_SPRINT_BOOST * player.IsSprinting())) * window.getFrameTime();
+	const float camSpeed = (CAMERA_SPEED + ((CAMERA_SPRINT_BOOST * (0.45 + 0.55 * (player.HaveNoclip()))) * player.IsSprinting())) * window.getFrameTime();
 
 	if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
 		player.setSprinting(true);
@@ -275,28 +275,30 @@ static void dynamicChunkLoading(VoxelSystem &voxelSystem, const CameraInfo &camI
 	horRequestDistance = glm::clamp(horRequestDistance, 0, HORIZONTAL_RENDER_DISTANCE - 1);
 	vertRequestDistance = glm::clamp(vertRequestDistance, 0, VERTICAL_RENDER_DISTANCE);
 	if (chunkPos == lastChunkPos) {
-		if (horRequestDistance >= HORIZONTAL_RENDER_DISTANCE || vertRequestDistance >= VERTICAL_RENDER_DISTANCE)
-			return ;
-		for (int i = -horRequestDistance; i <= horRequestDistance; i++) {
-			for (int j = -vertRequestDistance; j < vertRequestDistance; j++) {
-				chunkRequests.push_back({{i + chunkPos.x, j + chunkPos.y, -horRequestDistance + chunkPos.z}, ChunkAction::CREATE_UPDATE});
-				chunkRequests.push_back({{i + chunkPos.x, j + chunkPos.y, horRequestDistance + chunkPos.z}, ChunkAction::CREATE_UPDATE});
-				chunkRequests.push_back({{-horRequestDistance + chunkPos.x, j + chunkPos.y, i + chunkPos.z}, ChunkAction::CREATE_UPDATE});
-				chunkRequests.push_back({{horRequestDistance + chunkPos.x, j + chunkPos.y, i + chunkPos.z}, ChunkAction::CREATE_UPDATE});
+		if (horRequestDistance < HORIZONTAL_RENDER_DISTANCE) {
+			for (int i = -horRequestDistance; i <= horRequestDistance; i++) {
+				for (int j = -vertRequestDistance; j < vertRequestDistance; j++) {
+					chunkRequests.push_back({{i + chunkPos.x, j + chunkPos.y, -horRequestDistance + chunkPos.z}, ChunkAction::CREATE_UPDATE});
+					chunkRequests.push_back({{i + chunkPos.x, j + chunkPos.y, horRequestDistance + chunkPos.z}, ChunkAction::CREATE_UPDATE});
+					chunkRequests.push_back({{-horRequestDistance + chunkPos.x, j + chunkPos.y, i + chunkPos.z}, ChunkAction::CREATE_UPDATE});
+					chunkRequests.push_back({{horRequestDistance + chunkPos.x, j + chunkPos.y, i + chunkPos.z}, ChunkAction::CREATE_UPDATE});
+				}
 			}
+			horRequestDistance++;
 		}
-		for (int i = -horRequestDistance; i <= horRequestDistance; i++) {
-			for (int j = -horRequestDistance; j < horRequestDistance; j++) {
-				chunkRequests.push_back({{i + chunkPos.x, -vertRequestDistance + chunkPos.y, j + chunkPos.z}, ChunkAction::CREATE_UPDATE});
-				chunkRequests.push_back({{i + chunkPos.x, vertRequestDistance + chunkPos.y, j + chunkPos.z}, ChunkAction::CREATE_UPDATE});
+		if (vertRequestDistance < VERTICAL_RENDER_DISTANCE) {
+			for (int i = -horRequestDistance; i <= horRequestDistance; i++) {
+				for (int j = -horRequestDistance; j < horRequestDistance; j++) {
+					chunkRequests.push_back({{i + chunkPos.x, -vertRequestDistance + chunkPos.y, j + chunkPos.z}, ChunkAction::CREATE_UPDATE});
+					chunkRequests.push_back({{i + chunkPos.x, vertRequestDistance + chunkPos.y, j + chunkPos.z}, ChunkAction::CREATE_UPDATE});
+				}
 			}
+			vertRequestDistance++;
 		}
-		horRequestDistance++;
-		vertRequestDistance++;
 	}
 	else {
 		horRequestDistance -= abs(lastChunkPos.y - chunkPos.y) + abs(lastChunkPos.x - chunkPos.x) + abs(lastChunkPos.z - chunkPos.z);
-		vertRequestDistance -= abs(lastChunkPos.y - chunkPos.y) + abs(lastChunkPos.x - chunkPos.x) + abs(lastChunkPos.z - chunkPos.z);
+		vertRequestDistance -= abs(lastChunkPos.y - chunkPos.y) + abs(lastChunkPos.x - chunkPos.x) + abs(lastChunkPos.z - chunkPos.z) / 2;
 	}
 	
 	// Updating last chunk position to current

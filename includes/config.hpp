@@ -9,7 +9,7 @@
 # define SHADOW_RESOLUTION	2048.0f
 # define SHADOW_FRUSTUM_SIZE	256.0f
 # define CAMERA_SPEED  0.01f
-# define CAMERA_SPRINT_BOOST  0.05f
+# define CAMERA_SPRINT_BOOST  0.0275f
 # define CAMERA_SENSITIVITY  0.015f
 
 /// System includes

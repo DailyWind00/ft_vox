@@ -140,14 +140,15 @@ vec3	computeLighting(const vec3 texCol, const vec3 Normal, const float shadow, c
 		colorModifier = vec3(0.35, 0.55, 0.75f);
 	
 	vec3	skyCol = getSkyGradient(vec3(1.0), sunPos.y);
-	vec3	Color = pow(clampedSunHeight, 0.7) * texCol + (1.0f - pow(clampedSunHeight, 0.7)) * skyCol * colorModifier;
-	vec3	ambColor = Color.rgb * max(0.4, attenuation);
+	// vec3	Color = pow(clampedSunHeight, 0.7) * texCol + (1.0f - pow(clampedSunHeight, 0.7)) * skyCol * colorModifier;
+	vec3	Color = texCol * skyCol * colorModifier;
+	vec3	ambColor = Color * max(0.4, attenuation);
 
 	float	diffuseSun = max(dot(Normal.rgb, sunPos), 0.0) * pow(sunPos.y, 1.2);
 	float	diffuseMoon = max(dot(Normal.rgb, -sunPos), 0.0) * pow(-sunPos.y, 3);
 
 
-	vec3	diffColor = max(diffuseSun, diffuseMoon) * Color.rgb;
+	vec3	diffColor = max(diffuseSun, diffuseMoon) * Color;
 	vec3	shadowCol = vec3(1.0 - shadow + 0.2);
 
 
@@ -174,7 +175,7 @@ void	main() {
 	vec3	lightColor = computeLighting(texCol, Normal.rgb, shadow, fragPos.rgb);
 
 	// Distance fog
-	float	fogFactor = (inWater) ? clamp(computeFogFactor(-spFragPos.z, 1.0f / ((0.25 * renderDistance) * 16.0f)) * 8.0f, 0.0f, 0.9f) : computeFogFactor(-spFragPos.z, 1.0f / (renderDistance * 16.0f));
+	float	fogFactor = (inWater) ? clamp(computeFogFactor(-spFragPos.z, 1.0f / ((0.25 * renderDistance) * 16.0f)) * 8.0f, 0.0f, 0.9f) : computeFogFactor(-spFragPos.z, 1.0f / (renderDistance * 32.0f));
 
 	// Depth fog
 	float	gradientSteepness = (inWater) ? 64.0f : 1024.0f;

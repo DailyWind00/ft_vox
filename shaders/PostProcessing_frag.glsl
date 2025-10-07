@@ -344,10 +344,13 @@ void	main() {
 	color *= cloudRayMarching(filterdUV * 2.0 - 1.0);
 
 	// Contrast and brightness filtering
-	color = 2.85f * (color - 0.5f) + 0.5f + 0.45f;
+	color = 2.5f * (color - 0.5f) + 0.5f + 0.45f;
 
 	// Tone Mapping
 	color = vec3(1.0) - exp(-color * 1.05);
+
+	// Gamma Correction
+	color = pow(color, vec3(1.0 / 2.2));
 
 	ScreenColor = max(vec4(color, 1.0f), crosshair);
 }

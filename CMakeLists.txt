@@ -26,6 +26,7 @@ add_executable(ft_vox
 	# Includes
 	includes/classes/CloudSystem.cpp
 	includes/classes/Player.cpp
+	includes/classes/PlayerHand.cpp
 	includes/classes/Chunks/AChunk.cpp
 	includes/classes/Chunks/ChunkImpl.cpp
 	includes/classes/Chunks/ChunkMesh.cpp

@@ -32,14 +32,16 @@
 # include "VoxelSystem.hpp"
 # include "CloudSystem.hpp"
 # include "Player.hpp"
+# include "PlayerHand.hpp"
 
 /// Global variables
 using namespace std;
 using namespace glm;
 
-extern bool VERBOSE;
-extern bool SHOW_TOOLTIP;
-extern bool POLYGON;
+extern ivec2	scrollOff;
+extern bool	VERBOSE;
+extern bool	SHOW_TOOLTIP;
+extern bool	POLYGON;
 
 typedef struct {
 	GLuint		renderQuadVAO;
@@ -54,6 +56,7 @@ typedef struct GameData {
 	Camera			&shadowMapCam;
 	RenderData		&renderDatas;
 	Player			&player;
+	PlayerHand		&playerHand;
 } GameData;
 
 /// Functions
@@ -66,6 +69,7 @@ void	Rendering(Window &window, const uint64_t &seed);
 
 // events.cpp
 void	handleEvents(GameData &gameData);
+void	scrollCallback(GLFWwindow *window, double xOff, double yOff);
 
 // utils.cpp
 void	printControls();

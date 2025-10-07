@@ -18,7 +18,7 @@ void	VoxelSystem::_meshGenerationRoutine() {
 		deque<ChunkRequest>	localRequestedMeshes;
 		size_t			batchCount = 0;
 
-		for (; batchCount < MESH_BATCH_LIMIT / (int)(_cpuCoreCount / MESHGEN_CORE_RATIO) && _requestedMeshes.size(); batchCount++) {
+		for (; batchCount < MESH_BATCH_LIMIT && _requestedMeshes.size(); batchCount++) {
 			auto	tmp = _requestedMeshes.begin();
 
 			if (tmp == _requestedMeshes.end()) {

@@ -53,7 +53,7 @@ VoxelSystem::~VoxelSystem() {
 	_quitting = true;
 	for (uint32_t i = 0; i < (uint32_t)(_cpuCoreCount / CHUNKGEN_CORE_RATIO); i++)
 		_chunkGenerationThreads[i].join();
-	for (uint32_t i = 0; i < (uint32_t)(_cpuCoreCount / MESHGEN_CORE_RATIO); i++)
+	for (uint32_t i = 0; i < 1; i++)
 		_meshGenerationThread[i].join();
 	delete[] _chunkGenerationThreads;
 	delete[] _meshGenerationThread;
@@ -100,8 +100,8 @@ void	VoxelSystem::_initThreads() {
 		_chunkGenerationThreads[i] = thread(&VoxelSystem::_chunkGenerationRoutine, this);
 
 	// Start mesh generation thread
-	_meshGenerationThread = new thread[(int)(_cpuCoreCount / MESHGEN_CORE_RATIO)];
-	for (uint32_t i = 0; i < (uint32_t)(_cpuCoreCount / MESHGEN_CORE_RATIO); i++)
+	_meshGenerationThread = new thread[1];
+	for (uint32_t i = 0; i < 1; i++)
 		_meshGenerationThread[i] = thread(&VoxelSystem::_meshGenerationRoutine, this);
 }
 
@@ -283,13 +283,22 @@ void	VoxelSystem::findChunksToDelete(list<ChunkRequest> &requestReturnList) {
 	}
 }
 
+static ivec3	getLocalPos(const vec3 &pos) {
+	return {
+		(int)mod(pos.z, (float)CHUNK_SIZE),
+		(int)mod(pos.y, (float)CHUNK_SIZE),
+		(int)mod(pos.x, (float)CHUNK_SIZE)
+	};
+}
+
 /// @brief Try to destroy a block on where the currently set camera is looking at.
 /// @details Raycast a ray from the camera position to the lookAt position, until it hits a block or PLAYER_REACH is reached.
-void VoxelSystem::tryDestroyBlock() {
-	const CameraInfo &camInfo = _camera.getCameraInfo();
-	vec3 worldCamPos = toVoxelCoords(camInfo.position);
-	vec3 currentPos = toVoxelCoords(camInfo.position);
-	vec3 lookAt = toVoxelCoords(camInfo.lookAt);
+void VoxelSystem::tryPlaceDestroyBlock(const BlockAction &action, const uint8_t &id) {
+	const CameraInfo &	camInfo = _camera.getCameraInfo();
+	vec3	worldCamPos = toVoxelCoords(camInfo.position);
+	vec3	currentPos = toVoxelCoords(camInfo.position);
+	vec3	prevPos = currentPos;
+	vec3	lookAt = toVoxelCoords(camInfo.lookAt);
 	
 	do
 	{
@@ -307,16 +316,16 @@ void VoxelSystem::tryDestroyBlock() {
 			return ;
 
 		// Get the position of the current block in the chunk
-		ivec3 localPos = {
-			(int)mod(currentPos.z, (float)CHUNK_SIZE),
-			(int)mod(currentPos.y, (float)CHUNK_SIZE),
-			(int)mod(currentPos.x, (float)CHUNK_SIZE)
-		};
+		ivec3	prevLocalPos = getLocalPos(prevPos);
+		ivec3	currLocalPos = getLocalPos(currentPos);
 
 		// Check if there is a block at the current position
-		uint8_t blockID = BLOCK_AT(chunkData.chunk, localPos.x, localPos.y, localPos.z);
+		uint8_t blockID = BLOCK_AT(chunkData.chunk, currLocalPos.x, currLocalPos.y, currLocalPos.z);
 		if (blockID) {
-			ChunkHandler::setBlock(chunkData.chunk, localPos, 0);
+			if (action == BlockAction::DESTROY) 
+				ChunkHandler::setBlock(chunkData.chunk, currLocalPos, 0);
+			else if (action == BlockAction::PLACE) 
+				ChunkHandler::setBlock(chunkData.chunk, prevLocalPos, id);
 			requestMesh({{chunkPos, ChunkAction::CREATE_UPDATE}});
 
 			if (VERBOSE)
@@ -326,6 +335,7 @@ void VoxelSystem::tryDestroyBlock() {
 		}
 
 		// Move to the next position in the direction of the lookAt vector
+		prevPos = currentPos;
 		currentPos -= glm::normalize(worldCamPos - lookAt) * 0.1f;
 	}
 	while (distance(currentPos, worldCamPos) < PLAYER_REACH);

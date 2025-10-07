@@ -4,7 +4,7 @@
 # define GLM_ENABLE_EXPERIMENTAL
 # define DATA_TYPE uint64_t
 # define CHUNK_SIZE 32
-# define HORIZONTAL_RENDER_DISTANCE 32
+# define HORIZONTAL_RENDER_DISTANCE 16
 # define VERTICAL_RENDER_DISTANCE 8
 # define SPAWN_LOCATION_SIZE	3
 # define MESH_BATCH_LIMIT (size_t)512
@@ -80,6 +80,11 @@ enum class ChunkAction {
 };
 typedef pair<ivec3, ChunkAction> ChunkRequest; // Wpos, Action
 
+enum class BlockAction {
+	PLACE,
+	DESTROY
+};
+
 // This class is responsible for managing the voxel system 
 // It have 2 child threads: ChunkGeneration & MeshGeneration
 class VoxelSystem {
@@ -143,7 +148,7 @@ class VoxelSystem {
 		void	requestMesh (const list<ChunkRequest> &requests); // Todo : set private
 		void	findChunksToDelete(list<ChunkRequest> &requestReturnList);
 
-		void	tryDestroyBlock();
+		void	tryPlaceDestroyBlock(const BlockAction &action, const uint8_t &id);
 		uint8_t	getBlockAt(const glm::ivec3 &pos);
 		const GeoFrameBuffers &		renderGeometryPass(ShaderHandler &shader);
 		const ShadowMappingData &	renderShadowMapPass(ShaderHandler &shader);

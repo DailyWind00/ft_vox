@@ -1,5 +1,12 @@
 #include "config.hpp"
 
+ivec2	scrollOff = {0, 0};
+
+void	scrollCallback(GLFWwindow *window, double xOff, double yOff) {
+	(void)window;
+	scrollOff = {xOff, yOff};
+}
+
 #pragma region Keys Pressed Once
 
 // Check if a key is pressed once
@@ -224,9 +231,19 @@ static void inputs(GameData &gameData) {
 		cout << "Shaders recompiled\n";
 	}
 
+	// Select a new block if a scroll event appened
+	if (scrollOff.y != 0) {
+		gameData.playerHand.addToIndex(scrollOff.y);
+		scrollOff.y = 0;
+	}
+
+	// Place a block
+	if (MouseButtonPressedOnce(window, GLFW_MOUSE_BUTTON_RIGHT))
+		voxelSystem.tryPlaceDestroyBlock(BlockAction::PLACE, gameData.playerHand.getID());
+
 	// Destroy a block
 	if (MouseButtonPressedOnce(window, GLFW_MOUSE_BUTTON_LEFT))
-		voxelSystem.tryDestroyBlock();
+		voxelSystem.tryPlaceDestroyBlock(BlockAction::DESTROY, 0);
 
 	// Flashlight
 	if (keyPressedOnce(window, GLFW_KEY_F)) {
@@ -272,7 +289,7 @@ static void dynamicChunkLoading(VoxelSystem &voxelSystem, const CameraInfo &camI
 	if (voxelSystem.getChunkRequestCount() != 0)
 		return ;
 
-	horRequestDistance = glm::clamp(horRequestDistance, 0, HORIZONTAL_RENDER_DISTANCE - 1);
+	horRequestDistance = glm::clamp(horRequestDistance, 0, HORIZONTAL_RENDER_DISTANCE);
 	vertRequestDistance = glm::clamp(vertRequestDistance, 0, VERTICAL_RENDER_DISTANCE);
 	if (chunkPos == lastChunkPos) {
 		if (horRequestDistance < HORIZONTAL_RENDER_DISTANCE) {
@@ -297,8 +314,8 @@ static void dynamicChunkLoading(VoxelSystem &voxelSystem, const CameraInfo &camI
 		}
 	}
 	else {
-		horRequestDistance -= abs(lastChunkPos.y - chunkPos.y) + abs(lastChunkPos.x - chunkPos.x) + abs(lastChunkPos.z - chunkPos.z);
-		vertRequestDistance -= abs(lastChunkPos.y - chunkPos.y) + abs(lastChunkPos.x - chunkPos.x) + abs(lastChunkPos.z - chunkPos.z) / 2;
+		horRequestDistance = 1;
+		vertRequestDistance = 1;
 	}
 	
 	// Updating last chunk position to current
@@ -420,5 +437,15 @@ void	handleEvents(GameData &gameData) {
 	if (POLYGON) {
 		shaders.setUniform((*shaders[5])->getID(), "view", camera.getViewMatrix());
 		shaders.setUniform((*shaders[5])->getID(), "projection", camera.getProjectionMatrix());
+		shaders.setUniform((*shaders[5])->getID(), "gPosition", 0);
+		shaders.setUniform((*shaders[5])->getID(), "gNormal", 1);
+		shaders.setUniform((*shaders[5])->getID(), "gColor", 2);
 	}
+
+	// Player Hand
+	shaders.setUniform((*shaders[6])->getID(), "projection", camera.getProjectionMatrix());
+	shaders.setUniform((*shaders[6])->getID(), "gPosition", 0);
+	shaders.setUniform((*shaders[6])->getID(), "gNormal", 1);
+	shaders.setUniform((*shaders[6])->getID(), "gColor", 2);
+	shaders.setUniform((*shaders[6])->getID(), "texID", gameData.playerHand.getID() - 1);
 }

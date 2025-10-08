@@ -139,7 +139,7 @@ static void	cameraMovement(GameData &gameData) {
 	vec3 translation = move * camSpeed;
 
 	if (!player.HaveNoclip()) translation *= 0.5f; // 75% slower when not in noclip mode  
-	if (!player.HaveNoclip()) translation.y += player.getGravity();
+	if (!player.HaveNoclip()) translation.y += player.getGravity() * window.getFrameTime() * GRAVITY_STRENGTH;
 	if (playerInWater(player, voxelSystem)) {
 		translation.x *= 0.55f; // 60% slower in water
 		translation.y *= 0.35f; // 80% slower in water on Y axis
@@ -352,7 +352,7 @@ void	handleEvents(GameData &gameData) {
 		// Gravity update
 		if (!player.HaveNoclip() && player.IsFalling()) {
 			float targetGravity = glm::clamp(
-				(float)(player.getGravity() - GRAVITY_STRENGTH * window.getFrameTime()),
+				(float)(player.getGravity() - GRAVITY_ATTRACTION * window.getFrameTime()),
 				GRAVITY_MIN,
 				GRAVITY_MAX
 			);

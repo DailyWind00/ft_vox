@@ -31,7 +31,7 @@ debug:
 
 clean:
 	@rm -rf build
-	@rm -f  *.log
+	@rm -f  *.log *.logs
 
 fclean: clean
 	@rm -f $(NAME)

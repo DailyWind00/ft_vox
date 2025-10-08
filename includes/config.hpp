@@ -6,10 +6,10 @@
 # define FOV 80.0f
 # define WINDOW_WIDTH  1920
 # define WINDOW_HEIGHT 1080
-# define SHADOW_RESOLUTION	8192.0f
-# define SHADOW_FRUSTUM_SIZE	1024.0f
-# define CAMERA_SPEED  0.02f
-# define CAMERA_SPRINT_BOOST  0.05f
+# define SHADOW_RESOLUTION	2048.0f
+# define SHADOW_FRUSTUM_SIZE	256.0f
+# define CAMERA_SPEED  0.01f
+# define CAMERA_SPRINT_BOOST  0.0275f
 # define CAMERA_SENSITIVITY  0.015f
 
 /// System includes
@@ -32,14 +32,16 @@
 # include "VoxelSystem.hpp"
 # include "CloudSystem.hpp"
 # include "Player.hpp"
+# include "PlayerHand.hpp"
 
 /// Global variables
 using namespace std;
 using namespace glm;
 
-extern bool VERBOSE;
-extern bool SHOW_TOOLTIP;
-extern bool POLYGON;
+extern ivec2	scrollOff;
+extern bool	VERBOSE;
+extern bool	SHOW_TOOLTIP;
+extern bool	POLYGON;
 
 typedef struct {
 	GLuint		renderQuadVAO;
@@ -54,6 +56,7 @@ typedef struct GameData {
 	Camera			&shadowMapCam;
 	RenderData		&renderDatas;
 	Player			&player;
+	PlayerHand		&playerHand;
 } GameData;
 
 /// Functions
@@ -66,6 +69,7 @@ void	Rendering(Window &window, const uint64_t &seed);
 
 // events.cpp
 void	handleEvents(GameData &gameData);
+void	scrollCallback(GLFWwindow *window, double xOff, double yOff);
 
 // utils.cpp
 void	printControls();

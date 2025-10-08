@@ -1,14 +1,9 @@
 /// class idependant system includes
 # include <iostream>
-# include <mutex>
 
 # include "ChunkImpl.hpp"
 # include "Noise.hpp"
 # include "features_declaration.h"
-
-std::list<std::pair<glm::ivec3, WorldFeature> >	g_pendingFeatures;
-
-std::mutex	g_pendingFeaturesMutex;
 
 extern bool	NO_CAVES;
 
@@ -38,10 +33,9 @@ AChunkLayer *	& LayeredChunk::operator[](const size_t &i)
 }
 /// ---
 
-/// Private Methods
+/// static helper functions
 
-float *	LayeredChunk::_computeHeatMap(const glm::ivec3 &pos)
-{
+static float *	_computeHeatMap(const glm::ivec3 &pos) {
 	float *	factors = new float[CHUNK_WIDTH * CHUNK_WIDTH];
 	
 	for (int i = 0; i < CHUNK_WIDTH * CHUNK_WIDTH; i++) {
@@ -53,14 +47,13 @@ float *	LayeredChunk::_computeHeatMap(const glm::ivec3 &pos)
 					(2048.0f + pos.z+ ((float)i / CHUNK_WIDTH)) / (amp * 32.0f)}) * amp;
 			amp -= amp / 2.0f;
 		}
-		int	r = rand() % 2;
+		float	r = (rand() % 4) / 10.f;
 		factors[i] = factor + r;
 	}
 	return (factors);
 }
 
-float *	LayeredChunk::_computeHumidityMap(const glm::ivec3 &pos)
-{
+static float *	_computeHumidityMap(const glm::ivec3 &pos) {
 	float *	factors = new float[CHUNK_WIDTH * CHUNK_WIDTH];
 
 	for (int i = 0; i < pow(CHUNK_WIDTH, 2); i++) {
@@ -72,20 +65,18 @@ float *	LayeredChunk::_computeHumidityMap(const glm::ivec3 &pos)
 					(1024.0f + pos.z+ ((float)i / CHUNK_WIDTH)) / (amp * 32.0f)}) * amp;
 			amp -= amp / 2.0f;
 		}
-		int	r = rand() % 2;
+		float	r = (rand() % 4) / 10.f;
 		factors[i] = factor + r;
 	}
 	return (factors);
 }
 
-float *	LayeredChunk::_computeFeatureMap(const glm::ivec3 &pos)
-{
+static float *	_computeFeatureMap(const glm::ivec3 &pos) {
 	float *	factors = new float[CHUNK_WIDTH * CHUNK_WIDTH];
 	uint32_t	maxPos = MAX_WORLD_SIZE * CHUNK_WIDTH;
 
 	for (int i = 0; i < pow(CHUNK_WIDTH, 2); i++) {
 		float	factor = 0;
-
 
 		factor += Noise::perlin2D(glm::vec2{(maxPos + pos.x + (i % CHUNK_WIDTH)) / 2.0f,
 				(maxPos + pos.z+ ((float)i / CHUNK_WIDTH)) / 2.0f}) * 2.0f;
@@ -98,8 +89,7 @@ float *	LayeredChunk::_computeFeatureMap(const glm::ivec3 &pos)
 	return (factors);
 }
 
-float *	LayeredChunk::_computeHeightMap(const glm::ivec3 &pos)
-{
+static float *	_computeHeightMap(const glm::ivec3 &pos) {
 	// Pre-compute the perlin noise factors
 	float		*factors = new float[CHUNK_WIDTH * CHUNK_WIDTH];
 	uint32_t	maxPos = MAX_WORLD_SIZE * CHUNK_WIDTH;
@@ -124,16 +114,15 @@ float *	LayeredChunk::_computeHeightMap(const glm::ivec3 &pos)
 		else
 			factor = factor * 0.2;
 
-		factor += Noise::perlin2D(glm::vec2{(pos.x + (i % CHUNK_WIDTH)) / 8192,
-				(pos.z+ ((float)i / CHUNK_WIDTH)) / 8192}) * 1024;
+		factor += Noise::perlin2D(glm::vec2{(pos.x + (i % CHUNK_WIDTH)) / 2048,
+				(pos.z+ ((float)i / CHUNK_WIDTH)) / 2048}) * 512;
 
 		factors[i] = factor;
 	}
 	return (factors);
 }
 
-float **	LayeredChunk::_computeCaveNoise(const glm::ivec3 &pos, float *heightMap)
-{
+static float **	_computeCaveNoise(const glm::ivec3 &pos, float *heightMap) {
 	float **	factors = new float*[CHUNK_WIDTH * CHUNK_WIDTH];
 	uint32_t	maxPos = MAX_WORLD_SIZE * CHUNK_WIDTH;
 	
@@ -162,8 +151,7 @@ float **	LayeredChunk::_computeCaveNoise(const glm::ivec3 &pos, float *heightMap
 	return (factors);
 }
 
-uint8_t	LayeredChunk::_getBiomeID(const int &idx, const float *heatFactors, const float *wetFactors)
-{
+static uint8_t	_getBiomeID(const int &idx, const float *heatFactors, const float *wetFactors) {
 	int	heatLvl = TEMPERATE;
 	int	wetLvl = DRENCHED;
 
@@ -194,8 +182,7 @@ uint8_t	LayeredChunk::_getBiomeID(const int &idx, const float *heatFactors, cons
 	return (NONE);
 }
 
-uint8_t	LayeredChunk::_getBlockFromBiome(const int &surface, const int &y, const uint8_t &biomeID)
-{
+static uint8_t	_getBlockFromBiome(const int &surface, const int &y, const uint8_t &biomeID) {
 	uint8_t	topLayerID = 0;
 	uint8_t	soilLayerID = 0;
 	uint8_t	stoneLayerID = 0;
@@ -264,18 +251,17 @@ uint8_t	LayeredChunk::_getBlockFromBiome(const int &surface, const int &y, const
 	return (blockID);
 }
 
-WorldFeature	LayeredChunk::_getFeatureFromBiome(const uint8_t &biomeID, const glm::ivec3 pos)
-{
+static WorldFeature	_getFeatureFromBiome(const uint8_t &biomeID, const glm::ivec3 pos) {
 	int	variation;
 
 	switch(biomeID) {
 	case PLAIN:
 		return (WorldFeature){pos, WF_NONE, NULL, true};
 	case DESERT:
-		variation = rand() % CACTIE_VARIATION_COUNT;
+		variation = (pos.x + pos.z) % CACTIE_VARIATION_COUNT;
 		return (WorldFeature){pos, WF_CACTUS, g_featureCactus[variation], true};
 	case FOREST:
-		variation = rand() % TREE_VARIATION_COUNT;
+		variation = (pos.x + pos.z) % TREE_VARIATION_COUNT;
 		return (WorldFeature){pos, WF_TREE, g_featureTree[variation], true};
 	case SNOW_PLAIN:
 		return (WorldFeature){pos, WF_NONE, NULL, true};
@@ -283,42 +269,6 @@ WorldFeature	LayeredChunk::_getFeatureFromBiome(const uint8_t &biomeID, const gl
 		return (WorldFeature){pos, WF_SNOW_TREE, g_featureTree[0], true};
 	default:
 		return (WorldFeature){pos, WF_NONE, NULL, true};
-	}
-}
-
-void	LayeredChunk::_handleWorldFeatureOverflow(std::pair<glm::ivec3, WorldFeature> wf, glm::ivec3 newDir, const bool reset)
-{
-	static glm::ivec3	dir = {0, 0, 0};
-	WorldFeature		newFeature = wf.second;
-	newFeature._origin = false;
-
-	if (reset) {
-		dir = {0, 0, 0};
-		return ;
-	}
-	
-	if (!wf.second._origin)
-		return ;
-	if (newDir.x != 0 && dir.x == 0) {
-		newFeature._localPosition.z -= (CHUNK_WIDTH * newDir.z);
-		g_pendingFeaturesMutex.lock();
-		g_pendingFeatures.push_back(std::pair<glm::ivec3, WorldFeature>({wf.first.x, wf.first.y, wf.first.z + newDir.z}, newFeature));
-		g_pendingFeaturesMutex.unlock();
-		dir.z = newDir.z;
-	}
-	else if (newDir.y != 0 && dir.y == 0) {
-		newFeature._localPosition.y -= (CHUNK_HEIGHT * newDir.y);
-		g_pendingFeaturesMutex.lock();
-		g_pendingFeatures.push_back(std::pair<glm::ivec3, WorldFeature>({wf.first.x, wf.first.y + newDir.y, wf.first.z}, newFeature));
-		g_pendingFeaturesMutex.unlock();
-		dir.y = newDir.y;
-	}
-	else if (newDir.z != 0 && dir.z == 0) {
-		newFeature._localPosition.x -= (CHUNK_WIDTH * newDir.x);
-		g_pendingFeaturesMutex.lock();
-		g_pendingFeatures.push_back(std::pair<glm::ivec3, WorldFeature>({wf.first.x + newDir.x, wf.first.y, wf.first.z}, newFeature));
-		g_pendingFeaturesMutex.unlock();
-		dir.x = newDir.x;
 	}
 }
 
@@ -374,7 +324,8 @@ void	LayeredChunk::generate(const glm::ivec3 &pos)
 
 				// Add new pending World features to be generated
 				WorldFeature	newFeature = _getFeatureFromBiome(biomeID, {i - pos.x, k - pos.y, j - pos.z});
-				if (k == (int)noises.heightMap[idx] && noises.featuresMap[idx] > WORLDFEATURE_THRESHOLDS[newFeature._type] && id != 0 && k > 0) {
+				if (noises.featuresMap[idx] > WORLDFEATURE_THRESHOLDS[newFeature._type] && k > 0 && (int)noises.heightMap[idx] > 0) {
+					newFeature._localPosition.y -= k - (int)noises.heightMap[idx];
 					localPendingFeatures.push_back(std::pair(wPos, newFeature));
 				}
 			}
@@ -391,19 +342,6 @@ void	LayeredChunk::generate(const glm::ivec3 &pos)
 	delete [] noises.humidityMap;
 	delete [] noises.heightMap;
 
-	// Recover pending features from other bioms in global feature list
-	g_pendingFeaturesMutex.lock();
-	for (auto it = g_pendingFeatures.begin(); it != g_pendingFeatures.end();) {
-		if (it->first == wPos && it->second._origin == false) {
-			localPendingFeatures.push_back(*it);
-			g_pendingFeatures.erase(it);
-			it = g_pendingFeatures.begin();
-		}
-		else
-			it++;
-	}
-	g_pendingFeaturesMutex.unlock();
-
 	for (auto it = localPendingFeatures.begin(); it != localPendingFeatures.end();) {
 		if (it->second._type == WF_NONE) {
 			it++;
@@ -416,34 +354,22 @@ void	LayeredChunk::generate(const glm::ivec3 &pos)
 			int		idx = (it->second._data[i].x + it->second._localPosition.x) * CHUNK_WIDTH + (it->second._data[i].z + it->second._localPosition.z);
 
 			// Handle World features overflow in the Y axix
-			if (it->second._localPosition.y + it->second._data[i].y >= CHUNK_HEIGHT) {
-				_handleWorldFeatureOverflow(*it, {0, 1, 0}, false);
+			if (it->second._localPosition.y + it->second._data[i].y >= CHUNK_HEIGHT)
 				continue ;
-			}
-			else if (it->second._localPosition.y + it->second._data[i].y < 0) {
-				_handleWorldFeatureOverflow(*it, {0, -1, 0}, false);
+			else if (it->second._localPosition.y + it->second._data[i].y < 0)
 				continue ;
-			}
 			
 			// Handle World features overflow in the Z axix
-			if (it->second._localPosition.z + it->second._data[i].z >= CHUNK_WIDTH) {
-				_handleWorldFeatureOverflow(*it, {1, 0, 0}, false);
+			if (it->second._localPosition.z + it->second._data[i].z >= CHUNK_WIDTH) 
 				continue ;
-			}
-			else if (it->second._localPosition.z + it->second._data[i].z < 0) {
-				_handleWorldFeatureOverflow(*it, {-1, 0, 0}, false);
+			else if (it->second._localPosition.z + it->second._data[i].z < 0)
 				continue ;
-			}
 
 			// Handle World features overflow in the X axix
-			if (it->second._localPosition.x + it->second._data[i].x >= CHUNK_WIDTH) {
-				_handleWorldFeatureOverflow(*it, {0, 0, 1}, false);
+			if (it->second._localPosition.x + it->second._data[i].x >= CHUNK_WIDTH)
 				continue ;
-			}
-			else if (it->second._localPosition.x + it->second._data[i].x < 0) {
-				_handleWorldFeatureOverflow(*it, {0, 0, -1}, false);
+			else if (it->second._localPosition.x + it->second._data[i].x < 0)
 				continue ;
-			}
 
 			// Decompress the layer if needed
 			if (it->second._data[i].w != fstBlkPerLayer[it->second._localPosition.y + it->second._data[i].y] && dynamic_cast<SingleBlockChunkLayer *>(this->_layer[it->second._localPosition.y + it->second._data[i].y]))
@@ -452,8 +378,6 @@ void	LayeredChunk::generate(const glm::ivec3 &pos)
 			// Set the block
 			(*this->_layer[it->second._localPosition.y + it->second._data[i].y])[idx] = it->second._data[i].w;
 		}
-		// Reset the function static variable for future usage
-		_handleWorldFeatureOverflow(*it, {0, 0, 0}, true);
 
 		// Remove the pending feature from the list
 		localPendingFeatures.erase(it);

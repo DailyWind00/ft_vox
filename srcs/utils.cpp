@@ -9,9 +9,11 @@ void	printControls() {
 	cout << "WASD\t\tMove the camera\n";
 	cout << "Space\t\tMove up\n";
 	cout << "Ctrl\t\tMove down\n";
-	cout << endl;
 	cout << "Mouse\t\tLook around\n";
 	cout << "Shift\t\tSprint\n";
+	cout << "Left click\tBreak block\n";
+	cout << "Right click\tPlace block\n";
+	cout << "Scroll wheel\tChoose block\n";
 	cout << "Esc\t\tClose the window\n";
 	cout << BLightBlue << "================\n" << ResetColor;
 }

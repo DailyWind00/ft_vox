@@ -51,10 +51,12 @@ VoxelSystem::~VoxelSystem() {
 
 	// waiting for threads to finish
 	_quitting = true;
-	for (uint32_t i = 0; i < _cpuCoreCount / CHUNKGEN_CORE_RATIO; i++)
+	for (uint32_t i = 0; i < (uint32_t)(_cpuCoreCount / CHUNKGEN_CORE_RATIO); i++)
 		_chunkGenerationThreads[i].join();
-	_meshGenerationThread.join();
+	for (uint32_t i = 0; i < 1; i++)
+		_meshGenerationThread[i].join();
 	delete[] _chunkGenerationThreads;
+	delete[] _meshGenerationThread;
 
 	// Delete all chunks
 	for (const ChunkMap::value_type &chunk : _chunks)
@@ -63,7 +65,6 @@ VoxelSystem::~VoxelSystem() {
 		if (mesh.second.mesh) delete mesh.second.mesh;
 
 	_chunks.clear();
-	g_pendingFeatures.clear();
 
 	if (VERBOSE)
 		cout << "VoxelSystem destroyed\n";
@@ -94,12 +95,14 @@ void	VoxelSystem::_initThreads() {
 		cout << "System has: " << _cpuCoreCount << " CPU cores available.\n Allocating: " << _cpuCoreCount / CHUNKGEN_CORE_RATIO << " for chunk generation" << endl;
 
 	// Allocate and start chunk generation threads
-	_chunkGenerationThreads = new thread[_cpuCoreCount / CHUNKGEN_CORE_RATIO];
-	for (uint32_t i = 0; i < _cpuCoreCount / CHUNKGEN_CORE_RATIO; i++)
+	_chunkGenerationThreads = new thread[(int)(_cpuCoreCount / CHUNKGEN_CORE_RATIO)];
+	for (uint32_t i = 0; i < (uint32_t)(_cpuCoreCount / CHUNKGEN_CORE_RATIO); i++)
 		_chunkGenerationThreads[i] = thread(&VoxelSystem::_chunkGenerationRoutine, this);
 
 	// Start mesh generation thread
-	_meshGenerationThread = thread(&VoxelSystem::_meshGenerationRoutine, this);
+	_meshGenerationThread = new thread[1];
+	for (uint32_t i = 0; i < 1; i++)
+		_meshGenerationThread[i] = thread(&VoxelSystem::_meshGenerationRoutine, this);
 }
 
 // Will create and setup all the framebuffer and render texture necessary for rendering
@@ -280,13 +283,22 @@ void	VoxelSystem::findChunksToDelete(list<ChunkRequest> &requestReturnList) {
 	}
 }
 
+static ivec3	getLocalPos(const vec3 &pos) {
+	return {
+		(int)mod(pos.z, (float)CHUNK_SIZE),
+		(int)mod(pos.y, (float)CHUNK_SIZE),
+		(int)mod(pos.x, (float)CHUNK_SIZE)
+	};
+}
+
 /// @brief Try to destroy a block on where the currently set camera is looking at.
 /// @details Raycast a ray from the camera position to the lookAt position, until it hits a block or PLAYER_REACH is reached.
-void VoxelSystem::tryDestroyBlock() {
-	const CameraInfo &camInfo = _camera.getCameraInfo();
-	vec3 worldCamPos = toVoxelCoords(camInfo.position);
-	vec3 currentPos = toVoxelCoords(camInfo.position);
-	vec3 lookAt = toVoxelCoords(camInfo.lookAt);
+void VoxelSystem::tryPlaceDestroyBlock(const BlockAction &action, const uint8_t &id) {
+	const CameraInfo &	camInfo = _camera.getCameraInfo();
+	vec3	worldCamPos = toVoxelCoords(camInfo.position);
+	vec3	currentPos = toVoxelCoords(camInfo.position);
+	vec3	prevPos = currentPos;
+	vec3	lookAt = toVoxelCoords(camInfo.lookAt);
 	
 	do
 	{
@@ -304,16 +316,16 @@ void VoxelSystem::tryDestroyBlock() {
 			return ;
 
 		// Get the position of the current block in the chunk
-		ivec3 localPos = {
-			(int)mod(currentPos.z, (float)CHUNK_SIZE),
-			(int)mod(currentPos.y, (float)CHUNK_SIZE),
-			(int)mod(currentPos.x, (float)CHUNK_SIZE)
-		};
+		ivec3	prevLocalPos = getLocalPos(prevPos);
+		ivec3	currLocalPos = getLocalPos(currentPos);
 
 		// Check if there is a block at the current position
-		uint8_t blockID = BLOCK_AT(chunkData.chunk, localPos.x, localPos.y, localPos.z);
+		uint8_t blockID = BLOCK_AT(chunkData.chunk, currLocalPos.x, currLocalPos.y, currLocalPos.z);
 		if (blockID) {
-			ChunkHandler::setBlock(chunkData.chunk, localPos, 0);
+			if (action == BlockAction::DESTROY) 
+				ChunkHandler::setBlock(chunkData.chunk, currLocalPos, 0);
+			else if (action == BlockAction::PLACE) 
+				ChunkHandler::setBlock(chunkData.chunk, prevLocalPos, id);
 			requestMesh({{chunkPos, ChunkAction::CREATE_UPDATE}});
 
 			if (VERBOSE)
@@ -323,6 +335,7 @@ void VoxelSystem::tryDestroyBlock() {
 		}
 
 		// Move to the next position in the direction of the lookAt vector
+		prevPos = currentPos;
 		currentPos -= glm::normalize(worldCamPos - lookAt) * 0.1f;
 	}
 	while (distance(currentPos, worldCamPos) < PLAYER_REACH);
@@ -378,15 +391,6 @@ static bool isChunkInFrustrum(ivec3 chunkWorldPos, array<vec4, 6> &frustumPlanes
 
 // Draw all chunks
 const GeoFrameBuffers	&VoxelSystem::renderGeometryPass(ShaderHandler &shader) {
-	// Delete old meshes if needed
-	if (_meshesToDelete.size() && _meshesToDeleteMutex.try_lock()) {
-		for (ChunkMesh *mesh : _meshesToDelete)
-			if (mesh)
-				delete mesh;
-		_meshesToDelete.clear();
-		_meshesToDeleteMutex.unlock();
-	}
-
 	// Bind the gBuffer
 	glBindFramebuffer(GL_FRAMEBUFFER, _gBuffer.gBuffer);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -410,12 +414,12 @@ const GeoFrameBuffers	&VoxelSystem::renderGeometryPass(ShaderHandler &shader) {
 	// Draw all chunks
 	for (MeshMap::iterator it = _meshes.begin(); it != _meshes.end(); it++)
 	{
-		if (!it->second.mesh || !isChunkInFrustrum(it->first, frustumPlanes) || distance((vec3)it->first, (vec3)camPos) > VERTICAL_RENDER_DISTANCE)
+		if (!it->second.mesh || !isChunkInFrustrum(it->first, frustumPlanes) || distance((vec3)it->first, (vec3)camPos) > HORIZONTAL_RENDER_DISTANCE)
 			continue ;
 
 		// Draw the chunk
-		if (!it->second.mesh->getVAO())
-			continue ;
+		if (!it->second.mesh->getVAO() || !it->second.mesh->getWaterVAO())
+			it->second.mesh->updateMesh();
 
 		vec3	wPos = it->first;
 		shader.setUniform((*shader[1])->getID(), "worldPos", wPos);
@@ -425,11 +429,7 @@ const GeoFrameBuffers	&VoxelSystem::renderGeometryPass(ShaderHandler &shader) {
 
 	glDisable(GL_CULL_FACE);
 	for (MeshMap::iterator it = _meshes.begin(); it != _meshes.end(); it++) {
-		if (!it->second.mesh || !isChunkInFrustrum(it->first, frustumPlanes) || distance((vec3)it->first, (vec3)camPos) > VERTICAL_RENDER_DISTANCE)
-			continue ;
-
-		// Draw the chunk
-		if (!it->second.mesh->getWaterVAO())
+		if (!it->second.mesh || !isChunkInFrustrum(it->first, frustumPlanes) || distance((vec3)it->first, (vec3)camPos) > HORIZONTAL_RENDER_DISTANCE)
 			continue ;
 
 		vec3	wPos = it->first;
@@ -447,6 +447,15 @@ const GeoFrameBuffers	&VoxelSystem::renderGeometryPass(ShaderHandler &shader) {
 
 // Draw all chunks
 const ShadowMappingData	&VoxelSystem::renderShadowMapPass(ShaderHandler &shader) {
+	// Delete old meshes if needed
+	if (_meshesToDelete.size() && _meshesToDeleteMutex.try_lock()) {
+		for (ChunkMesh *mesh : _meshesToDelete)
+			if (mesh)
+				delete mesh;
+		_meshesToDelete.clear();
+		_meshesToDeleteMutex.unlock();
+	}
+
 	// Bind the gBuffer
 	glBindFramebuffer(GL_FRAMEBUFFER, _shadowMapData.depthMapFBO);
 	glClear(GL_DEPTH_BUFFER_BIT);
@@ -468,8 +477,8 @@ const ShadowMappingData	&VoxelSystem::renderShadowMapPass(ShaderHandler &shader)
 			continue ;
 
 		// Draw the chunk
-		if (!it->second.mesh->getVAO() || !it->second.mesh->getWaterVAO())
-			it->second.mesh->updateMesh();
+		if (!it->second.mesh->getVAO())
+			continue ;
 
 		vec3	wPos = it->first;
 		shader.setUniform((*shader[3])->getID(), "worldPos", wPos);

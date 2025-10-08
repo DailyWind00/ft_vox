@@ -76,6 +76,13 @@ static void program_loop(GameData &gameData) {
 	glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
 	GeoFrameBuffers	gBuffer = voxelSystem.renderGeometryPass(shaders);
 
+	glBindFramebuffer(GL_FRAMEBUFFER, gBuffer.gBuffer);
+	glDisable(GL_CULL_FACE);
+	shaders.use(shaders[6]);
+	gameData.playerHand.draw();
+	glEnable(GL_CULL_FACE);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
 	// Bounding box (for debug)
 	if (POLYGON) {
 		glBindFramebuffer(GL_FRAMEBUFFER, gBuffer.gBuffer);
@@ -136,6 +143,7 @@ void	Rendering(Window &window, const uint64_t &seed) {
 		glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	glfwSetCursorPos(window, (float)WINDOW_WIDTH / 2, (float)WINDOW_HEIGHT / 2);
+	glfwSetScrollCallback(window, scrollCallback);
 
 	// OpenGL Parameters
 	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -152,10 +160,10 @@ void	Rendering(Window &window, const uint64_t &seed) {
 	);
 	Camera	shadowMapCam(
 		(CameraInfo){{100, 100, 0}, {0, 0, 0}, {0, 1, 0}},
-		(ProjectionInfo){FOV, {SHADOW_FRUSTUM_SIZE / 2, SHADOW_FRUSTUM_SIZE / 2}, {-SHADOW_FRUSTUM_SIZE / 2, -SHADOW_FRUSTUM_SIZE / 2}, 0.1f, 1200.0f},
+		(ProjectionInfo){FOV, {SHADOW_FRUSTUM_SIZE / 2, SHADOW_FRUSTUM_SIZE / 2}, {-SHADOW_FRUSTUM_SIZE / 2, -SHADOW_FRUSTUM_SIZE / 2}, 0.1f, 400.0f},
 		ProjectionType::ORTHOGRAPHIC
 	);
-	AABB			cameraBoundingBox(vec3(0.30f, 0.20f, 0.30f), vec3(-0.30f, -1.50f, -0.30f));
+	AABB			cameraBoundingBox(vec3(0.30f, 1.90f, 0.30f), vec3(-0.30f, 0.1f, -0.30f));
 	VoxelSystem		voxelSystem(seed, camera, shadowMapCam);
 	SkyBox			skybox;
 	ShaderHandler	shaders; // Skybox -> Voxels Geometrie -> Voxels Lighting -> Shadow Mapping -> Post Processing
@@ -165,11 +173,15 @@ void	Rendering(Window &window, const uint64_t &seed) {
 	shaders.add_shader("shaders/ShadowMap_vert.glsl", "shaders/ShadowMap_frag.glsl");
 	shaders.add_shader("shaders/PostProcessing_vert.glsl", "shaders/PostProcessing_frag.glsl");
 	shaders.add_shader("shaders/BoundingBox_vert.glsl", "shaders/BoundingBox_frag.glsl");
+	shaders.add_shader("shaders/PlayerHand_vert.glsl", "shaders/PlayerHand_frag.glsl");
 
 	RenderData	renderDatas = initScreenQuad();
 	CloudSystem	cloudSystem(2048);
 
 	Player	player({0,0,0}, camera, cameraBoundingBox);
+	std::vector<uint8_t>	playerHandPalette = {1, 2, 3, 4, 5, 6, 7, 8, 23};
+	PlayerHand	playerHand(playerHandPalette);	// Number indicate the largest ID the hand can select
+
 
 	// Setting Game Datas to send to the game loop
 	GameData gameData = {
@@ -180,7 +192,8 @@ void	Rendering(Window &window, const uint64_t &seed) {
 		skybox,
 		shadowMapCam,
 		renderDatas,
-		player
+		player,
+		playerHand
 	};
 
 	window.mainLoop(program_loop, gameData);

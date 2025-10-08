@@ -3,8 +3,10 @@
 #pragma region Constructor / Destructor
 
 Player::Player(const vec3 &startPos, Camera &cam, AABB &box) : camera(cam), cameraBox(box) {
-	camera.setPosition(startPos);
 	cameraBox.setPosition(startPos);
+	float	camYOffset = (cameraBox.min.y / 4) * 3;
+
+	camera.setPosition({startPos.x, startPos.y + camYOffset, startPos.z});
 }
 
 # pragma endregion
@@ -74,8 +76,11 @@ bool Player::IsFalling() const {
 /// @brief Set the player's position and update the camera and bounding box positions accordingly
 /// @param pos New position of the player
 void	Player::setPosition(const vec3 &pos) {
-	camera.setPosition(pos);
 	cameraBox.setPosition(pos);
+
+	vec3	camPos = cameraBox.min;
+
+	camera.setPosition({pos.x, pos.y + camPos.y, pos.z});
 }
 
 /// @brief Translate the player by a given offset

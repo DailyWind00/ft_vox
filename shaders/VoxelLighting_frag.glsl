@@ -23,10 +23,6 @@ uniform bool	polygonVisible;
 uniform bool	inWater;
 uniform bool	flashlightOn;
 
-// Constant values
-const float	crossThickness = 1.0f;
-const float 	crossLength = 10.0f;
-
 const float	constant = 1.0f;
 const float	linear = 0.09f;
 const float	quadratic = 0.032f;
@@ -102,6 +98,8 @@ vec3 getSkyGradient(vec3 direction, float sunHeight) {
 	return mix(horizonColor, mixedSkyColor, t);
 }
 
+const float	SFSampleSize = 1.0f;
+
 float	computeShadows(const vec4 lpFragPos, const vec3 normal) {
 	vec3	projCoords = lpFragPos.xyz / lpFragPos.w;
 	projCoords = projCoords * 0.5 + 0.5;
@@ -114,14 +112,18 @@ float	computeShadows(const vec4 lpFragPos, const vec3 normal) {
 	float	diffFactor = dot(normal, sunPos);
 	float	bias = mix(0.005, 0.0, diffFactor);
 	vec2	texelSize = 1.0 / textureSize(shadowMap, 0);
+
 	float	shadow = 0.0;
-	for (int x = -1; x <= 1; ++x) {
-		for (int y = -1; y <= 1; ++y) {
+	float	SFSampleCount = 0.0f;
+
+	for (float x = -SFSampleSize; x <= SFSampleSize; ++x) {
+		for (float y = -SFSampleSize; y <= SFSampleSize; ++y) {
 			float	pcfDepth = texture(shadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
 			shadow += currentDepth - bias > pcfDepth ? 1.0 : 0.0;
+			SFSampleCount++;
 		}
 	}
-	shadow /= 9.0;
+	shadow /= SFSampleCount;
 
 	return shadow;
 }
@@ -138,14 +140,15 @@ vec3	computeLighting(const vec3 texCol, const vec3 Normal, const float shadow, c
 		colorModifier = vec3(0.35, 0.55, 0.75f);
 	
 	vec3	skyCol = getSkyGradient(vec3(1.0), sunPos.y);
-	vec3	Color = pow(clampedSunHeight, 0.7) * texCol + (1.0f - pow(clampedSunHeight, 0.7)) * skyCol * colorModifier;
-	vec3	ambColor = Color.rgb * max(0.4, attenuation);
+	// vec3	Color = pow(clampedSunHeight, 0.7) * texCol + (1.0f - pow(clampedSunHeight, 0.7)) * skyCol * colorModifier;
+	vec3	Color = texCol * skyCol * colorModifier;
+	vec3	ambColor = Color * max(0.4, attenuation);
 
 	float	diffuseSun = max(dot(Normal.rgb, sunPos), 0.0) * pow(sunPos.y, 1.2);
 	float	diffuseMoon = max(dot(Normal.rgb, -sunPos), 0.0) * pow(-sunPos.y, 3);
 
 
-	vec3	diffColor = max(diffuseSun, diffuseMoon) * Color.rgb;
+	vec3	diffColor = max(diffuseSun, diffuseMoon) * Color;
 	vec3	shadowCol = vec3(1.0 - shadow + 0.2);
 
 
@@ -160,16 +163,6 @@ float	computeFogFactor(const float scDepth, const float dist) {
 	return lerpFactor;
 }
 
-vec3	computeCrosshair() {
-	// Crosshair
-	vec2 pixelCoord = uv * screenSize;
-	vec2 center = screenSize * 0.5;
-	vec2 deltaFromCenter = abs(pixelCoord - center);
-	float	d1 = max(step(crossThickness, deltaFromCenter.x), step(crossLength, deltaFromCenter.y));
-	float	d2 = max(step(crossThickness, deltaFromCenter.y), step(crossLength, deltaFromCenter.x));
-	return vec3(min(d1, d2));
-}
-
 void	main() {
 	vec4	fragPos = texture(gPosition, uv);
 	vec4	spFragPos = spView * fragPos;
@@ -181,10 +174,8 @@ void	main() {
 	float	shadow = computeShadows(lpFragPos, Normal.xyz);
 	vec3	lightColor = computeLighting(texCol, Normal.rgb, shadow, fragPos.rgb);
 
-	vec4	crosshair = vec4(1.0f - computeCrosshair(), 0.75);
-
 	// Distance fog
-	float	fogFactor = (inWater) ? clamp(computeFogFactor(-spFragPos.z, 1.0f / 48.0f) * 8.0f, 0.0f, 0.9f) : computeFogFactor(-spFragPos.z, 1.0f / (renderDistance * 48.0f));
+	float	fogFactor = (inWater) ? clamp(computeFogFactor(-spFragPos.z, 1.0f / ((0.25 * renderDistance) * 16.0f)) * 8.0f, 0.0f, 0.9f) : computeFogFactor(-spFragPos.z, 1.0f / (renderDistance * 32.0f));
 
 	// Depth fog
 	float	gradientSteepness = (inWater) ? 64.0f : 1024.0f;
@@ -195,5 +186,5 @@ void	main() {
 	vec3	depthColor = (inWater) ? vec3(64.0f, 32.0f, 16.0f) : vec3(45.0f, 25.0f, 20.0f) / 255.0f;
 	vec3	fogColor = (inWater) ? vec3(16.0f / 255.0f, 32.0f / 255.0f, 64.0f / 255.0f) : getSkyGradient(vec3(0, 0, 0), sunPos.y);
 
-	ScreenColor = max(vec4(mix(mix(lightColor, fogColor, fogFactor), depthColor, waterFogFactor) + emissiveColor, 1.0f), crosshair);
+	ScreenColor = vec4(mix(mix(lightColor, fogColor, fogFactor), depthColor, waterFogFactor) + emissiveColor, 1.0f);
 }

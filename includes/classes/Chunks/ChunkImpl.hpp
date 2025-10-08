@@ -104,17 +104,6 @@ class	ChunkLayer : public AChunkLayer {
 class	LayeredChunk : public AChunk {
 	private:
 		AChunkLayer **	_layer;
-
-		float *		_computeHeatMap(const glm::ivec3 &pos);
-		float *		_computeHeightMap(const glm::ivec3 &pos);
-		float *		_computeHumidityMap(const glm::ivec3 &pos);
-		float *		_computeFeatureMap(const glm::ivec3 &pos);
-		float **	_computeCaveNoise(const glm::ivec3 &pos, float *heightMap);
-
-		uint8_t	_getBiomeID(const int &idx, const float *heatFactors, const float *wetFactors);
-		uint8_t	_getBlockFromBiome(const int &surface, const int &y, const uint8_t &biomeID);
-		WorldFeature	_getFeatureFromBiome(const uint8_t &biomeID, const glm::ivec3 pos);
-		void	_handleWorldFeatureOverflow(std::pair<glm::ivec3, WorldFeature> wf, glm::ivec3 newDir, const bool reset);
 		
 		ChunkLayer *		_blockToLayer(AChunkLayer *layer);
 		SingleBlockChunkLayer *	_layerToBlock(AChunkLayer *layer);

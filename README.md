@@ -38,6 +38,7 @@ Mouse        # Look around
 Shift        # Sprint
 Left click   # Break block
 Right click  # Place block
+Scroll wheel # Choose block
 Esc          # Close the window
 ```
 

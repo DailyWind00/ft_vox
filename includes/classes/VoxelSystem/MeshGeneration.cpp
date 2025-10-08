@@ -15,12 +15,26 @@ void	VoxelSystem::_meshGenerationRoutine() {
 			continue;
 		}
 
-		deque<ChunkRequest> localRequestedMeshes = _requestedMeshes;
+		deque<ChunkRequest>	localRequestedMeshes;
+		size_t			batchCount = 0;
+
+		for (; batchCount < MESH_BATCH_LIMIT && _requestedMeshes.size(); batchCount++) {
+			auto	tmp = _requestedMeshes.begin();
+
+			if (tmp == _requestedMeshes.end()) {
+				std::cout << "go fuck yourself\n";
+				break ;
+			}
+
+			ChunkRequest	newReq = *tmp;
+			_requestedMeshes.pop_front();
+			localRequestedMeshes.push_back(newReq);
+		}
+
 		_requestedMeshesMutex.unlock();
 
-		// Generate meshes up to the batch limit
-		size_t batchCount = 0;
 
+		// Generate meshes up to the batch limit
 		while (_chunksMutex.try_lock() == false)
 			this_thread::sleep_for(chrono::milliseconds(THREAD_SLEEP_DURATION));
 
@@ -28,8 +42,8 @@ void	VoxelSystem::_meshGenerationRoutine() {
 		list<glm::ivec3>	localDeletion;
 
 		for (ChunkRequest request : localRequestedMeshes) {
-			if (batchCount >= MESH_BATCH_LIMIT)
-				break;
+			// if (batchCount >= MESH_BATCH_LIMIT)
+			// 	break;
 
 			batchCount++;
 
@@ -108,9 +122,9 @@ void	VoxelSystem::_meshGenerationRoutine() {
 		_meshesMutex.unlock();
 
 		// Remove the generated meshes from the requested list
-		_requestedMeshesMutex.lock();
-		_requestedMeshes.erase(_requestedMeshes.begin(), _requestedMeshes.begin() + batchCount);
-		_requestedMeshesMutex.unlock();
+		// _requestedMeshesMutex.lock();
+		// _requestedMeshes.erase(_requestedMeshes.begin(), _requestedMeshes.begin() + batchCount);
+		// _requestedMeshesMutex.unlock();
 	}
 
 	if (VERBOSE)

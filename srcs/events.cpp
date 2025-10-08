@@ -1,5 +1,12 @@
 #include "config.hpp"
 
+ivec2	scrollOff = {0, 0};
+
+void	scrollCallback(GLFWwindow *window, double xOff, double yOff) {
+	(void)window;
+	scrollOff = {xOff, yOff};
+}
+
 #pragma region Keys Pressed Once
 
 // Check if a key is pressed once
@@ -103,7 +110,7 @@ static void	cameraMovement(GameData &gameData) {
 	cameraFront = normalize(cameraFront);
 	cameraRight = normalize(cameraRight);
 
-	const float camSpeed = (CAMERA_SPEED + (CAMERA_SPRINT_BOOST * player.IsSprinting())) * window.getFrameTime();
+	const float camSpeed = (CAMERA_SPEED + ((CAMERA_SPRINT_BOOST * (0.45 + 0.55 * (player.HaveNoclip()))) * player.IsSprinting())) * window.getFrameTime();
 
 	if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
 		player.setSprinting(true);
@@ -131,35 +138,31 @@ static void	cameraMovement(GameData &gameData) {
 
 	vec3 translation = move * camSpeed;
 
-	if (!player.HaveNoclip()) translation *= 0.25f; // 75% slower when not in noclip mode  
-	if (!player.HaveNoclip()) translation.y += player.getGravity();
+	if (!player.HaveNoclip()) translation *= 0.5f; // 75% slower when not in noclip mode  
+	if (!player.HaveNoclip()) translation.y += player.getGravity() * window.getFrameTime() * GRAVITY_STRENGTH;
 	if (playerInWater(player, voxelSystem)) {
-		translation.x *= 0.40f; // 60% slower in water
-		translation.y *= 0.20f; // 80% slower in water on Y axis
-		translation.z *= 0.40f; // 60% slower in water
+		translation.x *= 0.55f; // 60% slower in water
+		translation.y *= 0.35f; // 80% slower in water on Y axis
+		translation.z *= 0.55f; // 60% slower in water
 	}
 
-	bool hasCollided = false;
+	bool	onGround = false;
 
 	// Try move on Y
 	player.translate(vec3(0, translation.y, 0));
 	if (isColliding(player, voxelSystem)) {
 		player.translate(vec3(0, -translation.y, 0));
-		hasCollided = true;
+		onGround = true;
 		player.setGravity(0.0f); // landed
 	}
 	// Try move on X
 	player.translate(vec3(translation.x, 0, 0));
-	if (isColliding(player, voxelSystem)) {
+	if (isColliding(player, voxelSystem))
 		player.translate(vec3(-translation.x, 0, 0));
-		hasCollided = true;
-	}
 	// Try move on Z
 	player.translate(vec3(0, 0, translation.z));
-	if (isColliding(player, voxelSystem)) {
+	if (isColliding(player, voxelSystem))
 		player.translate(vec3(0, 0, -translation.z));
-		hasCollided = true;
-	}
 	
 	// Gravity handling
 	if (!player.HaveNoclip()) {
@@ -167,11 +170,11 @@ static void	cameraMovement(GameData &gameData) {
 			player.setCanJump(true);
 			player.setIsFalling(true);
 		}
-		else if (!hasCollided) { // Falling
+		else if (!onGround) { // Falling
 			player.setCanJump(false);
 			player.setIsFalling(true);
 		}
-		else if (hasCollided && !playerInWater(player, voxelSystem)) { // Landed
+		else if (onGround && !playerInWater(player, voxelSystem)) { // Landed
 			player.setCanJump(true);
 			player.setIsFalling(false);
 			player.setGravity(0.0f);
@@ -228,9 +231,19 @@ static void inputs(GameData &gameData) {
 		cout << "Shaders recompiled\n";
 	}
 
+	// Select a new block if a scroll event appened
+	if (scrollOff.y != 0) {
+		gameData.playerHand.addToIndex(scrollOff.y);
+		scrollOff.y = 0;
+	}
+
+	// Place a block
+	if (MouseButtonPressedOnce(window, GLFW_MOUSE_BUTTON_RIGHT))
+		voxelSystem.tryPlaceDestroyBlock(BlockAction::PLACE, gameData.playerHand.getID());
+
 	// Destroy a block
 	if (MouseButtonPressedOnce(window, GLFW_MOUSE_BUTTON_LEFT))
-		voxelSystem.tryDestroyBlock();
+		voxelSystem.tryPlaceDestroyBlock(BlockAction::DESTROY, 0);
 
 	// Flashlight
 	if (keyPressedOnce(window, GLFW_KEY_F)) {
@@ -276,31 +289,33 @@ static void dynamicChunkLoading(VoxelSystem &voxelSystem, const CameraInfo &camI
 	if (voxelSystem.getChunkRequestCount() != 0)
 		return ;
 
-	horRequestDistance = glm::clamp(horRequestDistance, 0, HORIZONTAL_RENDER_DISTANCE - 1);
+	horRequestDistance = glm::clamp(horRequestDistance, 0, HORIZONTAL_RENDER_DISTANCE);
 	vertRequestDistance = glm::clamp(vertRequestDistance, 0, VERTICAL_RENDER_DISTANCE);
 	if (chunkPos == lastChunkPos) {
-		if (horRequestDistance >= HORIZONTAL_RENDER_DISTANCE || vertRequestDistance >= VERTICAL_RENDER_DISTANCE)
-			return ;
-		for (int i = -horRequestDistance; i <= horRequestDistance; i++) {
-			for (int j = -vertRequestDistance; j < vertRequestDistance; j++) {
-				chunkRequests.push_back({{i + chunkPos.x, j + chunkPos.y, -horRequestDistance + chunkPos.z}, ChunkAction::CREATE_UPDATE});
-				chunkRequests.push_back({{i + chunkPos.x, j + chunkPos.y, horRequestDistance + chunkPos.z}, ChunkAction::CREATE_UPDATE});
-				chunkRequests.push_back({{-horRequestDistance + chunkPos.x, j + chunkPos.y, i + chunkPos.z}, ChunkAction::CREATE_UPDATE});
-				chunkRequests.push_back({{horRequestDistance + chunkPos.x, j + chunkPos.y, i + chunkPos.z}, ChunkAction::CREATE_UPDATE});
+		if (horRequestDistance < HORIZONTAL_RENDER_DISTANCE) {
+			for (int i = -horRequestDistance; i <= horRequestDistance; i++) {
+				for (int j = -vertRequestDistance; j < vertRequestDistance; j++) {
+					chunkRequests.push_back({{i + chunkPos.x, j + chunkPos.y, -horRequestDistance + chunkPos.z}, ChunkAction::CREATE_UPDATE});
+					chunkRequests.push_back({{i + chunkPos.x, j + chunkPos.y, horRequestDistance + chunkPos.z}, ChunkAction::CREATE_UPDATE});
+					chunkRequests.push_back({{-horRequestDistance + chunkPos.x, j + chunkPos.y, i + chunkPos.z}, ChunkAction::CREATE_UPDATE});
+					chunkRequests.push_back({{horRequestDistance + chunkPos.x, j + chunkPos.y, i + chunkPos.z}, ChunkAction::CREATE_UPDATE});
+				}
 			}
+			horRequestDistance++;
 		}
-		for (int i = -horRequestDistance; i <= horRequestDistance; i++) {
-			for (int j = -horRequestDistance; j < horRequestDistance; j++) {
-				chunkRequests.push_back({{i + chunkPos.x, -vertRequestDistance + chunkPos.y, j + chunkPos.z}, ChunkAction::CREATE_UPDATE});
-				chunkRequests.push_back({{i + chunkPos.x, vertRequestDistance + chunkPos.y, j + chunkPos.z}, ChunkAction::CREATE_UPDATE});
+		if (vertRequestDistance < VERTICAL_RENDER_DISTANCE) {
+			for (int i = -horRequestDistance; i <= horRequestDistance; i++) {
+				for (int j = -horRequestDistance; j < horRequestDistance; j++) {
+					chunkRequests.push_back({{i + chunkPos.x, -vertRequestDistance + chunkPos.y, j + chunkPos.z}, ChunkAction::CREATE_UPDATE});
+					chunkRequests.push_back({{i + chunkPos.x, vertRequestDistance + chunkPos.y, j + chunkPos.z}, ChunkAction::CREATE_UPDATE});
+				}
 			}
+			vertRequestDistance++;
 		}
-		horRequestDistance++;
-		vertRequestDistance++;
 	}
 	else {
-		horRequestDistance -= abs(lastChunkPos.y - chunkPos.y) + abs(lastChunkPos.x - chunkPos.x) + abs(lastChunkPos.z - chunkPos.z);
-		vertRequestDistance -= abs(lastChunkPos.y - chunkPos.y) + abs(lastChunkPos.x - chunkPos.x) + abs(lastChunkPos.z - chunkPos.z);
+		horRequestDistance = 1;
+		vertRequestDistance = 1;
 	}
 	
 	// Updating last chunk position to current
@@ -337,7 +352,7 @@ void	handleEvents(GameData &gameData) {
 		// Gravity update
 		if (!player.HaveNoclip() && player.IsFalling()) {
 			float targetGravity = glm::clamp(
-				(float)(player.getGravity() - GRAVITY_STRENGTH * window.getFrameTime()),
+				(float)(player.getGravity() - GRAVITY_ATTRACTION * window.getFrameTime()),
 				GRAVITY_MIN,
 				GRAVITY_MAX
 			);
@@ -360,17 +375,17 @@ void	handleEvents(GameData &gameData) {
 	// Skybox Shader parameters
 	float	dayDuration = 10;
 	vec2	angles = {(time / dayDuration) * M_PI, 25.0f};
-	vec3	sunPos {
+	vec3	sunPos = normalize(vec3{
 		cos(radians(angles.x)) * cos(radians(angles.y)),
 		sin(radians(angles.x)) * cos(radians(angles.y)),
 		sin(radians(angles.y)),
-	};
+	});
 
 	mat4		skyboxView = camera.getProjectionMatrix() * mat4(mat3(camera.getViewMatrix())); // Get rid of the translation part
 	vec3		camPos = camera.getCameraInfo().position;
 	bool		inWater = (gameData.voxelSystem.getBlockAt(camPos) == 9) ? true : false;
 
-	shadowMapCam.setPosition({camPos.x + sunPos.x * 600, camPos.y + sunPos.y * 600, camPos.z + sunPos.z * 600});
+	shadowMapCam.setPosition({camPos.x + sunPos.x * 200, camPos.y + sunPos.y * 200, camPos.z + sunPos.z * 200});
 	shadowMapCam.setLookAt(camPos);
 
 	// Skybox Pass Shader Parameters
@@ -422,5 +437,15 @@ void	handleEvents(GameData &gameData) {
 	if (POLYGON) {
 		shaders.setUniform((*shaders[5])->getID(), "view", camera.getViewMatrix());
 		shaders.setUniform((*shaders[5])->getID(), "projection", camera.getProjectionMatrix());
+		shaders.setUniform((*shaders[5])->getID(), "gPosition", 0);
+		shaders.setUniform((*shaders[5])->getID(), "gNormal", 1);
+		shaders.setUniform((*shaders[5])->getID(), "gColor", 2);
 	}
+
+	// Player Hand
+	shaders.setUniform((*shaders[6])->getID(), "projection", camera.getProjectionMatrix());
+	shaders.setUniform((*shaders[6])->getID(), "gPosition", 0);
+	shaders.setUniform((*shaders[6])->getID(), "gNormal", 1);
+	shaders.setUniform((*shaders[6])->getID(), "gColor", 2);
+	shaders.setUniform((*shaders[6])->getID(), "texID", gameData.playerHand.getID() - 1);
 }

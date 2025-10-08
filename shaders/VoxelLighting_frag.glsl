@@ -98,7 +98,7 @@ vec3 getSkyGradient(vec3 direction, float sunHeight) {
 	return mix(horizonColor, mixedSkyColor, t);
 }
 
-const float	SFSampleSize = 3.0f;
+const float	SFSampleSize = 1.0f;
 
 float	computeShadows(const vec4 lpFragPos, const vec3 normal) {
 	vec3	projCoords = lpFragPos.xyz / lpFragPos.w;

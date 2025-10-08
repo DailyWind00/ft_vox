@@ -240,7 +240,7 @@ const float	cloudSpeed = 0.00025;
 // Cloud parameters
 const float	phaseVal = 0.08;
 const float	cloudLightAbsorbtion =  1.14;
-const float	numStepRay = 16.0f;
+const float	numStepRay = 32.0f;
 
 // Light parameters
 float	numStepLight = 16.0f;
@@ -344,13 +344,10 @@ void	main() {
 	color *= cloudRayMarching(filterdUV * 2.0 - 1.0);
 
 	// Contrast and brightness filtering
-	color = 2.5f * (color - 0.5f) + 0.5f + 0.45f;
+	color = 2.65f * (color - 0.5f) + 0.5f + 0.55f;
 
 	// Tone Mapping
 	color = vec3(1.0) - exp(-color * 1.05);
-
-	// Gamma Correction
-	color = pow(color, vec3(1.0 / 2.2));
 
 	ScreenColor = max(vec4(color, 1.0f), crosshair);
 }

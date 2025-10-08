@@ -421,10 +421,6 @@ const GeoFrameBuffers	&VoxelSystem::renderGeometryPass(ShaderHandler &shader) {
 		if (!it->second.mesh->getVAO() || !it->second.mesh->getWaterVAO())
 			it->second.mesh->updateMesh();
 
-		// Draw the chunk
-		if (!it->second.mesh->getVAO())
-			continue ;
-
 		vec3	wPos = it->first;
 		shader.setUniform((*shader[1])->getID(), "worldPos", wPos);
 
@@ -481,7 +477,7 @@ const ShadowMappingData	&VoxelSystem::renderShadowMapPass(ShaderHandler &shader)
 			continue ;
 
 		// Draw the chunk
-		if (!it->second.mesh->getWaterVAO())
+		if (!it->second.mesh->getVAO())
 			continue ;
 
 		vec3	wPos = it->first;
